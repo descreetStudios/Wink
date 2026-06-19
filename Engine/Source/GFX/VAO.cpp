@@ -31,23 +31,6 @@ namespace Wink::GFX
 		return *this;
 	}
 
-	void VAO::bind() const noexcept
-	{
-		if (!is_valid())
-		{
-			Logger::Internal::error(
-				"Trying to bind an invalid VAO");
-			return;
-		}
-
-		glBindVertexArray(mID);
-	}
-
-	void VAO::unbind() noexcept
-	{
-		glBindVertexArray(0);
-	}
-
 	void VAO::attrib(u32 index, i32 count, u32 type,
 		i32 stride, size_t offset, bool normalized) const noexcept
 	{
@@ -58,11 +41,13 @@ namespace Wink::GFX
 			return;
 		}
 
-		glEnableVertexAttribArray(index);
-		glVertexAttribPointer(
-			index, count, type,
+		glEnableVertexArrayAttrib(mID, index);
+		glVertexArrayAttribFormat(
+			mID, index, count, type,
 			normalized ? GL_TRUE : GL_FALSE,
-			stride, reinterpret_cast<const void*>(offset));
+			static_cast<u32>(offset));
+
+		glVertexArrayAttribBinding(mID, index, index);
 	}
 
 	void VAO::attrib_i(u32 index, i32 count, u32 type,
@@ -75,21 +60,38 @@ namespace Wink::GFX
 			return;
 		}
 
-		glEnableVertexAttribArray(index);
-		glVertexAttribIPointer(
-			index, count, type, stride,
-			reinterpret_cast<const void*>(offset));
+		glEnableVertexArrayAttrib(mID, index);
+		glVertexArrayAttribIFormat(
+			mID, index, count, type,
+			static_cast<u32>(offset));
+
+		glVertexArrayAttribBinding(mID, index, index);
 	}
 
 	void VAO::divisor(u32 index, u32 div) const noexcept
 	{
-		glVertexAttribDivisor(index, div);
+		glVertexArrayBindingDivisor(mID, index, div);
+	}
+
+	void VAO::bind_vertex_buffer(
+		u32 bindingIndex, u32 bufferID,
+		size_t offset, i32 stride) const noexcept
+	{
+		glVertexArrayVertexBuffer(
+			mID, bindingIndex, bufferID,
+			static_cast<GLintptr>(offset),
+			stride);
+	}
+
+	void VAO::bind_index_buffer(u32 bufferID) const noexcept
+	{
+		glVertexArrayElementBuffer(mID, bufferID);
 	}
 
 	void VAO::reset() noexcept
 	{
 		if (mID) glDeleteVertexArrays(1, &mID);
-		glGenVertexArrays(1, &mID);
+		glCreateVertexArrays(1, &mID);
 	}
 
 	void VAO::label(const char* name) const noexcept
