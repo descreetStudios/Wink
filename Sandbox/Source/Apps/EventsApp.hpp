@@ -68,11 +68,6 @@ private:
 				Logger::info("V key repeat");
 			});
 
-		subscribe([](const KeyRepeatEvent& e) {
-			if (e.key == Key::V)
-				Logger::info("V key repeat");
-			});
-
 		/* Mouse */
 		subscribe([](const MouseMoveEvent& e) {
 			Logger::trace("Mouse moved to '{}x{}'", e.posX, e.posY);
