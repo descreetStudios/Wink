@@ -1,5 +1,5 @@
 #include <WinkEngine/pch.hpp>
-#include <WinkEngine/Core/Time.hpp>
+#include <Core/Time.hpp>
 
 namespace Wink::Time
 {

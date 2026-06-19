@@ -1,7 +1,7 @@
 #include <WinkEngine/pch.hpp>
 #include <WinkEngine/Core/Application.hpp>
 #include <WinkEngine/Core/Logger.hpp>
-#include <WinkEngine/Core/Time.hpp>
+#include <Core/Time.hpp>
 #include <WinkEngine/Core/Window.hpp>
 
 namespace Wink

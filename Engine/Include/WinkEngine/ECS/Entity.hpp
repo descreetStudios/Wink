@@ -1,7 +1,5 @@
 #pragma once
 
-#include <entt/entt.hpp>
-
 namespace Wink::ECS
 {
 	class Scene;

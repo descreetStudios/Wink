@@ -41,6 +41,18 @@ set(ENTT_BUILD_TESTING OFF CACHE BOOL "" FORCE)
 set(ENTT_USE_LIBCPP OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(entt)
 
+# GLM
+FetchContent_Declare(
+    glm
+    GIT_REPOSITORY https://github.com/g-truc/glm.git
+    GIT_TAG 1.0.3
+)
+FetchContent_MakeAvailable(glm)
+
+# GLAD
+add_library(glad ${CMAKE_CURRENT_SOURCE_DIR}/Vendor/glad/src/glad.c)
+target_include_directories(glad PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Vendor/glad/include)
+
 # --- PCH --- #
 target_precompile_headers(Engine 
 PUBLIC 
@@ -70,6 +82,8 @@ target_link_libraries(Engine
 PUBLIC
     eventpp::eventpp
     EnTT::EnTT
+    glm::glm
+    glad
 )
 
 target_sources(Engine 
@@ -79,7 +93,7 @@ PRIVATE
     "Source/Core/Application.cpp" 
     "Source/Core/Logger.cpp" 
     "Source/Core/Time.cpp" 
-    "Source/Core/Window.cpp" "Source/ECS/Entity.cpp" "Source/ECS/Scene.cpp")
+    "Source/Core/Window.cpp" "Source/ECS/Entity.cpp" "Source/ECS/Scene.cpp" "Source/GFX/VAO.cpp")
 
 set(WINK_ENGINE_SHADERS_DIR
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/GFX/Shaders"
