@@ -1,3 +1,5 @@
+#pragma once
+
 #include <WinkEngine/Core.hpp>
 
 using namespace Wink;

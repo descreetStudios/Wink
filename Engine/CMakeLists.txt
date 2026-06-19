@@ -31,6 +31,16 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glfw)
 
+# ENTT
+FetchContent_Declare(
+    entt
+    GIT_REPOSITORY https://github.com/skypjack/entt.git
+    GIT_TAG v3.16.0
+)
+set(ENTT_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(ENTT_USE_LIBCPP OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(entt)
+
 # --- PCH --- #
 target_precompile_headers(Engine 
 PUBLIC 
@@ -59,6 +69,7 @@ PRIVATE
 target_link_libraries(Engine
 PUBLIC
     eventpp::eventpp
+    EnTT::EnTT
 )
 
 target_sources(Engine 
@@ -68,7 +79,7 @@ PRIVATE
     "Source/Core/Application.cpp" 
     "Source/Core/Logger.cpp" 
     "Source/Core/Time.cpp" 
-    "Source/Core/Window.cpp")
+    "Source/Core/Window.cpp" "Source/ECS/Entity.cpp" "Source/ECS/Scene.cpp")
 
 set(WINK_ENGINE_SHADERS_DIR
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/GFX/Shaders"

@@ -1,6 +1,6 @@
-#include <WinkEngine/Core.hpp>
+#pragma once
 
-#include <tracy/Tracy.hpp>
+#include <WinkEngine/Core.hpp>
 
 using namespace Wink;
 
@@ -9,8 +9,6 @@ class SandboxApp : public Application
 public:
 	void on_init() override
 	{
-		ZoneScopedN("Init");
-
 		Logger::set_level(Logger::Level::Trace);
 
 		subscribe_to_events();

@@ -1,10 +1,13 @@
 #define APP_APP 0
-#define APP_EVENTS 1
+#define APP_EVENTS 0
+#define APP_ECS 1
 
 #if APP_APP
 #include "Apps/App.hpp"
 #elif APP_EVENTS
 #include "Apps/EventsApp.hpp"
+#elif APP_ECS
+#include "Apps/ECSApp.hpp"
 #else
 #error No apps enabled!
 #endif
