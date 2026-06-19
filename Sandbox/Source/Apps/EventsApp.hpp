@@ -59,8 +59,8 @@ private:
 			});
 
 		subscribe([](const KeyReleaseEvent& e) {
-			if (e.key == Key::V)
-				Logger::info("V key released");
+			if (e.key == Key::Escape)
+				Window::close();
 			});
 
 		subscribe([](const KeyRepeatEvent& e) {
