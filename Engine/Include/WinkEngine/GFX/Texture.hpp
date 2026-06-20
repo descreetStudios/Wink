@@ -40,22 +40,22 @@ namespace Wink::GFX
 		MOVE_ASSIGN(Texture2D) noexcept;
 
 		void upload(const u8* pixels, u32 width, u32 height,
-			const TextureParams& p = {}) noexcept;
+			const TextureParams& params = {}) noexcept;
 
 		void allocate(u32 width, u32 height, u32 internalFormat,
-			const TextureParams& p = {}) noexcept;
+			const TextureParams& params = {}) noexcept;
 
 		void bind(u32 unit = 0) const noexcept;
 
 		[[nodiscard]] u32 get_id() const noexcept { return mID; }
-		[[nodiscard]] u32 width() const noexcept { return mWidth; }
-		[[nodiscard]] u32 height() const noexcept { return mHeight; }
+		[[nodiscard]] u32 get_width() const noexcept { return mWidth; }
+		[[nodiscard]] u32 get_height() const noexcept { return mHeight; }
 		[[nodiscard]] bool is_valid() const noexcept { return mID != 0; }
 
 		explicit operator bool() const noexcept { return is_valid(); }
 
 	private:
-		void apply_params(const TextureParams& p) const noexcept;
+		void apply_params(const TextureParams& params) const noexcept;
 
 	private:
 		u32 mID = 0;

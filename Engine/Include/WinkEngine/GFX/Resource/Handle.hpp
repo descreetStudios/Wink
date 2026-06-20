@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Wink::Resource
+namespace Wink::GFX::Resource
 {
 	template<typename Tag>
 	struct Handle
@@ -22,14 +22,16 @@ namespace Wink::Resource
 	};
 
 	struct ShaderTag {};
+	struct TextureTag {};
 
 	using ShaderHandle = Handle<ShaderTag>;
+	using TextureHandle = Handle<TextureTag>;
 }
 
 template<typename Tag>
-struct std::hash<Wink::Resource::Handle<Tag>>
+struct std::hash<Wink::GFX::Resource::Handle<Tag>>
 {
-	size_t operator()(const Wink::Resource::Handle<Tag>& h) const noexcept
+	size_t operator()(const Wink::GFX::Resource::Handle<Tag>& h) const noexcept
 	{
 		return (static_cast<size_t>(h.index) << 32) ^ h.generation;
 	}

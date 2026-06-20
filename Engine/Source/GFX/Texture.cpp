@@ -1,5 +1,5 @@
 #include <WinkEngine/pch.hpp>
-#include <GFX/Texture.hpp>
+#include <WinkEngine/GFX/Texture.hpp>
 
 namespace Wink::GFX
 {
@@ -34,45 +34,45 @@ namespace Wink::GFX
 
 	void Texture2D::upload(const u8* pixels,
 		u32 width, u32 height,
-		const TextureParams& p) noexcept
+		const TextureParams& params) noexcept
 	{
 		mWidth = width;
 		mHeight = height;
 
 		u32 internal =
-			p.sRGB
-			? (p.hasAlpha ? GL_SRGB8_ALPHA8 : GL_SRGB8)
-			: (p.hasAlpha ? GL_RGBA8 : GL_RGB8);
+			params.sRGB
+			? (params.hasAlpha ? GL_SRGB8_ALPHA8 : GL_SRGB8)
+			: (params.hasAlpha ? GL_RGBA8 : GL_RGB8);
 
-		glTextureStorage2D(mID, p.genMips ? 8 : 1,
+		glTextureStorage2D(mID, params.genMips ? 8 : 1,
 			internal, width, height);
 
 		glTextureSubImage2D(
 			mID, 0, 0, 0, width, height,
-			p.hasAlpha ? GL_RGBA : GL_RGB,
+			params.hasAlpha ? GL_RGBA : GL_RGB,
 			GL_UNSIGNED_BYTE,
 			pixels
 		);
 
-		apply_params(p);
+		apply_params(params);
 
-		if (p.genMips)
+		if (params.genMips)
 			glGenerateTextureMipmap(mID);
 	}
 
 	void Texture2D::allocate(
 		u32 width, u32 height, u32 internalFormat,
-		const TextureParams& p) noexcept
+		const TextureParams& params) noexcept
 	{
 		mWidth = width;
 		mHeight = height;
 
-		glTextureStorage2D(mID, p.genMips ? 8 : 1,
+		glTextureStorage2D(mID, params.genMips ? 8 : 1,
 			internalFormat, width, height);
 
-		apply_params(p);
+		apply_params(params);
 
-		if (p.genMips)
+		if (params.genMips)
 			glGenerateTextureMipmap(mID);
 	}
 
@@ -81,11 +81,11 @@ namespace Wink::GFX
 		glBindTextureUnit(unit, mID);
 	}
 
-	void Texture2D::apply_params(const TextureParams& p) const noexcept
+	void Texture2D::apply_params(const TextureParams& params) const noexcept
 	{
-		glTextureParameteri(mID, GL_TEXTURE_WRAP_S, static_cast<i32>(p.wrapS));
-		glTextureParameteri(mID, GL_TEXTURE_WRAP_T, static_cast<i32>(p.wrapT));
-		glTextureParameteri(mID, GL_TEXTURE_MIN_FILTER, static_cast<i32>(p.minFilter));
-		glTextureParameteri(mID, GL_TEXTURE_MAG_FILTER, static_cast<i32>(p.magFilter));
+		glTextureParameteri(mID, GL_TEXTURE_WRAP_S, static_cast<i32>(params.wrapS));
+		glTextureParameteri(mID, GL_TEXTURE_WRAP_T, static_cast<i32>(params.wrapT));
+		glTextureParameteri(mID, GL_TEXTURE_MIN_FILTER, static_cast<i32>(params.minFilter));
+		glTextureParameteri(mID, GL_TEXTURE_MAG_FILTER, static_cast<i32>(params.magFilter));
 	}
 }

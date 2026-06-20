@@ -53,6 +53,9 @@ FetchContent_MakeAvailable(glm)
 add_library(glad ${CMAKE_CURRENT_SOURCE_DIR}/Vendor/glad/src/glad.c)
 target_include_directories(glad PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Vendor/glad/include)
 
+# STBI
+target_include_directories(Engine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Vendor/stb/include)
+
 # --- PCH --- #
 target_precompile_headers(Engine 
 PUBLIC 
@@ -99,16 +102,20 @@ PRIVATE
     "Source/ECS/Entity.cpp" 
     "Source/ECS/Scene.cpp" 
     
-    # --- OpenGL Abstractions --- #
+    # --- Graphics Abstractions --- #
     "Source/GFX/VAO.cpp" 
     "Source/GFX/Buffer.cpp" 
     "Source/GFX/Texture.cpp" 
     "Source/GFX/Framebuffer.cpp" 
     "Source/GFX/Shader.cpp" 
     
-    # --- Resource --- #
-    "Source/Resource/ShaderPool.cpp"
+    # --- Graphics Resources --- #
+    "Source/GFX/Resource/ShaderPool.cpp" 
+    "Source/GFX/Resource/TexturePool.cpp" 
     
+    # --- Content --- #
+    "Source/Content/Image.cpp" 
+
     # --- Graphics --- #
     "Source/GFX/Renderer.cpp")
 

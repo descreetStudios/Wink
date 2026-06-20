@@ -1,8 +1,8 @@
 #pragma once
 
-#include <WinkEngine/Resource/Handle.hpp>
+#include <WinkEngine/GFX/Resource/Handle.hpp>
 
-namespace Wink::Resource
+namespace Wink::GFX::Resource
 {
 	class IResourcePool
 	{

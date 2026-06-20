@@ -19,7 +19,7 @@
     },
 
     {
-      "name": "debug",
+      "name": "Debug",
       "displayName": "Debug",
       "inherits": "base",
       "cacheVariables": {
@@ -28,7 +28,7 @@
     },
 
     {
-      "name": "release",
+      "name": "Release",
       "displayName": "Release",
       "inherits": "base",
       "cacheVariables": {
@@ -37,7 +37,7 @@
     },
 
     {
-      "name": "relwithdebinfo",
+      "name": "RelWithDebInfo",
       "displayName": "RelWithDebInfo",
       "inherits": "base",
       "cacheVariables": {
@@ -49,30 +49,30 @@
   "buildPresets": [
     {
       "name": "Debug",
-      "configurePreset": "debug"
+      "configurePreset": "Debug"
     },
     {
       "name": "Release",
-      "configurePreset": "release"
+      "configurePreset": "Release"
     },
     {
       "name": "RelWithDebInfo",
-      "configurePreset": "relwithdebinfo"
+      "configurePreset": "RelWithDebInfo"
     }
   ],
 
   "testPresets": [
     {
       "name": "Debug",
-      "configurePreset": "debug"
+      "configurePreset": "Debug"
     },
     {
       "name": "Release",
-      "configurePreset": "release"
+      "configurePreset": "Release"
     },
     {
       "name": "RelWithDebInfo",
-      "configurePreset": "relwithdebinfo"
+      "configurePreset": "RelWithDebInfo"
     }
   ]
 }

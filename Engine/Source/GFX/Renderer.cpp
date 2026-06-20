@@ -8,6 +8,7 @@ namespace Wink::GFX
 	namespace
 	{
 		Resource::ShaderPool gShaderPool;
+		Resource::TexturePool gTexturePool;
 	} // anonymous namespace
 
 	bool init()
@@ -32,7 +33,7 @@ namespace Wink::GFX
 
 	void shutdown()
 	{
-		clear_all_resources();
+		Resource::clear_all_resources();
 	}
 
 	void resize(u32 width, u32 height)
@@ -47,14 +48,22 @@ namespace Wink::GFX
 		glClearColor(color.r, color.g, color.b, color.a);
 	}
 
-	/* --- Resources --- */
-	Resource::ShaderPool& get_shader_pool() noexcept
+	namespace Resource
 	{
-		return gShaderPool;
-	}
+		ShaderPool& get_shader_pool() noexcept
+		{
+			return gShaderPool;
+		}
 
-	void clear_all_resources() noexcept
-	{
-		gShaderPool.clear();
+		TexturePool& get_texture_pool() noexcept
+		{
+			return gTexturePool;
+		}
+
+		void clear_all_resources() noexcept
+		{
+			gShaderPool.clear();
+			gTexturePool.clear();
+		}
 	}
 }
