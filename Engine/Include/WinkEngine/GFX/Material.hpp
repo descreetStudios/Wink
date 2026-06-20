@@ -25,8 +25,8 @@ namespace Wink::GFX
 	public:
 		Material() = default;
 		explicit Material(Resource::ShaderHandle shader,
-			MaterialTextures textures = MaterialTextures(),
-			MaterialParams params = MaterialParams());
+			MaterialTextures textures = {},
+			MaterialParams params = {});
 
 		void apply() const noexcept;
 

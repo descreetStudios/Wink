@@ -18,6 +18,7 @@ namespace Wink
 		while (Window::is_open())
 		{
 			Window::poll();
+			GFX::Resource::poll_hot_reloads();
 
 			Time::tick();
 

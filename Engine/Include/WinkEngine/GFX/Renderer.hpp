@@ -34,5 +34,6 @@ namespace Wink::GFX
 		[[nodiscard]] TexturePool& get_texture_pool() noexcept;
 		[[nodiscard]] MaterialPool& get_material_pool() noexcept;
 		void clear_all_resources() noexcept;
+		void poll_hot_reloads() noexcept;
 	}
 }

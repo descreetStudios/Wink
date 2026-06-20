@@ -96,6 +96,7 @@ PRIVATE
     "Source/Core/Application.cpp" 
     "Source/Core/Logger.cpp" 
     "Source/Core/Time.cpp" 
+    "Source/Core/FileWatcher.cpp" 
     "Source/Core/Window.cpp" 
 
     # --- ECS --- #

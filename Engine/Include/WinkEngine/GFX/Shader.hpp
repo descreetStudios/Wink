@@ -49,6 +49,9 @@ namespace Wink::GFX
 	class ShaderProgram
 	{
 	public:
+		bool hotReloadEnabled = true;
+
+	public:
 		ShaderProgram();
 		~ShaderProgram();
 

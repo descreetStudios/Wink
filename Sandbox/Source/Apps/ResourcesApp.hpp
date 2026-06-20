@@ -13,6 +13,8 @@ public:
 		using namespace GFX;
 		using namespace Resource;
 
+		Logger::set_level(Logger::Level::Trace);
+
 		set_clear_color({ 0.53f, 0.81f, 0.92f, 1.0f });
 
 		auto& meshPool = Resource::get_mesh_pool();

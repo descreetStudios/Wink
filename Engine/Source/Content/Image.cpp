@@ -6,10 +6,10 @@
 
 namespace Wink::Content
 {
-	ImageData load_image(const fs::path& path,
+	DecodedImage decode_image(const fs::path& path,
 		bool forceRGBA, bool flipVertically) noexcept
 	{
-		ImageData img;
+		DecodedImage img;
 
 		if (!fs::exists(path) || !fs::is_regular_file(path))
 		{
@@ -48,11 +48,11 @@ namespace Wink::Content
 		return img;
 	}
 
-	ImageData load_image_from_memory(
+	DecodedImage decode_image_from_memory(
 		const u8* buffer, size_t size,
 		bool forceRGBA, bool flipVertically) noexcept
 	{
-		ImageData img;
+		DecodedImage img;
 
 		if (!buffer || size == 0)
 		{

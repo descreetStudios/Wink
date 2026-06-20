@@ -96,6 +96,13 @@ namespace Wink::GFX::Resource
 			return true;
 		}
 
+		bool replace(HandleType handle, T&& newValue) noexcept
+		{
+			if (!is_valid(handle)) return false;
+			mSlots[handle.index].value = std::move(newValue);
+			return true;
+		}
+
 	private:
 		struct Slot
 		{

@@ -2,7 +2,7 @@
 
 namespace Wink::Content
 {
-	struct ImageData
+	struct DecodedImage
 	{
 		i32 width = 0;
 		i32 height = 0;
@@ -14,12 +14,12 @@ namespace Wink::Content
 		explicit operator bool() const noexcept { return is_valid(); }
 	};
 
-	ImageData load_image(
+	[[nodiscard]] DecodedImage decode_image(
 		const fs::path& path,
 		bool forceRGBA = true,
 		bool flipVertically = true) noexcept;
 
-	ImageData load_image_from_memory(
+	[[nodiscard]] DecodedImage decode_image_from_memory(
 		const u8* buffer, size_t size,
 		bool forceRGBA = true,
 		bool flipVertically = true) noexcept;

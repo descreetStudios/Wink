@@ -104,5 +104,11 @@ namespace Wink::GFX
 			gShaderPool.clear();
 			gTexturePool.clear();
 		}
+
+		void poll_hot_reloads() noexcept
+		{
+			gShaderPool.poll_hot_reload();
+			gTexturePool.poll_hot_reload();
+		}
 	}
 }

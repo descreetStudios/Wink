@@ -32,6 +32,9 @@ namespace Wink::GFX
 	class Texture2D
 	{
 	public:
+		bool hotReloadEnabled = true;
+
+	public:
 		Texture2D();
 		~Texture2D();
 

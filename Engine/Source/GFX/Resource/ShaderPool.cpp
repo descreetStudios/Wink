@@ -1,5 +1,6 @@
 #include <WinkEngine/pch.hpp>
 #include <WinkEngine/GFX/Resource/ShaderPool.hpp>
+#include <WinkEngine/Core/Logger.hpp>
 
 namespace Wink::GFX::Resource
 {
@@ -8,14 +9,36 @@ namespace Wink::GFX::Resource
 		return commit(Internal::create_program(sources));
 	}
 
-	ShaderHandle ShaderPool::load(const std::vector<ShaderFile>& files)
+	ShaderHandle ShaderPool::load(const std::vector<ShaderFile>& files, bool hotReload)
 	{
-		return commit(Internal::create_program(files));
+		ShaderHandle handle = commit(Internal::create_program(files));
+		if (!handle.is_valid())
+			return handle;
+
+		mReloadSources[handle.index] = files;
+		set_hot_reload(handle, hotReload);
+		return handle;
 	}
 
 	void ShaderPool::unload(ShaderHandle handle) noexcept
 	{
+		stop_watching(handle);
+		mReloadSources.erase(handle.index);
 		deallocate(handle);
+	}
+
+	void ShaderPool::set_hot_reload(
+		ShaderHandle handle, bool enabled) const noexcept
+	{
+		with(handle, [&](ShaderProgram& p) { p.hotReloadEnabled = enabled; });
+
+		if (enabled) start_watching(handle);
+		else stop_watching(handle);
+	}
+
+	void ShaderPool::poll_hot_reload()
+	{
+		mWatcher.poll();
 	}
 
 	u32 ShaderPool::get_id(ShaderHandle handle) const noexcept
@@ -39,5 +62,52 @@ namespace Wink::GFX::Resource
 			return ShaderHandle();
 
 		return allocate(std::move(*program));
+	}
+
+	void ShaderPool::start_watching(ShaderHandle handle) const
+	{
+		auto it = mReloadSources.find(handle.index);
+		if (it == mReloadSources.end()) return;
+
+		for (const ShaderFile& file : it->second)
+		{
+			mWatcher.watch(file.path, [this, handle](const fs::path&)
+				{
+					reload(handle);
+				});
+		}
+	}
+
+	void ShaderPool::stop_watching(ShaderHandle handle) const
+	{
+		auto it = mReloadSources.find(handle.index);
+		if (it == mReloadSources.end()) return;
+
+		for (const ShaderFile& file : it->second)
+			mWatcher.unwatch(file.path);
+	}
+
+	void ShaderPool::reload(ShaderHandle handle) const
+	{
+		bool enabled = false;
+		with(handle, [&](ShaderProgram& p) { enabled = p.hotReloadEnabled; });
+		if (!enabled) return;
+
+		Logger::trace("Hot-reloading shader");
+
+		auto it = mReloadSources.find(handle.index);
+		if (it == mReloadSources.end()) return;
+
+		std::optional<ShaderProgram> rebuilt = Internal::create_program(it->second);
+		if (!rebuilt.has_value())
+		{
+			Logger::Internal::error(
+				"Shader hot-reload failed for handle index '{}'; keeping previous program.",
+				handle.index);
+			return;
+		}
+
+		rebuilt->hotReloadEnabled = true;
+		const_cast<ShaderPool*>(this)->replace(handle, std::move(*rebuilt));
 	}
 }
