@@ -101,6 +101,9 @@ PRIVATE
     # --- ECS --- #
     "Source/ECS/Entity.cpp" 
     "Source/ECS/Scene.cpp" 
+
+    # --- Systems --- #
+    "Source/ECS/Systems/TransformSystem.cpp"
     
     # --- Graphics Abstractions --- #
     "Source/GFX/VAO.cpp" 
