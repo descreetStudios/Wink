@@ -44,11 +44,6 @@ namespace Wink::GFX
 
 	bool Material::is_valid() const noexcept
 	{
-		auto& shaderPool = Resource::get_shader_pool();
-		auto& texturePool = Resource::get_texture_pool();
-
-		return shaderPool.is_valid(shader) &&
-			textures.albedo.has_value() && texturePool.is_valid(*textures.albedo) &&
-			textures.normal.has_value() && texturePool.is_valid(*textures.normal);
+		return Resource::get_shader_pool().is_valid(shader);
 	}
 }

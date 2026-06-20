@@ -17,6 +17,7 @@ public:
 		auto& texturePool = GFX::Resource::get_texture_pool();
 		auto& materialPool = GFX::Resource::get_material_pool();
 
+		/* Shader resource test */
 		auto shaderHandle = shaderPool.load(std::vector<GFX::ShaderFile>{
 			{ GFX::ShaderType::Vertex, "Shaders/default_vs.glsl" },
 			{ GFX::ShaderType::Fragment, "Shaders/default_fs.glsl" }
@@ -29,6 +30,7 @@ public:
 				shaderPool.get_id(shaderHandle));
 		}
 
+		/* Texture resource test */
 		auto textureHandle = texturePool.load("dog.png");
 
 		if (texturePool.is_valid(textureHandle))
@@ -47,6 +49,7 @@ public:
 		.indices = { 0, 1, 2 }
 		};
 
+		/* Mesh resource test */
 		auto meshHandle = meshPool.load(triangleData);
 
 		if (meshPool.is_valid(meshHandle))
@@ -57,18 +60,20 @@ public:
 				meshPool.get_index_count(meshHandle));
 		}
 
+		/* Material resource test */
 		auto matHandle = materialPool.create(shaderHandle);
 		materialPool.set_albedo(matHandle, textureHandle);
 		materialPool.set_base_color(matHandle, { 1, 0.5f, 0.5f, 1 });
 
-		if (materialPool.is_valid(matHandle))
+		auto albedo = materialPool.get_albedo(matHandle);
+		if (materialPool.is_valid(matHandle) &&
+			albedo.has_value())
 		{
 			const glm::vec4 color = materialPool.get_base_color(matHandle);
 
 			Logger::info(
 				"Successfully created material, albedo ID: '{}', base color: '{}'",
-				texturePool.get_id((*materialPool.get_albedo(matHandle))),
-				glm::to_string(color));
+				texturePool.get_id(albedo.value()), glm::to_string(color));
 		}
 	}
 };
