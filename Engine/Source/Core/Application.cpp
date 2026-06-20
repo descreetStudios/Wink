@@ -3,6 +3,7 @@
 #include <WinkEngine/Core/Logger.hpp>
 #include <Core/Time.hpp>
 #include <WinkEngine/Core/Window.hpp>
+#include <WinkEngine/GFX/Renderer.hpp>
 
 namespace Wink
 {
@@ -11,7 +12,7 @@ namespace Wink
 		Time::init();
 		Logger::init();
 		if (!Window::init(window_config())) return;
-		//GFX::init();
+		GFX::init();
 		on_init();
 
 		while (Window::is_open())
@@ -29,13 +30,13 @@ namespace Wink
 			on_update(Time::get_delta());
 
 			on_render(Time::get_alpha());
-			//GFX::render();
+			GFX::render();
 
 			Window::swap();
 		}
 
 		on_shutdown();
-		//GFX::shutdown();
+		GFX::shutdown();
 		Window::shutdown();
 		Logger::shutdown();
 	}

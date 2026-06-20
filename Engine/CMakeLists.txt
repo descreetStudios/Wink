@@ -99,15 +99,18 @@ PRIVATE
     "Source/ECS/Entity.cpp" 
     "Source/ECS/Scene.cpp" 
     
-    # --- Graphics Abstractions --- #
+    # --- OpenGL Abstractions --- #
     "Source/GFX/VAO.cpp" 
     "Source/GFX/Buffer.cpp" 
     "Source/GFX/Texture.cpp" 
     "Source/GFX/Framebuffer.cpp" 
     "Source/GFX/Shader.cpp" 
     
-    # --- Resource Loaders --- #
-    "Source/GFX/ShaderLoader.cpp")
+    # --- Resource --- #
+    "Source/Resource/ShaderPool.cpp"
+    
+    # --- Graphics --- #
+    "Source/GFX/Renderer.cpp")
 
 set(WINK_ENGINE_SHADERS_DIR
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/GFX/Shaders"

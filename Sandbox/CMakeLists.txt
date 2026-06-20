@@ -19,3 +19,5 @@ PRIVATE
     Engine
     Tracy::TracyClient
 )
+
+wink_copy_engine_shaders(Sandbox)

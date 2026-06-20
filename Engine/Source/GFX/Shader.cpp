@@ -1,6 +1,5 @@
 #include <WinkEngine/pch.hpp>
-#include <GFX/Shader.hpp>
-#include <WinkEngine/GFX/ShaderLoader.hpp>
+#include <WinkEngine/GFX/Shader.hpp>
 #include <WinkEngine/Core/Logger.hpp>
 
 namespace Wink::GFX
