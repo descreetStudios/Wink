@@ -92,7 +92,7 @@ namespace Wink::GFX
 	}
 
 	MOVE_CTOR_IMPL(ShaderProgram) noexcept
-		: mID(o.mID)
+		: mID(o.mID), mUniformCache(std::move(o.mUniformCache))
 	{
 		o.mID = 0;
 	}
@@ -103,6 +103,7 @@ namespace Wink::GFX
 		{
 			glDeleteProgram(mID);
 			mID = o.mID;
+			mUniformCache = std::move(o.mUniformCache);
 			o.mID = 0;
 		}
 		return *this;
