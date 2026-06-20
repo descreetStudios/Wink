@@ -27,6 +27,13 @@
 /* Vendor Headers */
 #include <entt/entt.hpp>
 #include <glad/glad.h>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/vector_angle.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 
 /* Custom Headers */
 #include <WinkEngine/Core/PrimitiveTypes.hpp>
