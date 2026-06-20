@@ -18,24 +18,6 @@ namespace Wink::GFX::Resource
 		deallocate(handle);
 	}
 
-	void ShaderPool::use(ShaderHandle handle) const noexcept
-	{
-		with(handle, [](ShaderProgram& p) { p.use(); });
-	}
-
-	void ShaderPool::set_texture(ShaderHandle handle,
-		std::string_view name, i32 unit) const noexcept
-	{
-		with(handle, [&](ShaderProgram& p) { p.set_texture(name, unit); });
-	}
-
-	void ShaderPool::bind_ubo_block(ShaderHandle handle,
-		std::string_view blockName, u32 bindingPoint) const noexcept
-	{
-		with(handle, [&](ShaderProgram& p) {
-			p.bind_ubo_block(blockName, bindingPoint); });
-	}
-
 	u32 ShaderPool::get_id(ShaderHandle handle) const noexcept
 	{
 		u32 id = 0;

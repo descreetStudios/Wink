@@ -6,8 +6,20 @@ namespace Wink::GFX
 {
 	namespace
 	{
+		struct TextureSlotDesc {
+			std::optional<Resource::TextureHandle> MaterialTextures::*slot;
+			const char* uniformName;
+			const char* hasUniformName;
+			u32 unit;
+		};
+
 		constexpr i32 ALBEDO_UNIT = 0;
 		constexpr i32 NORMAL_UNIT = 1;
+
+		constexpr TextureSlotDesc TEXTURE_SLOTS[] = {
+			{ &MaterialTextures::albedo, "uAlbedoMap", "uHasAlbedoMap", ALBEDO_UNIT },
+			{ &MaterialTextures::normal, "uNormalMap", "uHasNormalMap", NORMAL_UNIT },
+		};
 	}
 
 	Material::Material(Resource::ShaderHandle shader,
@@ -18,28 +30,28 @@ namespace Wink::GFX
 
 	void Material::apply() const noexcept
 	{
-		auto& shaderPool = Resource::get_shader_pool();
-		auto& texturePool = Resource::get_texture_pool();
+		ShaderProgram* s = Resource::get_shader_pool().try_get(shader);
 
-		shaderPool.use(shader);
+		s->use();
 
-		if (textures.albedo.has_value())
+		const MaterialTextures& tex = textures;
+
+		for (const auto& desc : TEXTURE_SLOTS)
 		{
-			texturePool.bind(*textures.albedo, ALBEDO_UNIT);
-			shaderPool.set_texture(shader, "uAlbedoMap", ALBEDO_UNIT);
-			shaderPool.set(shader, "uHasAlbedoMap", true);
-		}
-		else shaderPool.set(shader, "uHasAlbedoMap", false);
+			const auto& optTexID = tex.*(desc.slot);
 
-		if (textures.normal.has_value())
-		{
-			texturePool.bind(*textures.normal, NORMAL_UNIT);
-			shaderPool.set_texture(shader, "uNormalMap", NORMAL_UNIT);
-			shaderPool.set(shader, "uHasNormalMap", true);
-		}
-		else shaderPool.set(shader, "uHasNormalMap", false);
+			if (optTexID.has_value())
+			{
+				Texture2D* t = Resource::get_texture_pool().try_get(*optTexID);
+				t->bind(desc.unit);
 
-		shaderPool.set(shader, "uBaseColor", params.baseColor);
+				s->set_texture(desc.uniformName, desc.unit);
+				s->set(desc.hasUniformName, true);
+			}
+			else s->set(desc.hasUniformName, false);
+		}
+
+		s->set("uBaseColor", params.baseColor);
 	}
 
 	bool Material::is_valid() const noexcept

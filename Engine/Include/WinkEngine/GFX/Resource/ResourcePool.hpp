@@ -54,6 +54,18 @@ namespace Wink::GFX::Resource
 				&& mSlots[handle.index].value.has_value();
 		}
 
+		[[nodiscard]] T* try_get(HandleType handle) noexcept
+		{
+			if (!is_valid(handle)) return nullptr;
+			return &*mSlots[handle.index].value;
+		}
+
+		[[nodiscard]] const T* try_get(HandleType handle) const noexcept
+		{
+			if (!is_valid(handle)) return nullptr;
+			return &*mSlots[handle.index].value;
+		}
+
 		[[nodiscard]] size_t live_count() const noexcept override { return mLiveCount; }
 		[[nodiscard]] size_t capacity() const noexcept override { return mSlots.size(); }
 
