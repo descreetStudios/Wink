@@ -26,6 +26,8 @@
 
 /* Vendor Headers */
 #include <entt/entt.hpp>
+#include <entt/resource/cache.hpp>
+#include <entt/resource/loader.hpp>
 #include <glad/glad.h>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>

@@ -104,7 +104,10 @@ PRIVATE
     "Source/GFX/Buffer.cpp" 
     "Source/GFX/Texture.cpp" 
     "Source/GFX/Framebuffer.cpp" 
-    "Source/GFX/Shader.cpp")
+    "Source/GFX/Shader.cpp" 
+    
+    # --- Resource Loaders --- #
+    "Source/GFX/ShaderLoader.cpp")
 
 set(WINK_ENGINE_SHADERS_DIR
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/GFX/Shaders"
