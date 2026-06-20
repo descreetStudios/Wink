@@ -60,7 +60,7 @@ namespace Wink::GFX
 		[[nodiscard]] size_t get_size() const noexcept { return mSize; }
 		[[nodiscard]] bool is_valid() const noexcept { return mID != 0; }
 
-		operator bool() const noexcept { return is_valid(); }
+		explicit operator bool() const noexcept { return is_valid(); }
 
 	private:
 		u32 mID = 0;
