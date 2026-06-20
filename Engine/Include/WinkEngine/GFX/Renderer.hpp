@@ -7,6 +7,19 @@
 
 namespace Wink::GFX
 {
+	struct RenderObject
+	{
+		Resource::MeshHandle mesh;
+		Resource::MaterialHandle material;
+	};
+
+	struct CameraData
+	{
+		glm::vec3 position;
+		glm::mat4 view;
+		glm::mat4 proj;
+	};
+
 	bool init();
 	void render();
 	void shutdown();

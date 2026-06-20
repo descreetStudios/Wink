@@ -1,5 +1,11 @@
 #include <WinkEngine/pch.hpp>
 #include <WinkEngine/GFX/Renderer.hpp>
+
+#include <WinkEngine/ECS/Scene.hpp>
+#include <WinkEngine/ECS/Components/TransformComponent.hpp>
+#include <WinkEngine/ECS/Components/RenderObjectComponent.hpp>
+#include <WinkEngine/ECS/Systems/TransformSystem.hpp>
+
 #include <WinkEngine/Core/Logger.hpp>
 #include <GLFW/glfw3.h>
 
@@ -31,6 +37,27 @@ namespace Wink::GFX
 	void render()
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		auto scene = ECS::get_active_scene();
+		static bool sceneWarn = true;
+		if (!scene)
+		{
+			if (sceneWarn)
+			{
+				Logger::warn("No scene found to render from");
+				sceneWarn = false;
+			}
+			return;
+		}
+
+		for (auto&& [id, tC, roC] :
+			scene->view<ECS::TransformComponent,
+			ECS::RenderObjectComponent>())
+		{
+			auto e = scene->wrap(id);
+			if (tC.dirty)
+				ECS::update_world_transform(*scene, id);
+		}
 	}
 
 	void shutdown()

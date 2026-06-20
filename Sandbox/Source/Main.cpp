@@ -1,7 +1,7 @@
 #define APP_APP 0
 #define APP_EVENTS 0
-#define APP_ECS 0
-#define APP_RESOURCES 1
+#define APP_ECS 1
+#define APP_RESOURCES 0
 
 #if APP_APP
 #include "Apps/App.hpp"

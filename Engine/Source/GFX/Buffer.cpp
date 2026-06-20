@@ -39,7 +39,7 @@ namespace Wink::GFX
 	{
 		if (!is_valid())
 		{
-			Logger::error(
+			Logger::Internal::error(
 				"Trying to upload data to an invalid buffer");
 			return;
 		}
@@ -56,7 +56,7 @@ namespace Wink::GFX
 	{
 		if (!is_valid())
 		{
-			Logger::error(
+			Logger::Internal::error(
 				"Trying to partially upload data to an invalid buffer");
 			return;
 		}
@@ -70,7 +70,7 @@ namespace Wink::GFX
 	{
 		if (!is_valid())
 		{
-			Logger::error(
+			Logger::Internal::error(
 				"Trying to bind base of an invalid buffer");
 			return;
 		}
@@ -84,7 +84,7 @@ namespace Wink::GFX
 	{
 		if (!is_valid())
 		{
-			Logger::error(
+			Logger::Internal::error(
 				"Trying to bind range of an invalid buffer");
 			return;
 		}

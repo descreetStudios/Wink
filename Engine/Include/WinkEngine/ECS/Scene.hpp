@@ -61,4 +61,18 @@ namespace Wink::ECS
 		Registry mRegistry;
 		size_t mEntityCount = 0;
 	};
+
+	Scene* create_scene(std::string name);
+	void destroy_scene(Scene& scene);
+	void destroy_scene(std::string_view name);
+
+	void clear_scenes();
+
+	[[nodiscard]] Scene* get_scene(std::string_view name) noexcept;
+
+	void set_active_scene(Scene* scene) noexcept;
+	void set_active_scene(std::string_view name);
+
+	[[nodiscard]] bool has_active_scene() noexcept;
+	[[nodiscard]] Scene* get_active_scene() noexcept;
 }

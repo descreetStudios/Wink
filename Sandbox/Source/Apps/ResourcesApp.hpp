@@ -31,7 +31,7 @@ public:
 		}
 
 		/* Texture resource test */
-		auto textureHandle = texturePool.load("dogg.png");
+		auto textureHandle = texturePool.load("dog.png");
 
 		if (texturePool.is_valid(textureHandle))
 		{

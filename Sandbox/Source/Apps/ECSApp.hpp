@@ -14,7 +14,7 @@ public:
 	{
 #define TRACY_ENABLE 1
 
-		ECS::Scene scene("PerfTest");
+		auto* scene = ECS::create_scene("PerfTest");
 
 		const size_t count = 1'000'000;
 		run_ecs_performance_test(scene, count);
@@ -24,7 +24,7 @@ public:
 
 private:
 	void run_ecs_performance_test(
-		ECS::Scene& scene, size_t count)
+		ECS::Scene* scene, size_t count)
 	{
 		ZoneScoped;
 
@@ -36,7 +36,8 @@ private:
 
 			for (size_t i = 0; i < count; ++i)
 			{
-				auto e = scene.spawn();
+				auto e = scene->spawn();
+				e.add<ECS::TransformComponent>().position = { i, i, i };
 				entities.push_back(e);
 			}
 		}
@@ -45,7 +46,7 @@ private:
 			ZoneScopedN("Destroy Entities");
 
 			for (auto& e : entities)
-				scene.destroy(e);
+				scene->destroy(e);
 		}
 	}
 };
