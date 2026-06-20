@@ -7,6 +7,7 @@ namespace Wink::GFX
 {
 	namespace
 	{
+		Resource::MeshPool gMeshPool;
 		Resource::ShaderPool gShaderPool;
 		Resource::TexturePool gTexturePool;
 	} // anonymous namespace
@@ -50,6 +51,11 @@ namespace Wink::GFX
 
 	namespace Resource
 	{
+		MeshPool& get_mesh_pool() noexcept
+		{
+			return gMeshPool;
+		}
+
 		ShaderPool& get_shader_pool() noexcept
 		{
 			return gShaderPool;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <WinkEngine/GFX/Resource/MeshPool.hpp>
 #include <WinkEngine/GFX/Resource/ShaderPool.hpp>
 #include <WinkEngine/GFX/Resource/TexturePool.hpp>
 
@@ -14,6 +15,7 @@ namespace Wink::GFX
 
 	namespace Resource
 	{
+		[[nodiscard]] MeshPool& get_mesh_pool() noexcept;
 		[[nodiscard]] ShaderPool& get_shader_pool() noexcept;
 		[[nodiscard]] TexturePool& get_texture_pool() noexcept;
 		void clear_all_resources() noexcept;

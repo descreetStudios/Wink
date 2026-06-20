@@ -1,5 +1,5 @@
 #include <WinkEngine/pch.hpp>
-#include <GFX/VAO.hpp>
+#include <WinkEngine/GFX/VAO.hpp>
 #include <WinkEngine/Core/Logger.hpp>
 
 namespace Wink::GFX

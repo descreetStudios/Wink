@@ -21,9 +21,11 @@ namespace Wink::GFX::Resource
 			const Handle&, const Handle&) noexcept = default;
 	};
 
+	struct MeshTag {};
 	struct ShaderTag {};
 	struct TextureTag {};
 
+	using MeshHandle = Handle<MeshTag>;
 	using ShaderHandle = Handle<ShaderTag>;
 	using TextureHandle = Handle<TextureTag>;
 }

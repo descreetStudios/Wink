@@ -110,6 +110,7 @@ PRIVATE
     "Source/GFX/Shader.cpp" 
     
     # --- Graphics Resources --- #
+    "Source/GFX/Resource/MeshPool.cpp" 
     "Source/GFX/Resource/ShaderPool.cpp" 
     "Source/GFX/Resource/TexturePool.cpp" 
     
