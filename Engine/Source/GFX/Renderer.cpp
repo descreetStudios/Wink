@@ -10,6 +10,7 @@ namespace Wink::GFX
 		Resource::MeshPool gMeshPool;
 		Resource::ShaderPool gShaderPool;
 		Resource::TexturePool gTexturePool;
+		Resource::MaterialPool gMaterialPool;
 	} // anonymous namespace
 
 	bool init()
@@ -64,6 +65,11 @@ namespace Wink::GFX
 		TexturePool& get_texture_pool() noexcept
 		{
 			return gTexturePool;
+		}
+
+		MaterialPool& get_material_pool() noexcept
+		{
+			return gMaterialPool;
 		}
 
 		void clear_all_resources() noexcept

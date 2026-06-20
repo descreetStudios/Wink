@@ -15,6 +15,7 @@ public:
 		auto& meshPool = GFX::Resource::get_mesh_pool();
 		auto& shaderPool = GFX::Resource::get_shader_pool();
 		auto& texturePool = GFX::Resource::get_texture_pool();
+		auto& materialPool = GFX::Resource::get_material_pool();
 
 		auto shaderHandle = shaderPool.load(std::vector<GFX::ShaderFile>{
 			{ GFX::ShaderType::Vertex, "Shaders/default_vs.glsl" },
@@ -54,6 +55,20 @@ public:
 				"Successfully loaded mesh, VAO ID: '{}', index count: '{}'",
 				meshPool.get_vao_id(meshHandle),
 				meshPool.get_index_count(meshHandle));
+		}
+
+		auto matHandle = materialPool.create(shaderHandle);
+		materialPool.set_albedo(matHandle, textureHandle);
+		materialPool.set_base_color(matHandle, { 1, 0.5f, 0.5f, 1 });
+
+		if (materialPool.is_valid(matHandle))
+		{
+			const glm::vec4 color = materialPool.get_base_color(matHandle);
+
+			Logger::info(
+				"Successfully created material, albedo ID: '{}', base color: '{}'",
+				texturePool.get_id((*materialPool.get_albedo(matHandle))),
+				glm::to_string(color));
 		}
 	}
 };

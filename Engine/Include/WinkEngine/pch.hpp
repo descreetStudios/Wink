@@ -36,6 +36,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 /* Custom Headers */
 #include <WinkEngine/Core/PrimitiveTypes.hpp>

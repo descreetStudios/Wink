@@ -1,5 +1,5 @@
 #include <WinkEngine/pch.hpp>
-#include <GFX/Framebuffer.hpp>
+#include <WinkEngine/GFX/Framebuffer.hpp>
 #include <WinkEngine/GFX/Texture.hpp>
 #include <WinkEngine/Core/Logger.hpp>
 

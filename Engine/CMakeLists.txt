@@ -113,11 +113,13 @@ PRIVATE
     "Source/GFX/Resource/MeshPool.cpp" 
     "Source/GFX/Resource/ShaderPool.cpp" 
     "Source/GFX/Resource/TexturePool.cpp" 
+    "Source/GFX/Resource/MaterialPool.cpp" 
     
     # --- Content --- #
     "Source/Content/Image.cpp" 
 
     # --- Graphics --- #
+    "Source/GFX/Material.cpp" 
     "Source/GFX/Renderer.cpp")
 
 set(WINK_ENGINE_SHADERS_DIR
