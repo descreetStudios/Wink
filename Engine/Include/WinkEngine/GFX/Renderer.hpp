@@ -4,6 +4,7 @@
 #include <WinkEngine/GFX/Resource/ShaderPool.hpp>
 #include <WinkEngine/GFX/Resource/TexturePool.hpp>
 #include <WinkEngine/GFX/Resource/MaterialPool.hpp>
+#include <WinkEngine/GFX/Resource/ModelPool.hpp>
 
 namespace Wink::GFX
 {
@@ -33,6 +34,7 @@ namespace Wink::GFX
 		[[nodiscard]] ShaderPool& get_shader_pool() noexcept;
 		[[nodiscard]] TexturePool& get_texture_pool() noexcept;
 		[[nodiscard]] MaterialPool& get_material_pool() noexcept;
+		[[nodiscard]] ModelPool& get_model_pool() noexcept;
 		void clear_all_resources() noexcept;
 		void poll_hot_reloads() noexcept;
 	}

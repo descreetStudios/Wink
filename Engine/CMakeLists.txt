@@ -105,6 +105,7 @@ PRIVATE
 
     # --- Systems --- #
     "Source/ECS/Systems/TransformSystem.cpp"
+    "Source/ECS/Systems/ModelSystem.cpp" 
     
     # --- Graphics Abstractions --- #
     "Source/GFX/VAO.cpp" 
@@ -118,9 +119,11 @@ PRIVATE
     "Source/GFX/Resource/ShaderPool.cpp" 
     "Source/GFX/Resource/TexturePool.cpp" 
     "Source/GFX/Resource/MaterialPool.cpp" 
+    "Source/GFX/Resource/ModelPool.cpp" 
     
     # --- Content --- #
     "Source/Content/Image.cpp" 
+    "Source/Content/GLTFModel.cpp" 
 
     # --- Graphics --- #
     "Source/GFX/Material.cpp" 
