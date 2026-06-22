@@ -67,7 +67,8 @@ namespace Wink::Window
 				gState.width = static_cast<u32>(width);
 				gState.height = static_cast<u32>(height);
 			}
-			dispatch(WindowResizeEvent{ gState.width, gState.height });
+			dispatch(WindowResizeEvent{ 
+				static_cast<u32>(width), static_cast<u32>(height) });
 		}
 
 		void cb_window_pos(GLFWwindow*, i32 posX, i32 posY)
@@ -118,7 +119,16 @@ namespace Wink::Window
 
 		void cb_cursor_pos(GLFWwindow*, double posX, double posY)
 		{
-			dispatch(MouseMoveEvent{ posX, posY });
+			static double lastX = posX;
+			static double lastY = posY;
+
+			double deltaX = posX - lastX;
+			double deltaY = posY - lastY;
+
+			lastX = posX;
+			lastY = posY;
+
+			dispatch(MouseMoveEvent{ posX, posY, deltaX, deltaY });
 		}
 
 		void cb_cursor_enter(GLFWwindow*, i32 entered)

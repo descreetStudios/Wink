@@ -78,7 +78,7 @@ namespace Wink::GFX::Resource
 		}
 
 		std::optional<Content::Model> model;
-		if (extension == ".gltf" || extension == ".bin")
+		if (extension == ".gltf" || extension == ".glb")
 			model = Content::Internal::load_gltf(filePath, shader);
 
 		if (!model.has_value())
@@ -102,7 +102,7 @@ namespace Wink::GFX::Resource
 				auto& node = model.nodes[i];
 				for (size_t j = 0; j < node.primitives.size(); ++j)
 				{
-					auto& prim = node.primitives[i];
+					auto& prim = node.primitives[j];
 					if (!GFX::Resource::get_mesh_pool().is_valid(prim.mesh) ||
 						!GFX::Resource::get_material_pool().is_valid(prim.material))
 					{

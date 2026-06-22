@@ -5,4 +5,5 @@
 
 #include <WinkEngine/Core/EngineEvents.hpp>
 #include <WinkEngine/Core/InputTokens.hpp>
+#include <WinkEngine/Core/Input.hpp>
 #include <WinkEngine/Core/Window.hpp>

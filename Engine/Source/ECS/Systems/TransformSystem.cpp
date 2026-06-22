@@ -37,4 +37,14 @@ namespace Wink::ECS
 		t.normalMatrix = glm::mat3(glm::transpose(glm::inverse(t.worldMatrix)));
 		t.dirty = false;
 	}
+
+	void reset_transform(TransformComponent& t)
+	{
+		t.position = glm::vec3(0.0f);
+		t.rotation = glm::identity<glm::quat>();
+		t.scale = glm::vec3(1.0f);
+		t.worldMatrix = glm::mat4(1.0f);
+		t.normalMatrix = glm::mat3(1.0f);
+		t.dirty = true;
+	}
 }

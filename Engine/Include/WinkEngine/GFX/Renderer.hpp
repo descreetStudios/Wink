@@ -21,6 +21,13 @@ namespace Wink::GFX
 		glm::mat4 proj;
 	};
 
+	struct DrawData
+	{
+		const RenderObject& renderObj;
+		const CameraData& camData;
+		const glm::mat4& modelMat;
+	};
+
 	bool init();
 	void render();
 	void shutdown();

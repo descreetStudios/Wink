@@ -116,9 +116,11 @@ namespace Wink::ECS
 		gActiveScene = scene;
 	}
 
-	void set_active_scene(std::string_view name)
+	Scene* set_active_scene(std::string_view name)
 	{
-		gActiveScene = get_scene(name);
+		auto* scene = get_scene(name);
+		gActiveScene = scene;
+		return scene;
 	}
 
 	bool has_active_scene() noexcept

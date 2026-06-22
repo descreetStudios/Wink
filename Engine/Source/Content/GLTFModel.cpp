@@ -41,9 +41,9 @@ namespace Wink::Content
 			if (const auto* bv = std::get_if<
 				fastgltf::sources::BufferView>(&image.data))
 			{
-				const fastgltf::BufferView& bufferView = 
+				const fastgltf::BufferView& bufferView =
 					asset.bufferViews[bv->bufferViewIndex];
-				const fastgltf::Buffer& buffer = 
+				const fastgltf::Buffer& buffer =
 					asset.buffers[bufferView.bufferIndex];
 
 				if (const auto* bufArr = std::get_if<
@@ -66,7 +66,7 @@ namespace Wink::Content
 			LoadProgress& progress)
 		{
 			if (!texInfo.has_value()) return std::nullopt;
-			
+
 			const fastgltf::Texture& tex = asset.textures[texInfo->textureIndex];
 			if (!tex.imageIndex.has_value()) return std::nullopt;
 
@@ -90,7 +90,7 @@ namespace Wink::Content
 			else
 			{
 				Logger::Internal::error(
-					"Unsupported/unresolvable glTF " 
+					"Unsupported/unresolvable glTF "
 					"image source for image '{}'", image.name);
 				return std::nullopt;
 			}
@@ -159,8 +159,9 @@ namespace Wink::Content
 			const auto* posIt = prim.findAttribute("POSITION");
 			if (posIt == prim.attributes.end()) return std::nullopt;
 
-			const fastgltf::Accessor& posAccessor = 
+			const fastgltf::Accessor& posAccessor =
 				asset.accessors[posIt->accessorIndex];
+
 			MeshData data;
 			data.vertices.resize(posAccessor.count);
 
@@ -180,20 +181,21 @@ namespace Wink::Content
 			{
 				fastgltf::iterateAccessorWithIndex<glm::vec2>(
 					asset, asset.accessors[uvIt->accessorIndex],
-					[&](glm::vec2 v, size_t i) { data.vertices[i].uv = v; });
+					[&](glm::vec2 v, size_t i) { data.vertices[i].uv = { v.x, 1.0f - v.y }; });
 			}
 
 			if (!prim.indicesAccessor.has_value())
 			{
 				Logger::Internal::error(
-					"glTF primitive has no index accessor. " 
+					"glTF primitive has no index accessor. "
 					"Skipping (non-indexed not supported)");
 				return std::nullopt;
 			}
 
-			const fastgltf::Accessor& idxAccessor = 
+			const fastgltf::Accessor& idxAccessor =
 				asset.accessors[*prim.indicesAccessor];
 			data.indices.resize(idxAccessor.count);
+
 			fastgltf::iterateAccessorWithIndex<u32>(asset, idxAccessor,
 				[&](u32 v, size_t i) { data.indices[i] = v; });
 
@@ -210,7 +212,7 @@ namespace Wink::Content
 			if (const auto* trs = std::get_if<
 				fastgltf::TRS>(&node.transform))
 			{
-				out.position = { 
+				out.position = {
 					trs->translation[0],
 					trs->translation[1],
 					trs->translation[2] };
@@ -245,10 +247,11 @@ namespace Wink::Content
 				return std::nullopt;
 			}
 
-			const fastgltf::Options options = {
+			constexpr fastgltf::Options options = {
 				fastgltf::Options::LoadExternalBuffers |
 				fastgltf::Options::LoadExternalImages |
-				fastgltf::Options::DecomposeNodeMatrices };
+				fastgltf::Options::DecomposeNodeMatrices |
+				fastgltf::Options::LoadGLBBuffers };
 
 			fastgltf::Parser parser;
 			auto assetResult = parser.loadGltf(

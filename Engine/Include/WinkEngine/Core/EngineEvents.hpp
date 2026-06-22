@@ -79,6 +79,8 @@ namespace Wink
 	{
 		double posX;
 		double posY;
+		double deltaX;
+		double deltaY;
 	};
 
 	struct MouseEnterEvent {};

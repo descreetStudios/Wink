@@ -1,5 +1,7 @@
 #pragma once
 
+#include <WinkEngine/ECS/Entity.hpp>
+
 namespace Wink::ECS
 {
 	class Scene; class Entity;
@@ -7,4 +9,5 @@ namespace Wink::ECS
 
 	[[nodiscard]] glm::mat4 get_local_matrix(const TransformComponent& t);
 	void update_world_transform(Scene& scene, EntityID id);
+	void reset_transform(TransformComponent& t);
 }

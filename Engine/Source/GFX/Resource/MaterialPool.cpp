@@ -13,6 +13,14 @@ namespace Wink::GFX::Resource
 		deallocate(handle);
 	}
 
+	void MaterialPool::apply(Handle<MaterialTag> handle) const noexcept
+	{
+		const auto* mat = try_get(handle);
+		if (!mat) return;
+
+		mat->apply();
+	}
+
 	bool MaterialPool::is_valid(MaterialHandle handle) const noexcept
 	{
 		bool valid = ResourcePool::is_valid(handle);

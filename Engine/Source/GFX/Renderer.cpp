@@ -4,6 +4,7 @@
 #include <WinkEngine/ECS/Scene.hpp>
 #include <WinkEngine/ECS/Components/TransformComponent.hpp>
 #include <WinkEngine/ECS/Components/RenderObjectComponent.hpp>
+#include <WinkEngine/ECS/Components/CameraComponent.hpp>
 #include <WinkEngine/ECS/Systems/TransformSystem.hpp>
 
 #include <WinkEngine/Core/Logger.hpp>
@@ -35,7 +36,101 @@ namespace Wink::GFX
 
 			return gMaterialPool.is_valid(gDefaultMaterial);
 		}
+
+		void draw(const DrawData& drawData)
+		{
+			auto& matPool = get_material_pool();
+			auto& shaderPool = get_shader_pool();
+			auto& meshPool = get_mesh_pool();
+
+			auto material = matPool.is_valid(drawData.renderObj.material) ?
+				drawData.renderObj.material : gDefaultMaterial;
+
+			auto mesh = drawData.renderObj.mesh;
+			if (!meshPool.is_valid(mesh))
+			{
+				Logger::Internal::error("Trying to draw an invalid mesh");
+				return;
+			}
+
+			//Logger::Internal::info("Draw call. RenderObject valid: '{}'\n"
+			//	"Model Matrix: '{}'\nCamera Position: '{}'\n"
+			//	"Camera View: '{}'\nCamera Proj: '{}'",
+			//	matPool.is_valid(material) && meshPool.is_valid(mesh),
+			//	glm::to_string(drawData.modelMat),
+			//	glm::to_string(drawData.camData.position),
+			//	glm::to_string(drawData.camData.view),
+			//	glm::to_string(drawData.camData.proj));
+
+			matPool.apply(material);
+			auto* shader = shaderPool.try_get(matPool.try_get(material)->shader);
+
+			// TODO: Set uniforms
+			shader->set("uCamPos", drawData.camData.position);
+			shader->set("uView", drawData.camData.view);
+			shader->set("uProj", drawData.camData.proj);
+			shader->set("uModel", drawData.modelMat);
+
+			glBindVertexArray(meshPool.get_vao_id(mesh));
+			glDrawElements(GL_TRIANGLES,
+				static_cast<GLsizei>(meshPool.get_index_count(mesh)),
+				GL_UNSIGNED_INT, nullptr);
+		}
 	} // anonymous namespace
+
+	void render()
+	{
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		auto scene = ECS::get_active_scene();
+		static bool sceneWarn = true;
+		if (!scene)
+		{
+			if (sceneWarn)
+			{
+				Logger::Internal::warn("No scene found to render from");
+				sceneWarn = false;
+			}
+			return;
+		}
+
+		auto camEOpt = scene->find_first<ECS::CameraComponent>();
+		static bool camWarn = true;
+		if (!camEOpt)
+		{
+			if (camWarn)
+			{
+				Logger::Internal::warn("No camera component found in scene");
+				camWarn = false;
+			}
+			return;
+		}
+
+		auto camE = *camEOpt;
+		Camera cam = camE.get<ECS::CameraComponent>().camera; // intended copy
+
+		if (camE.has<ECS::TransformComponent>())
+		{
+			auto& camET = camE.get<ECS::TransformComponent>();
+			cam.position += camET.position;
+		}
+
+		CameraData camData{ .position = cam.position,
+			.view = cam.get_view(), .proj = cam.get_proj() };
+
+		for (auto&& [id, tC, roC] :
+			scene->view<ECS::TransformComponent,
+			ECS::RenderObjectComponent>())
+		{
+			auto e = scene->wrap(id);
+			if (tC.dirty)
+				ECS::update_world_transform(*scene, id);
+
+			draw({ .renderObj=roC.renderObj,
+				.camData = camData,
+				.modelMat = tC.worldMatrix});
+		}
+	}
 
 	bool init()
 	{
@@ -58,32 +153,6 @@ namespace Wink::GFX
 		}
 
 		return true;
-	}
-
-	void render()
-	{
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		auto scene = ECS::get_active_scene();
-		static bool sceneWarn = true;
-		if (!scene)
-		{
-			if (sceneWarn)
-			{
-				Logger::Internal::warn("No scene found to render from");
-				sceneWarn = false;
-			}
-			return;
-		}
-
-		for (auto&& [id, tC, roC] :
-			scene->view<ECS::TransformComponent,
-			ECS::RenderObjectComponent>())
-		{
-			auto e = scene->wrap(id);
-			if (tC.dirty)
-				ECS::update_world_transform(*scene, id);
-		}
 	}
 
 	void shutdown()

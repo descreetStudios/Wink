@@ -106,11 +106,15 @@ PRIVATE
     "Source/Core/Logger.cpp" 
     "Source/Core/Time.cpp" 
     "Source/Core/FileWatcher.cpp" 
+    "Source/Core/Input.cpp" 
     "Source/Core/Window.cpp" 
 
     # --- ECS --- #
     "Source/ECS/Entity.cpp" 
     "Source/ECS/Scene.cpp" 
+   
+    # --- Components --- #
+    "Source/ECS/Components/TransformComponent.cpp" 
 
     # --- Systems --- #
     "Source/ECS/Systems/TransformSystem.cpp"
@@ -136,6 +140,7 @@ PRIVATE
 
     # --- Graphics --- #
     "Source/GFX/Material.cpp" 
+    "Source/GFX/Camera.cpp" 
     "Source/GFX/Renderer.cpp")
 
 set(WINK_ENGINE_SHADERS_DIR

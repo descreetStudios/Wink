@@ -55,24 +55,37 @@ namespace Wink::ECS
 		if (!root.has_value())
 			scene->wrap(modelRoot).add<TransformComponent>();
 
+		// First pass: spawn all node entities and set local transforms
 		std::vector<ECS::EntityID> nodeEntities(model->nodes.size(), ECS::NULL_ENTITY);
 		for (size_t i = 0; i < model->nodes.size(); ++i)
 		{
 			const ModelNode& node = model->nodes[i];
+			auto e = scene->spawn();
 
-			const ECS::EntityID parent = node.parent.has_value()
+			auto& transform = e.add<TransformComponent>();
+			transform.position = node.position;
+			transform.rotation = node.rotation;
+			transform.scale = node.scale;
+
+			nodeEntities[i] = e.get_id();
+		}
+
+		// Second pass: wire up parents and spawn primitives
+		for (size_t i = 0; i < model->nodes.size(); ++i)
+		{
+			const ModelNode& node = model->nodes[i];
+
+			const ECS::EntityID nodeEntity = nodeEntities[i];
+			const ECS::EntityID parentEntity = node.parent.has_value()
 				? nodeEntities[*node.parent]
 				: modelRoot;
 
-			const ECS::EntityID nodeEntity = create_node_entity(*scene, node, parent);
-			nodeEntities[i] = nodeEntity;
+			scene->wrap(nodeEntity).get<TransformComponent>().parent = parentEntity;
 
 			for (const ModelPrimitive& prim : node.primitives)
 			{
-				const ECS::EntityID primEntity = scene->spawn();
-				auto pe = scene->wrap(primEntity);
-
-				auto& primTransform = pe.add<ECS::TransformComponent>();
+				auto pe = scene->wrap(scene->spawn());
+				auto& primTransform = pe.add<TransformComponent>();
 				primTransform.parent = nodeEntity;
 
 				auto& renderObj = pe.add<RenderObjectComponent>();

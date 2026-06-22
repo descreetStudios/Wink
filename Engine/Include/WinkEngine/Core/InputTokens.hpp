@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Wink
+namespace Wink::Input
 {
 	using Code = i32;
 	using Flags = i32;

@@ -19,9 +19,9 @@ namespace Wink::GFX::Resource
 					0, sizeof(Vertex));
 				mesh.vao.bind_index_buffer(mesh.ebo.get_id());
 
-				mesh.vao.attrib(0, 3, GL_FLOAT, sizeof(Vertex), offsetof(Vertex, position));
-				mesh.vao.attrib(1, 3, GL_FLOAT, sizeof(Vertex), offsetof(Vertex, normal));
-				mesh.vao.attrib(2, 2, GL_FLOAT, sizeof(Vertex), offsetof(Vertex, uv));
+				mesh.vao.attrib(0, 3, GL_FLOAT, offsetof(Vertex, position));
+				mesh.vao.attrib(1, 3, GL_FLOAT, offsetof(Vertex, normal));
+				mesh.vao.attrib(2, 2, GL_FLOAT, offsetof(Vertex, uv));
 			});
 
 		return handle;

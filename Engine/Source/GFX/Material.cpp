@@ -17,8 +17,8 @@ namespace Wink::GFX
 		constexpr i32 NORMAL_UNIT = 1;
 
 		constexpr TextureSlotDesc TEXTURE_SLOTS[] = {
-			{ &MaterialTextures::albedo, "uAlbedoMap", "uHasAlbedoMap", ALBEDO_UNIT },
-			{ &MaterialTextures::normal, "uNormalMap", "uHasNormalMap", NORMAL_UNIT },
+			{ &MaterialTextures::albedo, "uMaterial.albedoMap", "uMaterial.hasAlbedoMap", ALBEDO_UNIT },
+			{ &MaterialTextures::normal, "uMaterial.normalMap", "uMaterial.hasNormalMap", NORMAL_UNIT },
 		};
 	}
 
@@ -51,7 +51,7 @@ namespace Wink::GFX
 			else s->set(desc.hasUniformName, false);
 		}
 
-		s->set("uBaseColor", params.baseColor);
+		s->set("uMaterial.baseColor", params.baseColor);
 	}
 
 	bool Material::is_valid() const noexcept

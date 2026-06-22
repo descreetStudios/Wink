@@ -6,7 +6,7 @@ namespace Wink::GFX
 {
 	VAO::VAO()
 	{
-		glGenVertexArrays(1, &mID);
+		glCreateVertexArrays(1, &mID);
 	}
 
 	VAO::~VAO() noexcept
@@ -32,7 +32,7 @@ namespace Wink::GFX
 	}
 
 	void VAO::attrib(u32 index, i32 count, u32 type,
-		i32 stride, size_t offset, bool normalized) const noexcept
+		size_t offset, bool normalized) const noexcept
 	{
 		if (!is_valid())
 		{
@@ -47,11 +47,11 @@ namespace Wink::GFX
 			normalized ? GL_TRUE : GL_FALSE,
 			static_cast<u32>(offset));
 
-		glVertexArrayAttribBinding(mID, index, index);
+		glVertexArrayAttribBinding(mID, index, 0);
 	}
 
-	void VAO::attrib_i(u32 index, i32 count, u32 type,
-		i32 stride, size_t offset) const noexcept
+	void VAO::attrib_i(u32 index, i32 count,
+		u32 type, size_t offset) const noexcept
 	{
 		if (!is_valid())
 		{
@@ -65,7 +65,7 @@ namespace Wink::GFX
 			mID, index, count, type,
 			static_cast<u32>(offset));
 
-		glVertexArrayAttribBinding(mID, index, index);
+		glVertexArrayAttribBinding(mID, index, 0);
 	}
 
 	void VAO::divisor(u32 index, u32 div) const noexcept

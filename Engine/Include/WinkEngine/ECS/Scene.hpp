@@ -71,7 +71,7 @@ namespace Wink::ECS
 	[[nodiscard]] Scene* get_scene(std::string_view name) noexcept;
 
 	void set_active_scene(Scene* scene) noexcept;
-	void set_active_scene(std::string_view name);
+	Scene* set_active_scene(std::string_view name);
 
 	[[nodiscard]] bool has_active_scene() noexcept;
 	[[nodiscard]] Scene* get_active_scene() noexcept;

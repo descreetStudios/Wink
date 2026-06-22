@@ -17,7 +17,9 @@ public:
 private:
 	void subscribe_to_events()
 	{
-		/* Window */
+		using namespace Input;
+
+		/* --- Window --- */
 		subscribe([](const WindowCloseEvent&) {
 			Logger::info("Window closing");
 			});
@@ -50,7 +52,7 @@ private:
 			Logger::info("Window fullscreen is '{}'", e.fullscreen);
 			});
 
-		/* Keyboard */
+		/* --- Keyboard --- */
 		subscribe([](const KeyPressEvent& e) {
 			if (e.key == Key::Enter && (e.mods & Mod::Alt))
 				Window::toggle_fullscreen();
@@ -66,9 +68,10 @@ private:
 				Logger::info("V key repeat");
 			});
 
-		/* Mouse */
+		/* --- Mouse --- */
 		subscribe([](const MouseMoveEvent& e) {
-			Logger::trace("Mouse moved to '{}x{}'", e.posX, e.posY);
+			Logger::trace("Mouse moved to '{}x{}'. Delta: '{}x{}'",
+				e.posX, e.posY, e.deltaX, e.deltaY);
 			});
 
 		subscribe([](const MouseEnterEvent&) {

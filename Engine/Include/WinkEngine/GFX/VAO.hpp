@@ -13,11 +13,10 @@ namespace Wink::GFX
 		MOVE_ASSIGN(VAO) noexcept;
 
 		void attrib(u32 index, i32 count, u32 type,
-			i32 stride, size_t offset,
-			bool normalized = false) const noexcept;
+			size_t offset, bool normalized = false) const noexcept;
 
-		void attrib_i(u32 index, i32 count, u32 type,
-			i32 stride, size_t offset) const noexcept;
+		void attrib_i(u32 index, i32 count,
+			u32 type, size_t offset) const noexcept;
 
 		void divisor(u32 index, u32 div) const noexcept;
 
