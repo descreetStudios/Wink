@@ -35,6 +35,10 @@ namespace Wink::GFX
 		[[nodiscard]] TexturePool& get_texture_pool() noexcept;
 		[[nodiscard]] MaterialPool& get_material_pool() noexcept;
 		[[nodiscard]] ModelPool& get_model_pool() noexcept;
+
+		[[nodiscard]] ShaderHandle get_default_shader() noexcept;
+		[[nodiscard]] MaterialHandle get_default_material() noexcept;
+
 		void clear_all_resources() noexcept;
 		void poll_hot_reloads() noexcept;
 	}

@@ -93,7 +93,7 @@ namespace Wink::GFX::Resource
 		with(handle, [&](ShaderProgram& p) { enabled = p.hotReloadEnabled; });
 		if (!enabled) return;
 
-		Logger::trace("Hot-reloading shader");
+		Logger::Internal::trace("Hot-reloading shader");
 
 		auto it = mReloadSources.find(handle.index);
 		if (it == mReloadSources.end()) return;

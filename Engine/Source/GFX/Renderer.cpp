@@ -13,24 +13,49 @@ namespace Wink::GFX
 {
 	namespace
 	{
-		Resource::MeshPool gMeshPool;
-		Resource::ShaderPool gShaderPool;
-		Resource::TexturePool gTexturePool;
-		Resource::MaterialPool gMaterialPool;
-		Resource::ModelPool gModelPool;
+		using namespace Resource;
+
+		MeshPool gMeshPool;
+		ShaderPool gShaderPool;
+		TexturePool gTexturePool;
+		MaterialPool gMaterialPool;
+		ModelPool gModelPool;
+
+		MaterialHandle gDefaultMaterial;
+		ShaderHandle gDefaultShader;
+
+		bool create_default_material()
+		{
+			gDefaultShader = gShaderPool.load(std::vector<ShaderFile>{
+				{ ShaderType::Vertex, "Shaders/default_vs.glsl" },
+				{ ShaderType::Fragment, "Shaders/default_fs.glsl" },
+			});
+
+			gDefaultMaterial = gMaterialPool.create(gDefaultShader);
+
+			return gMaterialPool.is_valid(gDefaultMaterial);
+		}
 	} // anonymous namespace
 
 	bool init()
 	{
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 		{
-			Logger::critical("Failed to initialize GLAD");
+			Logger::Internal::critical("Failed to initialize GLAD");
 			return false;
 		}
 
+		// TODO: Make a GFX::Configuration,
+		// store every renderer config and init with them
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
+
+		if (!create_default_material())
+		{
+			Logger::Internal::error("Failed to create default material");
+			return false;
+		}
 
 		return true;
 	}
@@ -45,7 +70,7 @@ namespace Wink::GFX
 		{
 			if (sceneWarn)
 			{
-				Logger::warn("No scene found to render from");
+				Logger::Internal::warn("No scene found to render from");
 				sceneWarn = false;
 			}
 			return;
@@ -80,30 +105,14 @@ namespace Wink::GFX
 
 	namespace Resource
 	{
-		MeshPool& get_mesh_pool() noexcept
-		{
-			return gMeshPool;
-		}
+		MeshPool& get_mesh_pool() noexcept { return gMeshPool; }
+		ShaderPool& get_shader_pool() noexcept { return gShaderPool; }
+		TexturePool& get_texture_pool() noexcept { return gTexturePool; }
+		MaterialPool& get_material_pool() noexcept { return gMaterialPool; }
+		ModelPool& get_model_pool() noexcept { return gModelPool; }
 
-		ShaderPool& get_shader_pool() noexcept
-		{
-			return gShaderPool;
-		}
-
-		TexturePool& get_texture_pool() noexcept
-		{
-			return gTexturePool;
-		}
-
-		MaterialPool& get_material_pool() noexcept
-		{
-			return gMaterialPool;
-		}
-
-		ModelPool& get_model_pool() noexcept
-		{
-			return gModelPool;
-		}
+		ShaderHandle get_default_shader() noexcept { return gDefaultShader; }
+		MaterialHandle get_default_material() noexcept { return gDefaultMaterial; }
 
 		void clear_all_resources() noexcept
 		{

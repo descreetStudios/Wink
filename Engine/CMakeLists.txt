@@ -49,6 +49,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
+# FASTGLTF
+FetchContent_Declare(
+    fastgltf
+    GIT_REPOSITORY https://github.com/spnda/fastgltf.git
+    GIT_TAG v0.9.0
+)
+FetchContent_MakeAvailable(fastgltf)
+
 # GLAD
 add_library(glad ${CMAKE_CURRENT_SOURCE_DIR}/Vendor/glad/src/glad.c)
 target_include_directories(glad PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Vendor/glad/include)
@@ -79,6 +87,7 @@ target_link_libraries(Engine
 PRIVATE
     spdlog::spdlog
     glfw
+    fastgltf
 )
 
 target_link_libraries(Engine

@@ -19,7 +19,7 @@ namespace Wink::ECS
 		auto e = scene.wrap(id);
 		if (!e.is_valid())
 		{
-			Logger::critical("Operating on invalid entity");
+			Logger::Internal::critical("Operating on invalid entity");
 			return;
 		}
 

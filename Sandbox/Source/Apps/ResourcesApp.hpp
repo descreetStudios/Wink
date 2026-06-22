@@ -35,7 +35,7 @@ public:
 			Logger::info("Loaded shader ID '{}'", shaderPool.get_id(shader));
 
 		/* --- Texture --- */
-		const TextureHandle tex = texturePool.load("dog.png");
+		const TextureHandle tex = texturePool.decode("dog.png");
 
 		if (tex)
 			Logger::info("Loaded texture ID '{}'", texturePool.get_id(tex));

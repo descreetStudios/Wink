@@ -5,8 +5,8 @@
 
 namespace Wink::GFX::Resource
 {
-	TextureHandle TexturePool::load(
-		std::string_view path,
+	TextureHandle TexturePool::decode(
+		const fs::path& path,
 		const TextureParams& params, bool hotReload)
 	{
 		Content::DecodedImage img = Content::decode_image(path);
@@ -21,6 +21,19 @@ namespace Wink::GFX::Resource
 
 		set_hot_reload(handle, hotReload);
 		return handle;
+	}
+
+	TextureHandle TexturePool::decode_from_memory(
+		const u8* encodedData, size_t size,
+		const TextureParams& params)
+	{
+		Content::DecodedImage img = Content::decode_image_from_memory(
+			encodedData, size, params.hasAlpha);
+		if (!img) return TextureHandle();
+
+		return load(img.pixels.data(),
+			static_cast<u32>(img.width),
+			static_cast<u32>(img.height), params);
 	}
 
 	TextureHandle TexturePool::load(

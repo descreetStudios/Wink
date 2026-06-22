@@ -9,9 +9,13 @@ namespace Wink::GFX::Resource
 	class TexturePool final : public ResourcePool<Texture2D, TextureTag>
 	{
 	public:
-		TextureHandle load(
-			std::string_view path,
-			const TextureParams& params = {}, bool hotReload = true);
+		TextureHandle decode(const fs::path& path,
+			const TextureParams& params = {},
+			bool hotReload = true);
+
+		TextureHandle decode_from_memory(
+			const u8* encodedData, size_t size,
+			const TextureParams& params = {});
 
 		TextureHandle load(
 			const u8* pixels, u32 width, u32 height,

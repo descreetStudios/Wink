@@ -30,7 +30,7 @@ namespace Wink::Content
 	{
 		const std::vector<std::string> SUPPORTED_MODEL_FORMATS = {
 			".gltf",
-			".bin"
+			".glb"
 		};
 
 		std::optional<Model> load_gltf(
