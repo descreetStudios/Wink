@@ -90,6 +90,13 @@ public:
 			t.translate({ 0.0f, -move, 0.0f });
 	}
 
+	void on_render(double alpha) override
+	{
+		using namespace GFX;
+
+		set_config(mGFXConfig);
+	}
+
 private:
 	GFX::Resource::ModelHandle load_model(
 		GFX::Resource::ModelPool& modelPool,
@@ -145,6 +152,10 @@ private:
 				switch_scene("Sponza Scene");
 			else if (e.key == Key::KP2)
 				switch_scene("A Beautiful Game Scene");
+
+			if (e.key == Key::V)
+				mGFXConfig.polygonMode = mGFXConfig.polygonMode ==
+					GL_FILL ? GL_LINE : GL_FILL;
 			});
 
 		subscribe([](const MouseButtonPressEvent& e) {
@@ -159,6 +170,8 @@ private:
 	}
 
 private:
+	GFX::Configuration mGFXConfig;
+
 	const float LOOK_SENS = 0.1f;
 	const float MOVE_SPEED = 5.0f;
 	GFX::Camera mCam;

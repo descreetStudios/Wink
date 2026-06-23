@@ -63,8 +63,10 @@ namespace Wink::GFX
 	};
 
 	bool init();
-	void render(const Configuration& cfg = {});
+	void render();
 	void shutdown();
+
+	void set_config(const Configuration& cfg);
 
 	void resize(u32 width, u32 height);
 	void set_clear_color(const glm::vec4& color);

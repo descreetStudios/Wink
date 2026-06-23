@@ -16,6 +16,8 @@ namespace Wink::GFX
 	{
 		using namespace Resource;
 
+		Configuration gConfig;
+
 		MeshPool gMeshPool;
 		ShaderPool gShaderPool;
 		TexturePool gTexturePool;
@@ -118,9 +120,9 @@ namespace Wink::GFX
 		}
 	} // anonymous namespace
 
-	void render(const Configuration& cfg)
+	void render()
 	{
-		apply_config(cfg);
+		apply_config(gConfig);
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -200,6 +202,11 @@ namespace Wink::GFX
 	void shutdown()
 	{
 		Resource::clear_all_resources();
+	}
+
+	void set_config(const Configuration& cfg)
+	{
+		gConfig = cfg;
 	}
 
 	void resize(u32 width, u32 height)
