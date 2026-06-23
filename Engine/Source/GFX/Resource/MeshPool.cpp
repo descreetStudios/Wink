@@ -22,6 +22,7 @@ namespace Wink::GFX::Resource
 				mesh.vao.attrib(0, 3, GL_FLOAT, offsetof(Vertex, position));
 				mesh.vao.attrib(1, 3, GL_FLOAT, offsetof(Vertex, normal));
 				mesh.vao.attrib(2, 2, GL_FLOAT, offsetof(Vertex, uv));
+				mesh.vao.attrib(3, 4, GL_FLOAT, offsetof(Vertex, tangent));
 			});
 
 		return handle;

@@ -1,8 +1,8 @@
 #version 460 core
 
 in vec3 vFragPos;
-in vec3 vNormal;
 in vec2 vTexCoord;
+in mat3 vTBN;
 
 out vec4 FragColor;
 
@@ -55,7 +55,15 @@ void main()
 	if (uMaterial.hasAlbedoMap)
 		albedo *= texture(uMaterial.albedoMap, vTexCoord);
 
-	vec3 N = normalize(vNormal);
+	vec3 N;
+    if (uMaterial.hasNormalMap)
+    {
+        vec3 tsNormal = texture(uMaterial.normalMap, vTexCoord).rgb;
+        tsNormal = tsNormal * 2.0 - 1.0;
+        N = normalize(vTBN * tsNormal);
+    }
+    else N = normalize(vTBN[2]);
+
 	vec3 L = normalize(LIGHT_POS - vFragPos);
 	vec3 V = normalize(uCamPos - vFragPos);
 	vec3 H = normalize(L + V);
@@ -70,10 +78,10 @@ void main()
 	color = pow(color, vec3(1.0 / 2.2));
 
 	// UV Check
-	//FragColor = vec4(vTexCoord, 0.0, 1.0);
+	// FragColor = vec4(vTexCoord, 0.0, 1.0);
 
-	// Normals check
-	// FragColor = vec4(normalize(vNormal) * 0.5 + 0.5, 1.0);
+	// TBN check
+	// FragColor = vec4(vTBN[2] * 0.5 + 0.5, 1.0);
 
 	FragColor = vec4(color, albedo.a);
 }

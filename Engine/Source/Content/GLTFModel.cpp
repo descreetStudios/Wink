@@ -184,6 +184,14 @@ namespace Wink::Content
 					[&](glm::vec2 v, size_t i) { data.vertices[i].uv = { v.x, 1.0f - v.y }; });
 			}
 
+			if (const auto* tanIt = prim.findAttribute("TANGENT");
+				tanIt != prim.attributes.end())
+			{
+				fastgltf::iterateAccessorWithIndex<glm::vec4>(
+					asset, asset.accessors[tanIt->accessorIndex],
+					[&](glm::vec4 v, size_t i) { data.vertices[i].tangent = v; });
+			}
+
 			if (!prim.indicesAccessor.has_value())
 			{
 				Logger::Internal::error(
