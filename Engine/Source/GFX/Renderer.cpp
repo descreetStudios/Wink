@@ -37,6 +37,56 @@ namespace Wink::GFX
 			return gMaterialPool.is_valid(gDefaultMaterial);
 		}
 
+		void apply_config(const Configuration& cfg)
+		{
+			/* --- Depth --- */
+			if (cfg.depthTest) glEnable(GL_DEPTH_TEST);
+			else glDisable(GL_DEPTH_TEST);
+
+			glDepthMask(cfg.depthWrite ? GL_TRUE : GL_FALSE);
+			glDepthFunc(cfg.depthFunc);
+
+			/* --- Stencil --- */
+			if (cfg.stencilTest) glEnable(GL_STENCIL_TEST);
+			else glDisable(GL_STENCIL_TEST);
+
+			if (cfg.stencilTest) 
+			{
+				glStencilFunc(cfg.stencilFunc,
+					cfg.stencilRef, cfg.stencilMask);
+				glStencilOp(cfg.stencilOpSfail,
+					cfg.stencilOpDpfail, cfg.stencilOpDppass);
+			}
+
+			/* --- Blending --- */
+			if (cfg.blend) glEnable(GL_BLEND);
+			else glDisable(GL_BLEND);
+
+			if (cfg.blend) 
+			{
+				glBlendFunc(cfg.blendSrc, cfg.blendDst);
+				glBlendEquation(cfg.blendEq);
+			}
+
+			/* --- Face culling --- */
+			if (cfg.cullFace) glEnable(GL_CULL_FACE);
+			else glDisable(GL_CULL_FACE);
+
+			if (cfg.cullFace) 
+			{
+				glCullFace(cfg.cullMode);
+				glFrontFace(cfg.frontFace);
+			}
+
+			/* --- Polygon mode --- */
+			glPolygonMode(GL_FRONT_AND_BACK, cfg.polygonMode);
+
+			/* --- Multisampling --- */
+			if (cfg.multisample) glEnable(GL_MULTISAMPLE);
+			else glDisable(GL_MULTISAMPLE);
+		}
+
+
 		void draw(const DrawData& drawData)
 		{
 			auto& matPool = get_material_pool();
@@ -53,19 +103,9 @@ namespace Wink::GFX
 				return;
 			}
 
-			//Logger::Internal::info("Draw call. RenderObject valid: '{}'\n"
-			//	"Model Matrix: '{}'\nCamera Position: '{}'\n"
-			//	"Camera View: '{}'\nCamera Proj: '{}'",
-			//	matPool.is_valid(material) && meshPool.is_valid(mesh),
-			//	glm::to_string(drawData.modelMat),
-			//	glm::to_string(drawData.camData.position),
-			//	glm::to_string(drawData.camData.view),
-			//	glm::to_string(drawData.camData.proj));
-
 			matPool.apply(material);
 			auto* shader = shaderPool.try_get(matPool.try_get(material)->shader);
 
-			// TODO: Set uniforms
 			shader->set("uCamPos", drawData.camData.position);
 			shader->set("uView", drawData.camData.view);
 			shader->set("uProj", drawData.camData.proj);
@@ -78,8 +118,10 @@ namespace Wink::GFX
 		}
 	} // anonymous namespace
 
-	void render()
+	void render(const Configuration& cfg)
 	{
+		apply_config(cfg);
+
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		auto scene = ECS::get_active_scene();

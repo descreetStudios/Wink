@@ -5,7 +5,7 @@ namespace Wink::GFX
 	class Camera
 	{
 	public:
-		glm::vec3 position = { 0.0f, 0.0f, 3.0f };
+		glm::vec3 position = { 0.0f, 0.0f, 0.0f };
 		float yaw = -90.0f;
 		float pitch = 0.0f;
 		float roll = 0.0f;

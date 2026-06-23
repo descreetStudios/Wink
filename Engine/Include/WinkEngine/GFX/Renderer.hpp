@@ -8,6 +8,40 @@
 
 namespace Wink::GFX
 {
+	struct Configuration
+	{
+		/* --- Depth --- */
+		bool depthTest = true;
+		bool depthWrite = true;
+		u32 depthFunc = GL_LEQUAL;
+
+		/* --- Stencil --- */
+		bool stencilTest = false;
+		u32 stencilFunc = GL_ALWAYS;
+		int stencilRef = 0;
+		u32 stencilMask = 0xFF;
+		u32 stencilOpSfail = GL_KEEP;
+		u32 stencilOpDpfail = GL_KEEP;
+		u32 stencilOpDppass = GL_KEEP;
+
+		/* --- Blending --- */
+		bool blend = false;
+		u32 blendSrc = GL_SRC_ALPHA;
+		u32 blendDst = GL_ONE_MINUS_SRC_ALPHA;
+		u32 blendEq = GL_FUNC_ADD;
+
+		/* --- Face culling --- */
+		bool cullFace = false;
+		u32 cullMode = GL_BACK;
+		u32 frontFace = GL_CCW;
+
+		/* --- Polygon mode --- */
+		u32 polygonMode = GL_FILL;
+
+		/* --- Multisampling --- */
+		bool multisample = true;
+	};
+
 	struct RenderObject
 	{
 		Resource::MeshHandle mesh;
@@ -29,7 +63,7 @@ namespace Wink::GFX
 	};
 
 	bool init();
-	void render();
+	void render(const Configuration& cfg = {});
 	void shutdown();
 
 	void resize(u32 width, u32 height);

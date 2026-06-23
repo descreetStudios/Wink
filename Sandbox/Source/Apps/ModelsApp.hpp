@@ -4,6 +4,8 @@
 #include <WinkEngine/ECS.hpp>
 #include <WinkEngine/GFX.hpp>
 
+#include <tracy/Tracy.hpp>
+
 using namespace Wink;
 
 class SandboxApp : public Application
@@ -14,6 +16,8 @@ public:
 		using namespace ECS;
 		using namespace GFX::Resource;
 
+#define TRACY_ENABLE 1
+
 		subscribe_to_events();
 
 		GFX::set_clear_color({ 0.53f, 0.81f, 0.92f, 1.0f });
@@ -22,7 +26,8 @@ public:
 		auto* gameScene = create_scene("A Beautiful Game Scene");
 
 		mCamEntity = sponzaScene->spawn();
-		mCamEntity.add<TransformComponent>().position = { 0.0f, 2.0f, 0.0f };
+		auto& camT = mCamEntity.add<TransformComponent>();
+		camT.position = { -5.0f, 2.0f, 0.0f };
 		mCamEntity.add<CameraComponent>(mCam);
 
 		auto& meshPool = get_mesh_pool();
@@ -39,14 +44,23 @@ public:
 			{ GFX::ShaderType::Fragment, shaders / "default_fs.glsl" },
 		});
 
-		const ModelHandle sponza = load_model(
-			modelPool, fs::path("Sponza") / "glTF", shader);
-		const EntityID sponzaID = instantiate_model(sponza, sponzaScene);
+		{
+			ZoneScoped;
+			{
+				ZoneScopedN("Sponza");
+				const ModelHandle sponza = load_model(
+					modelPool, fs::path("Sponza") / "glTF", shader);
+				const EntityID sponzaID = instantiate_model(sponza, sponzaScene);
+			}
 
-		const ModelHandle game = load_model(
-			modelPool, fs::path("ABeautifulGame") / "glTF", shader);
-		const EntityID gameID = instantiate_model(game, gameScene);
-		gameScene->wrap(gameID).get<TransformComponent>().multiply_scale(glm::vec3(10.0f));
+			{
+				ZoneScopedN("A Beautiful Game");
+				const ModelHandle game = load_model(
+					modelPool, fs::path("ABeautifulGame") / "glTF", shader);
+				const EntityID gameID = instantiate_model(game, gameScene);
+				gameScene->wrap(gameID).get<TransformComponent>().multiply_scale(glm::vec3(10.0f));
+			}
+		}
 	}
 
 	void on_update(double dt) override
