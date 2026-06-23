@@ -60,6 +60,7 @@ namespace Wink::GFX
 		const RenderObject& renderObj;
 		const CameraData& camData;
 		const glm::mat4& modelMat;
+		const glm::mat3& normalMat;
 	};
 
 	bool init();

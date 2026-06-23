@@ -111,6 +111,7 @@ namespace Wink::GFX
 			shader->set("uView", drawData.camData.view);
 			shader->set("uProj", drawData.camData.proj);
 			shader->set("uModel", drawData.modelMat);
+			shader->set("uNormalMatrix", drawData.normalMat);
 
 			glBindVertexArray(meshPool.get_vao_id(mesh));
 			glDrawElements(GL_TRIANGLES,
@@ -169,9 +170,12 @@ namespace Wink::GFX
 			if (tC.dirty)
 				ECS::update_world_transform(*scene, id);
 
-			draw({ .renderObj = roC.renderObj,
+			draw({ 
+				.renderObj = roC.renderObj,
 				.camData = camData,
-				.modelMat = tC.worldMatrix });
+				.modelMat = tC.worldMatrix,
+				.normalMat = glm::transpose(glm::inverse(glm::mat3(tC.worldMatrix)))
+			});
 		}
 	}
 

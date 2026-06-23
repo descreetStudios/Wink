@@ -163,6 +163,15 @@ private:
 			if (Window::get_state().cursorLocked)
 				mCam.look(-e.deltaX, e.deltaY, 0.0f, LOOK_SENS);
 			});
+
+		subscribe([this](const MouseScrollEvent& e) {
+			if (Window::get_state().cursorLocked)
+			{
+				mCam.fov -= e.offsetY;
+				mCam.fov = std::clamp(mCam.fov, 10.0f, 100.0f);
+				Logger::info("Fov '{}'", mCam.fov);
+			}
+			});
 	}
 
 private:
