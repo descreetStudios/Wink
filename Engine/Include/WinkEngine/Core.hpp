@@ -2,6 +2,7 @@
 
 #include <WinkEngine/Core/Application.hpp>
 #include <WinkEngine/Core/Logger.hpp>
+#include <WinkEngine/Core/Profiler.hpp>
 
 #include <WinkEngine/Core/EngineEvents.hpp>
 #include <WinkEngine/Core/InputTokens.hpp>

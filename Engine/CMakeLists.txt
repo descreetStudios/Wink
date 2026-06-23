@@ -5,6 +5,14 @@ add_library(Engine)
 # --- Fetch Content --- #
 include(FetchContent)
 
+# TRACY
+FetchContent_Declare(
+    tracy
+    GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+    GIT_TAG v0.13.1
+)
+FetchContent_MakeAvailable(tracy)
+
 # SPDLOG
 FetchContent_Declare(
     spdlog
@@ -81,6 +89,28 @@ PUBLIC
     Include/WinkEngine/pch.hpp)
 
 # --- Defines --- #
+if(NOT DEFINED ENABLE_TRACY)
+    set(ENABLE_TRACY ON CACHE BOOL "Global enable Tracy Profiler" FORCE)
+endif()
+if(NOT DEFINED PROFILE_ENGINE)
+    set(PROFILE_ENGINE ON CACHE BOOL "Enable Engine internal profiling" FORCE)
+endif()
+if(NOT DEFINED PROFILE_APP)
+    set(PROFILE_APP ON CACHE BOOL "Enable Application profiling" FORCE)
+endif()
+
+if(ENABLE_TRACY)
+    target_compile_definitions(Engine PUBLIC TRACY_ENABLE)
+    
+    if(PROFILE_ENGINE)
+        target_compile_definitions(Engine PUBLIC ENGINE_PROFILE_ENABLED)
+    endif()
+    
+    if(PROFILE_APP)
+        target_compile_definitions(Engine PUBLIC APP_PROFILE_ENABLED)
+    endif()
+endif()
+
 target_compile_definitions(Engine 
 PUBLIC
     $<$<CONFIG:Debug>:WINK_DEBUG=1>
@@ -104,6 +134,7 @@ PRIVATE
 
 target_link_libraries(Engine
 PUBLIC
+    Tracy::TracyClient    
     eventpp::eventpp
     EnTT::EnTT
     glm::glm

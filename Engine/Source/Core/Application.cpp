@@ -1,6 +1,7 @@
 #include <WinkEngine/pch.hpp>
 #include <WinkEngine/Core/Application.hpp>
 #include <WinkEngine/Core/Logger.hpp>
+#include <WinkEngine/Core/Profiler.hpp>
 #include <Core/Time.hpp>
 #include <WinkEngine/Core/Input.hpp>
 #include <WinkEngine/Core/Window.hpp>
@@ -19,6 +20,8 @@ namespace Wink
 
 		while (Window::is_open())
 		{
+			ENGINE_ZONE_NAME("Frame");
+
 			Window::poll();
 			Input::tick();
 			GFX::Resource::poll_hot_reloads();
@@ -36,6 +39,8 @@ namespace Wink
 			GFX::render();
 
 			Window::swap();
+
+			ENGINE_FRAME_MARK();
 		}
 
 		on_shutdown();

@@ -4,8 +4,6 @@
 #include <WinkEngine/ECS.hpp>
 #include <WinkEngine/GFX.hpp>
 
-#include <tracy/Tracy.hpp>
-
 using namespace Wink;
 
 class SandboxApp : public Application
@@ -15,8 +13,6 @@ public:
 	{
 		using namespace ECS;
 		using namespace GFX::Resource;
-
-#define TRACY_ENABLE 1
 
 		subscribe_to_events();
 
@@ -45,16 +41,16 @@ public:
 		});
 
 		{
-			ZoneScoped;
+			APP_ZONE_NAME("Asset Loading");
 			{
-				ZoneScopedN("Sponza");
+				APP_ZONE_COLOR("Load Model: Sponza", 0x4A90E2);
 				const ModelHandle sponza = load_model(
 					modelPool, fs::path("Sponza") / "glTF", shader);
 				const EntityID sponzaID = instantiate_model(sponza, sponzaScene);
 			}
 
 			{
-				ZoneScopedN("A Beautiful Game");
+				APP_ZONE_COLOR("Load Model: A Beautiful Game", 0x2ECC71);
 				const ModelHandle game = load_model(
 					modelPool, fs::path("ABeautifulGame") / "glTF", shader);
 				const EntityID gameID = instantiate_model(game, gameScene);

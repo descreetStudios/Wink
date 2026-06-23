@@ -2,6 +2,7 @@
 #include <WinkEngine/Content/Model.hpp>
 #include <WinkEngine/GFX/Renderer.hpp>
 #include <WinkEngine/Core/Logger.hpp>
+#include <WinkEngine/Core/Profiler.hpp>
 
 #include <fastgltf/core.hpp>
 #include <fastgltf/types.hpp>
@@ -33,6 +34,8 @@ namespace Wink::Content
 
 		void generate_tangents_mikktspace(MeshData& data)
 		{
+			ENGINE_ZONE_NAME("MikkTSpace Generation");
+
 			struct UserData { MeshData* mesh; };
 			UserData ud{ &data };
 
@@ -125,6 +128,8 @@ namespace Wink::Content
 			const fs::path& baseDir, const TextureParams& params,
 			LoadProgress& progress)
 		{
+			ENGINE_ZONE_NAME("Load Material Texture");
+
 			if (!texInfo.has_value()) return std::nullopt;
 
 			const fastgltf::Texture& tex = asset.textures[texInfo->textureIndex];
@@ -174,6 +179,8 @@ namespace Wink::Content
 			size_t matIndex, const fs::path& baseDir,
 			ShaderHandle shader, LoadProgress& progress)
 		{
+			ENGINE_ZONE_NAME("Material building");
+
 			const fastgltf::Material& src = asset.materials[matIndex];
 			auto& materialPool = get_material_pool();
 
@@ -250,6 +257,8 @@ namespace Wink::Content
 			const fastgltf::Primitive& prim,
 			LoadProgress& progress)
 		{
+			ENGINE_ZONE_NAME("Build Mesh");
+
 			if (prim.type != fastgltf::PrimitiveType::Triangles)
 			{
 				Logger::Internal::error(
@@ -327,6 +336,8 @@ namespace Wink::Content
 		void decompose_transform(
 			const fastgltf::Node& node, ModelNode& out)
 		{
+			ENGINE_ZONE_NAME("Decompose Transform");
+
 			if (const auto* trs = std::get_if<
 				fastgltf::TRS>(&node.transform))
 			{
@@ -356,6 +367,8 @@ namespace Wink::Content
 		std::optional<Model> load_gltf(const fs::path& path,
 			ShaderHandle shader)
 		{
+			ENGINE_ZONE_NAME("Load glTF");
+
 			const fs::path baseDir = path.parent_path();
 
 			auto bufferResult = fastgltf::GltfDataBuffer::FromPath(path);

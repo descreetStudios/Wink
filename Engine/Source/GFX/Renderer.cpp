@@ -52,7 +52,7 @@ namespace Wink::GFX
 			if (cfg.stencilTest) glEnable(GL_STENCIL_TEST);
 			else glDisable(GL_STENCIL_TEST);
 
-			if (cfg.stencilTest) 
+			if (cfg.stencilTest)
 			{
 				glStencilFunc(cfg.stencilFunc,
 					cfg.stencilRef, cfg.stencilMask);
@@ -64,7 +64,7 @@ namespace Wink::GFX
 			if (cfg.blend) glEnable(GL_BLEND);
 			else glDisable(GL_BLEND);
 
-			if (cfg.blend) 
+			if (cfg.blend)
 			{
 				glBlendFunc(cfg.blendSrc, cfg.blendDst);
 				glBlendEquation(cfg.blendEq);
@@ -74,7 +74,7 @@ namespace Wink::GFX
 			if (cfg.cullFace) glEnable(GL_CULL_FACE);
 			else glDisable(GL_CULL_FACE);
 
-			if (cfg.cullFace) 
+			if (cfg.cullFace)
 			{
 				glCullFace(cfg.cullMode);
 				glFrontFace(cfg.frontFace);
@@ -87,7 +87,6 @@ namespace Wink::GFX
 			if (cfg.multisample) glEnable(GL_MULTISAMPLE);
 			else glDisable(GL_MULTISAMPLE);
 		}
-
 
 		void draw(const DrawData& drawData)
 		{
@@ -170,9 +169,9 @@ namespace Wink::GFX
 			if (tC.dirty)
 				ECS::update_world_transform(*scene, id);
 
-			draw({ .renderObj=roC.renderObj,
+			draw({ .renderObj = roC.renderObj,
 				.camData = camData,
-				.modelMat = tC.worldMatrix});
+				.modelMat = tC.worldMatrix });
 		}
 	}
 
