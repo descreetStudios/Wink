@@ -2,16 +2,26 @@
 #define LIGHT_GLSLI
 
 #define MAX_DIR_LIGHTS 2
+#define MAX_POINT_LIGHTS 8
 
 struct DirLight
 {
 	vec3 direction;
 	float intensity;
 	vec3 color;
-	float _pad;
+};
+
+struct PointLight
+{
+    vec3  position;
+    float intensity;
+    vec3  color;
+    float radius;
 };
 
 uniform DirLight uDirLights[MAX_DIR_LIGHTS];
 uniform int uDirLightCount;
+uniform PointLight uPointLights[MAX_POINT_LIGHTS];
+uniform int uPointLightCount;
 
 #endif // LIGHT_GLSLI

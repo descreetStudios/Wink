@@ -1,5 +1,7 @@
 #pragma once
 
+#include <WinkEngine/Core/Logger.hpp>
+
 namespace Wink::ECS
 {
 	class Scene;
@@ -26,6 +28,11 @@ namespace Wink::ECS
 		C& add(Args&&... args)
 		{
 			assert_valid();
+			if (mReg->any_of<C>(mID))
+			{
+				Logger::Internal::warn("Trying to add double component to an entity");
+				return mReg->get<C>(mID);
+			}
 			return mReg->emplace<C>(mID, std::forward<Args>(args)...);
 		}
 

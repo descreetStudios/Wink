@@ -20,19 +20,6 @@ public:
 		auto* sponzaScene = create_scene("Sponza Scene");
 		auto* gameScene = create_scene("A Beautiful Game Scene");
 
-		mCamEntity = sponzaScene->spawn();
-		auto& camT = mCamEntity.add<TransformComponent>();
-		camT.position = { -5.0f, 2.0f, 0.0f };
-		mCamEntity.add<CameraComponent>(mCam);
-
-		mSponzaDirLight = sponzaScene->spawn();
-		auto& sdlC = mSponzaDirLight.add<ECS::DirLightComponent>();
-		sdlC.direction = { 0.0f, -1.0f, 0.3f };
-
-		mGameDirLight = gameScene->spawn();
-		auto& gdlC = mGameDirLight.add<ECS::DirLightComponent>();
-		gdlC.direction = { 0.0f, -1.0f, -0.3f };
-
 		auto& meshPool = get_mesh_pool();
 		auto& shaderPool = get_shader_pool();
 		auto& texturePool = get_texture_pool();
@@ -45,6 +32,38 @@ public:
 			{ ShaderType::Vertex, shaders / "DefaultVS.glsl" },
 			{ ShaderType::Fragment, shaders / "DefaultFS.glsl" },
 		});
+
+		// Camera
+		mCamEntity = sponzaScene->spawn();
+		auto& camT = mCamEntity.add<TransformComponent>();
+		camT.position = { -5.0f, 2.0f, 0.0f };
+		mCamEntity.add<CameraComponent>(mCam);
+
+		// Dir Lights
+		mSponzaDirLight = sponzaScene->spawn();
+		auto& sdlC = mSponzaDirLight.add<DirLightComponent>();
+		sdlC.dirLight.direction = { 0.0f, -1.0f, 0.3f };
+
+		mGameDirLight = gameScene->spawn();
+		auto& gdlC = mGameDirLight.add<DirLightComponent>();
+		gdlC.dirLight.direction = { 0.0f, -1.0f, -0.3f };
+
+		// Point Lights
+		const ModelHandle sphere = load_model(
+			modelPool, fs::path("sphere.glb"), shader);
+		auto* sphereModel = modelPool.try_get(sphere);
+		materialPool.try_get(sphereModel->
+			nodes[0].primitives[0].material)->
+			params.baseColor = { 1.0f, 0.0f, 0.0f, 1.0f };
+
+		auto spl = sponzaScene->wrap(instantiate_model(sphere, sponzaScene));
+		auto& splL = spl.add<PointLightComponent>();
+		splL.pointLight.color = { 0.5f, 0.1f, 0.2f };
+		splL.pointLight.radius = 50.0f;
+		splL.pointLight.intensity = 10.0f;
+		auto& splT = spl.get<TransformComponent>();
+		splT.position = { 9.0f, 2.0f, 3.2f };
+		splT.scale /= 10.0f;
 
 		{
 			APP_ZONE_NAME("Asset Loading");
@@ -99,9 +118,10 @@ public:
 			? mGameDirLight
 			: mSponzaDirLight;
 
+		if (!activeLightEntity.has<ECS::DirLightComponent>()) return;
 		auto& light = activeLightEntity.get<ECS::DirLightComponent>();
 
-		light.direction = glm::normalize(glm::vec3(
+		light.dirLight.direction = glm::normalize(glm::vec3(
 			glm::cos(angle),
 			-1.0f,
 			glm::sin(angle)

@@ -110,7 +110,7 @@ namespace Wink::GFX
 			shader->set("uNormalMatrix", drawData.normalMat);
 
 			/* --- Dir Lights --- */
-			const i32 lightCount = std::min(
+			i32 lightCount = std::min(
 				static_cast<i32>(drawData.dirLights.size()), MAX_DIR_LIGHTS);
 			shader->set("uDirLightCount", lightCount);
 			for (i32 i = 0; i < lightCount; ++i)
@@ -120,6 +120,20 @@ namespace Wink::GFX
 				shader->set(base + "direction", light.direction);
 				shader->set(base + "intensity", light.intensity);
 				shader->set(base + "color", light.color);
+			}
+
+			/* --- Point Lights --- */
+			lightCount = std::min(
+				static_cast<i32>(drawData.pointLights.size()), MAX_POINT_LIGHTS);
+			shader->set("uPointLightCount", lightCount);
+			for (i32 i = 0; i < lightCount; ++i)
+			{
+				const auto& light = drawData.pointLights[i];
+				const std::string base = "uPointLights[" + std::to_string(i) + "].";
+				shader->set(base + "position", light.position);
+				shader->set(base + "intensity", light.intensity);
+				shader->set(base + "color", light.color);
+				shader->set(base + "radius", light.radius);
 			}
 
 			/* --- Draw --- */
@@ -174,10 +188,11 @@ namespace Wink::GFX
 		CameraData camData{ .position = cam.position,
 			.view = cam.get_view(), .proj = cam.get_proj() };
 
-
 		/* --- Lights --- */
 		std::vector<DirLight> dirLights;
+		std::vector<PointLight> pointLights;
 		dirLights.reserve(MAX_DIR_LIGHTS);
+		pointLights.reserve(MAX_POINT_LIGHTS);
 
 		for (auto&& [id, dlC] :
 			scene->view<ECS::DirLightComponent>())
@@ -185,10 +200,22 @@ namespace Wink::GFX
 			if (static_cast<i32>(dirLights.size()) >= MAX_DIR_LIGHTS)
 				break;
 
-			dirLights.push_back({
-				.direction = glm::normalize(dlC.direction),
-				.intensity = dlC.intensity,
-				.color = dlC.color});
+			dirLights.push_back(dlC.dirLight);
+		}
+
+		for (auto&& [id, plC] :
+			scene->view<ECS::PointLightComponent>())
+		{
+			if (static_cast<i32>(pointLights.size()) >= MAX_POINT_LIGHTS)
+				break;
+
+			PointLight pl = plC.pointLight;
+
+			auto e = scene->wrap(id);
+			if (e.has<ECS::TransformComponent>())
+				pl.position += e.get<ECS::TransformComponent>().position;
+
+			pointLights.push_back(pl);
 		}
 
 		/* --- RenderObject --- */
@@ -200,12 +227,12 @@ namespace Wink::GFX
 			if (tC.dirty)
 				ECS::update_world_transform(*scene, id);
 
-			draw({ 
+			draw({
 				.renderObj = roC.renderObj,
 				.camData = camData,
 				.modelMat = tC.worldMatrix,
 				.normalMat = glm::transpose(glm::inverse(glm::mat3(tC.worldMatrix))),
-				.dirLights = dirLights});
+				.dirLights = dirLights, .pointLights = pointLights });
 		}
 	}
 

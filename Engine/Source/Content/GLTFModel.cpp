@@ -384,8 +384,7 @@ namespace Wink::Content
 				fastgltf::Options::DecomposeNodeMatrices |
 				fastgltf::Options::LoadGLBBuffers };
 
-			fastgltf::Parser parser(fastgltf::Extensions::KHR_materials_transmission |
-				fastgltf::Extensions::KHR_materials_volume);
+			fastgltf::Parser parser;
 			auto assetResult = parser.loadGltf(
 				bufferResult.get(), baseDir, options);
 
@@ -406,9 +405,11 @@ namespace Wink::Content
 
 			/* --- Materials --- */
 			std::vector<MaterialHandle> matHandles;
-			matHandles.reserve(asset.materials.size());
-			for (size_t i = 0; i < asset.materials.size(); ++i)
-				matHandles.push_back(build_material(asset, i, baseDir, shader, progress));
+			size_t matsSize = asset.materials.size();
+			matHandles.reserve(matsSize);
+			for (size_t i = 0; i < matsSize; ++i)
+				matHandles.push_back(build_material(
+					asset, i, baseDir, shader, progress));
 
 			/* --- Meshes --- */
 			std::unordered_map<u64, MeshHandle> meshHandles;
@@ -453,7 +454,7 @@ namespace Wink::Content
 						ModelPrimitive p;
 						p.mesh = meshHandles.at(key);
 						p.material = prim.materialIndex.has_value() ?
-							matHandles[*prim.materialIndex] : MaterialHandle();
+							matHandles[*prim.materialIndex] : get_default_material();
 						node.primitives.push_back(p);
 					}
 				}
