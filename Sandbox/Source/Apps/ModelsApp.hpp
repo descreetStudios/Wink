@@ -15,6 +15,9 @@ public:
 		using namespace GFX;
 		using namespace Resource;
 
+		std::random_device rd;
+		std::mt19937 gen(rd());
+
 		subscribe_to_events();
 
 		auto* sponzaScene = create_scene("Sponza Scene");
@@ -49,21 +52,54 @@ public:
 		gdlC.dirLight.direction = { 0.0f, -1.0f, -0.3f };
 
 		// Point Lights
-		const ModelHandle sphere = load_model(
-			modelPool, fs::path("sphere.glb"), shader);
-		auto* sphereModel = modelPool.try_get(sphere);
-		materialPool.try_get(sphereModel->
-			nodes[0].primitives[0].material)->
-			params.baseColor = { 1.0f, 0.0f, 0.0f, 1.0f };
+		std::uniform_real_distribution<float> distX(-15.0f, 15.0f);
+		std::uniform_real_distribution<float> distY(0.5f, 3.0f);
+		std::uniform_real_distribution<float> distZ(-5.0f, 5.0f);
+		std::uniform_real_distribution<float> distColor(0.1f, 1.0f);
+		std::uniform_real_distribution<float> distSpeed(0.5f, 1.5f);
 
-		auto spl = sponzaScene->wrap(instantiate_model(sphere, sponzaScene));
-		auto& splL = spl.add<PointLightComponent>();
-		splL.pointLight.color = { 0.5f, 0.1f, 0.2f };
-		splL.pointLight.radius = 50.0f;
-		splL.pointLight.intensity = 10.0f;
-		auto& splT = spl.get<TransformComponent>();
-		splT.position = { 9.0f, 2.0f, 3.2f };
-		splT.scale /= 10.0f;
+		for (int i = 0; i < 15; ++i)
+		{
+			glm::vec3 randomColor = { distColor(gen), distColor(gen), distColor(gen) };
+
+			// Sponza Scene Lights
+			auto sponzaLight = sponzaScene->spawn();
+			auto& sponzaPosT = sponzaLight.add<TransformComponent>();
+			sponzaPosT.position = { distX(gen), distY(gen), distZ(gen) };
+
+			auto& sponzaLightC = sponzaLight.add<PointLightComponent>();
+			sponzaLightC.pointLight.color = randomColor;
+			sponzaLightC.pointLight.radius = 30.0f;
+			sponzaLightC.pointLight.intensity = 5.0f;
+
+			// Save tracking data for Sponza light
+			mMovingLights.push_back({
+				sponzaLight,
+				sponzaPosT.position,
+				{ distSpeed(gen), distSpeed(gen), distSpeed(gen) }
+				});
+
+			// A Beautiful Game Scene Lights
+			auto gameLight = gameScene->spawn();
+			auto& gamePosT = gameLight.add<TransformComponent>();
+			gamePosT.position = { distX(gen), distY(gen), distZ(gen) };
+
+			auto& gameLightC = gameLight.add<PointLightComponent>();
+			gameLightC.pointLight.color = randomColor;
+			gameLightC.pointLight.radius = 30.0f;
+			gameLightC.pointLight.intensity = 5.0f;
+
+			// Save tracking data for Game light
+			mMovingLights.push_back({
+				gameLight,
+				gamePosT.position,
+				{ distSpeed(gen), distSpeed(gen), distSpeed(gen) }
+				});
+		}
+
+		// Spot Lights
+		mSponzaSpotLight = sponzaScene->spawn();
+		mSponzaSpotLight.add<SpotLightComponent>().spotLight.intensity = 2.0f;
 
 		{
 			APP_ZONE_NAME("Asset Loading");
@@ -90,28 +126,30 @@ public:
 
 		const float fdt = static_cast<float>(dt);
 
+		/* --- Camera --- */
 		float speed = MOVE_SPEED;
 		if (Input::is_key_down(Key::LeftShift))
 			speed += 7.0f;
 
-		auto& t = mCamEntity.get<ECS::TransformComponent>();
+		auto& camT = mCamEntity.get<ECS::TransformComponent>();
 
 		const float move = fdt * speed;
 		if (Input::is_key_down(Key::W))
-			t.translate(mCam.get_forward() * move);
+			camT.translate(mCam.get_forward() * move);
 		if (Input::is_key_down(Key::S))
-			t.translate(-mCam.get_forward() * move);
+			camT.translate(-mCam.get_forward() * move);
 		if (Input::is_key_down(Key::A))
-			t.translate(-mCam.get_right() * move);
+			camT.translate(-mCam.get_right() * move);
 		if (Input::is_key_down(Key::D))
-			t.translate(mCam.get_right() * move);
+			camT.translate(mCam.get_right() * move);
 		if (Input::is_key_down(Key::E))
-			t.translate({ 0.0f, move, 0.0f });
+			camT.translate({ 0.0f, move, 0.0f });
 		if (Input::is_key_down(Key::Q))
-			t.translate({ 0.0f, -move, 0.0f });
+			camT.translate({ 0.0f, -move, 0.0f });
 
+		/* --- Dir Lights --- */
 		static float angle = 0.0f;
-		angle += static_cast<float>(dt) * 0.5f;
+		angle += fdt * 0.5f;
 
 		ECS::Entity activeLightEntity =
 			(mActiveSceneName == "A Beautiful Game Scene")
@@ -126,6 +164,36 @@ public:
 			-1.0f,
 			glm::sin(angle)
 		));
+
+		/* --- Spot Lights --- */
+		if (mSponzaSpotLight.has<ECS::SpotLightComponent>() &&
+			mCamEntity.has<ECS::TransformComponent>())
+		{
+			auto& sslC = mSponzaSpotLight.get<ECS::SpotLightComponent>();
+			auto& camTransform = mCamEntity.get<ECS::TransformComponent>();
+			sslC.spotLight.position = camTransform.position;
+			sslC.spotLight.direction = mCam.get_forward();
+		}
+
+		/* --- Point Lights --- */
+		static float totalTime = 0.0f;
+		totalTime += fdt;
+
+		const float maxMovementRadius = 1.0f;
+
+		for (auto& ml : mMovingLights)
+		{
+			if (ml.entity.is_valid() && ml.entity.has<ECS::TransformComponent>())
+			{
+				auto& t = ml.entity.get<ECS::TransformComponent>();
+
+				float offsetX = glm::sin(totalTime * ml.movementSpeed.x) * maxMovementRadius;
+				float offsetY = glm::cos(totalTime * ml.movementSpeed.y) * (maxMovementRadius * 0.3f);
+				float offsetZ = glm::sin(totalTime * ml.movementSpeed.z + 1.0f) * maxMovementRadius;
+
+				t.position = ml.initialPosition + glm::vec3(offsetX, offsetY, offsetZ);
+			}
+		}
 	}
 
 	void on_render(double alpha) override
@@ -229,4 +297,13 @@ private:
 
 	ECS::Entity mSponzaDirLight;
 	ECS::Entity mGameDirLight;
+	ECS::Entity mSponzaSpotLight;
+
+	struct MovingLight
+	{
+		ECS::Entity entity;
+		glm::vec3 initialPosition;
+		glm::vec3 movementSpeed;
+	};
+	std::vector<MovingLight> mMovingLights;
 };

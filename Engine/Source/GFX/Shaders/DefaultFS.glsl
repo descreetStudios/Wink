@@ -88,6 +88,47 @@ vec3 compute_point_light(PointLight light,
 	return (diffuse + specular) * radiance * NdL;
 }
 
+vec3 compute_spot_light(SpotLight light,
+	vec3 albedo, vec3 N, vec3 V, vec3 fragPos,
+	float metallic, float roughness, vec3 F0)
+{
+	vec3 toLight = light.position - fragPos;
+	float dist = length(toLight);
+
+	// Distance soft cutoff
+	float window = 1.0 - smoothstep(light.range * 0.75, light.range, dist);
+	if (window <= 0.0) return vec3(0.0);
+
+	vec3 L = toLight / dist;
+	vec3 H = normalize(L + V);
+
+	float theta = dot(L, normalize(-light.direction)); 
+	
+	// Smoothly interpolate between inner and outer cones
+	float epsilon = light.innerCutoff - light.outerCutoff;
+	float spotIntensity = clamp((theta - light.outerCutoff) / epsilon, 0.0, 1.0);
+
+	if (spotIntensity <= 0.0) return vec3(0.0);
+
+	// Standard PBR BRDF Evaluation
+	float NdL = max(dot(N, L), 0.0);
+	float NdV = max(dot(N, V), 0.0);
+	float HdV = max(dot(H, V), 0.0);
+
+	float D = DistributionGGX(N, H, roughness); 
+	float G = GeometrySmith(N, V, L, roughness);
+	vec3  F = FresnelSchlick(HdV, F0);
+
+	vec3 specular = (D * G * F) / max(4.0 * NdV * NdL, 0.001);
+	vec3 kD = (1.0 - F) * (1.0 - metallic);
+	vec3 diffuse = kD * albedo / PI;
+
+	float attenuation = (light.intensity * window * spotIntensity) / (dist * dist + 1.0);
+	vec3 radiance = light.color * attenuation;
+
+	return (diffuse + specular) * radiance * NdL;
+}
+
 vec3 compute_pbr(vec3 albedo, vec3 N, vec3 V,
 	float metallic, float roughness,
 	float ao, vec3 emissive)
@@ -105,8 +146,13 @@ vec3 compute_pbr(vec3 albedo, vec3 N, vec3 V,
 		directLight += compute_point_light(uPointLights[i], albedo,
 			N, V, vFragPos, metallic, roughness, F0);
 
+	// Accumulate all active spot lights
+	for (int i = 0; i < uSpotLightCount; ++i)
+		directLight += compute_spot_light(uSpotLights[i], albedo,
+			N, V, vFragPos, metallic, roughness, F0);
+
 	// Approximate ambient
-	vec3 ambient = albedo * F0 * 0.15 * ao;
+	vec3 ambient = albedo * F0 * 0.2 * ao;
 
 	vec3 color = directLight + ambient + emissive;
 	return color;

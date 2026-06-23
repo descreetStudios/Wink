@@ -13,4 +13,9 @@ namespace Wink::ECS
 	{
 		GFX::PointLight pointLight;
 	};
+
+	struct SpotLightComponent
+	{
+		GFX::SpotLight spotLight;
+	};
 }

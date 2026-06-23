@@ -56,7 +56,8 @@ namespace Wink::GFX
 	};
 
 #define MAX_DIR_LIGHTS 2
-#define MAX_POINT_LIGHTS 8
+#define MAX_POINT_LIGHTS 16
+#define MAX_SPOT_LIGHTS 8
 
 	struct DirLight
 	{
@@ -73,6 +74,17 @@ namespace Wink::GFX
 		float radius = 15.0f;
 	};
 
+	struct SpotLight
+	{
+		glm::vec3 position = glm::vec3(0.0f);
+		float range = 45.0f;
+		glm::vec3 direction = { 0.0f, -1.0f, 0.0f };
+		float innerCutoff = glm::cos(glm::radians(15.0f));
+		glm::vec3 color = glm::vec3(1.0f);
+		float outerCutoff = glm::cos(glm::radians(30.0f));
+		float intensity = 1.0f;
+	};
+
 	struct DrawData
 	{
 		const RenderObject& renderObj;
@@ -82,6 +94,7 @@ namespace Wink::GFX
 
 		std::vector<DirLight> dirLights;
 		std::vector<PointLight> pointLights;
+		std::vector<SpotLight> spotLights;
 	};
 
 	bool init();

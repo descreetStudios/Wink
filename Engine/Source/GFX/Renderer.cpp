@@ -110,8 +110,7 @@ namespace Wink::GFX
 			shader->set("uNormalMatrix", drawData.normalMat);
 
 			/* --- Dir Lights --- */
-			i32 lightCount = std::min(
-				static_cast<i32>(drawData.dirLights.size()), MAX_DIR_LIGHTS);
+			i32 lightCount = drawData.dirLights.size();
 			shader->set("uDirLightCount", lightCount);
 			for (i32 i = 0; i < lightCount; ++i)
 			{
@@ -123,8 +122,7 @@ namespace Wink::GFX
 			}
 
 			/* --- Point Lights --- */
-			lightCount = std::min(
-				static_cast<i32>(drawData.pointLights.size()), MAX_POINT_LIGHTS);
+			lightCount = drawData.pointLights.size();
 			shader->set("uPointLightCount", lightCount);
 			for (i32 i = 0; i < lightCount; ++i)
 			{
@@ -134,6 +132,22 @@ namespace Wink::GFX
 				shader->set(base + "intensity", light.intensity);
 				shader->set(base + "color", light.color);
 				shader->set(base + "radius", light.radius);
+			}
+
+			/* --- Spot Lights --- */
+			lightCount = drawData.spotLights.size();
+			shader->set("uSpotLightCount", lightCount);
+			for (i32 i = 0; i < lightCount; ++i)
+			{
+				const auto& light = drawData.spotLights[i];
+				const std::string base = "uSpotLights[" + std::to_string(i) + "].";
+				shader->set(base + "position", light.position);
+				shader->set(base + "range", light.range);
+				shader->set(base + "direction", light.direction);
+				shader->set(base + "innerCutoff", light.innerCutoff);
+				shader->set(base + "color", light.color);
+				shader->set(base + "outerCutoff", light.outerCutoff);
+				shader->set(base + "intensity", light.intensity);
 			}
 
 			/* --- Draw --- */
@@ -191,8 +205,10 @@ namespace Wink::GFX
 		/* --- Lights --- */
 		std::vector<DirLight> dirLights;
 		std::vector<PointLight> pointLights;
+		std::vector<SpotLight> spotLights;
 		dirLights.reserve(MAX_DIR_LIGHTS);
 		pointLights.reserve(MAX_POINT_LIGHTS);
+		spotLights.reserve(MAX_SPOT_LIGHTS);
 
 		for (auto&& [id, dlC] :
 			scene->view<ECS::DirLightComponent>())
@@ -218,6 +234,24 @@ namespace Wink::GFX
 			pointLights.push_back(pl);
 		}
 
+		for (auto&& [id, slC] :
+			scene->view<ECS::SpotLightComponent>())
+		{
+			if (static_cast<i32>(spotLights.size()) >= MAX_SPOT_LIGHTS)
+				break;
+
+			SpotLight sl = slC.spotLight;
+
+			auto e = scene->wrap(id);
+			if (e.has<ECS::TransformComponent>())
+			{
+				auto& t = e.get<ECS::TransformComponent>();
+				sl.position += t.position;
+			}
+
+			spotLights.push_back(sl);
+		}
+
 		/* --- RenderObject --- */
 		for (auto&& [id, tC, roC] :
 			scene->view<ECS::TransformComponent,
@@ -232,7 +266,7 @@ namespace Wink::GFX
 				.camData = camData,
 				.modelMat = tC.worldMatrix,
 				.normalMat = glm::transpose(glm::inverse(glm::mat3(tC.worldMatrix))),
-				.dirLights = dirLights, .pointLights = pointLights });
+				.dirLights = dirLights, .pointLights = pointLights, .spotLights = spotLights });
 		}
 	}
 
