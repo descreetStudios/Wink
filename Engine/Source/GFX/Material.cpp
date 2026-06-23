@@ -15,10 +15,16 @@ namespace Wink::GFX
 
 		constexpr i32 ALBEDO_UNIT = 0;
 		constexpr i32 NORMAL_UNIT = 1;
+		constexpr i32 MR_UNIT = 2;
+		constexpr i32 AO_UNIT = 3;
+		constexpr i32 EMISSIVE_UNIT = 4;
 
 		constexpr TextureSlotDesc TEXTURE_SLOTS[] = {
-			{ &MaterialTextures::albedo, "uMaterial.albedoMap", "uMaterial.hasAlbedoMap", ALBEDO_UNIT },
-			{ &MaterialTextures::normal, "uMaterial.normalMap", "uMaterial.hasNormalMap", NORMAL_UNIT },
+			{ &MaterialTextures::albedo,            "uMaterial.albedoMap",    "uMaterial.hasAlbedoMap",    ALBEDO_UNIT   },
+			{ &MaterialTextures::normal,            "uMaterial.normalMap",    "uMaterial.hasNormalMap",    NORMAL_UNIT   },
+			{ &MaterialTextures::metallicRoughness, "uMaterial.mrMap",        "uMaterial.hasMRMap",        MR_UNIT       },
+			{ &MaterialTextures::ao,                "uMaterial.aoMap",        "uMaterial.hasAOMap",        AO_UNIT       },
+			{ &MaterialTextures::emissive,          "uMaterial.emissiveMap",  "uMaterial.hasEmissiveMap",  EMISSIVE_UNIT },
 		};
 	}
 
@@ -52,6 +58,16 @@ namespace Wink::GFX
 		}
 
 		s->set("uMaterial.baseColor", params.baseColor);
+		s->set("uMaterial.metallic", params.metallic);
+		s->set("uMaterial.roughness", params.roughness);
+		s->set("uMaterial.emissiveFactor", params.emissiveFactor);
+		s->set("uMaterial.aoStrength", params.aoStrength);
+
+		s->set("uMaterial.albedoTexCoord", (i32)params.albedoTexCoord);
+		s->set("uMaterial.normalTexCoord", (i32)params.normalTexCoord);
+		s->set("uMaterial.mrTexCoord", (i32)params.mrTexCoord);
+		s->set("uMaterial.aoTexCoord", (i32)params.aoTexCoord);
+		s->set("uMaterial.emissiveTexCoord", (i32)params.emissiveTexCoord);
 	}
 
 	bool Material::is_valid() const noexcept

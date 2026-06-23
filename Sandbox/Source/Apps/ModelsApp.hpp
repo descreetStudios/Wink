@@ -20,7 +20,7 @@ public:
 
 		subscribe_to_events();
 
-		GFX::set_clear_color({ 0.53f, 0.81f, 0.92f, 1.0f });
+		//GFX::set_clear_color({ 0.53f, 0.81f, 0.92f, 1.0f });
 
 		auto* sponzaScene = create_scene("Sponza Scene");
 		auto* gameScene = create_scene("A Beautiful Game Scene");
@@ -40,8 +40,8 @@ public:
 		const fs::path root = fs::path("..") / ".." / ".." / "..";
 		const fs::path shaders = root / "Engine" / "Source" / "GFX" / "Shaders";
 		ShaderHandle shader = shaderPool.load(std::vector<GFX::ShaderFile>{
-			{ GFX::ShaderType::Vertex, shaders / "default_vs.glsl" },
-			{ GFX::ShaderType::Fragment, shaders / "default_fs.glsl" },
+			{ GFX::ShaderType::Vertex, shaders / "DefaultVS.glsl" },
+			{ GFX::ShaderType::Fragment, shaders / "DefaultFS.glsl" },
 		});
 
 		{
@@ -121,7 +121,7 @@ private:
 	{
 		using namespace ECS;
 
-		const TransformComponent transform = 
+		const TransformComponent transform =
 			mCamEntity.get<TransformComponent>(); // intended copy
 
 		auto* scene = set_active_scene(name);
@@ -155,7 +155,7 @@ private:
 
 			if (e.key == Key::V)
 				mGFXConfig.polygonMode = mGFXConfig.polygonMode ==
-					GL_FILL ? GL_LINE : GL_FILL;
+				GL_FILL ? GL_LINE : GL_FILL;
 			});
 
 		subscribe([](const MouseButtonPressEvent& e) {

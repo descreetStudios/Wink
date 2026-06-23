@@ -57,6 +57,17 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(fastgltf)
 
+# MIKKTSPACE
+FetchContent_Declare(
+    mikktspace
+    GIT_REPOSITORY https://github.com/mmikk/MikkTSpace.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(mikktspace)
+add_library(MikkTSpace STATIC ${mikktspace_SOURCE_DIR}/mikktspace.c)
+target_include_directories(MikkTSpace PRIVATE ${mikktspace_SOURCE_DIR})
+target_include_directories(Engine PRIVATE ${mikktspace_SOURCE_DIR})
+
 # GLAD
 add_library(glad ${CMAKE_CURRENT_SOURCE_DIR}/Vendor/glad/src/glad.c)
 target_include_directories(glad PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Vendor/glad/include)
@@ -88,6 +99,7 @@ PRIVATE
     spdlog::spdlog
     glfw
     fastgltf
+    MikkTSpace
 )
 
 target_link_libraries(Engine

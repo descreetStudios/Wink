@@ -5,8 +5,7 @@
 
 namespace Wink::GFX::Resource
 {
-	TextureHandle TexturePool::decode(
-		const fs::path& path,
+	TextureHandle TexturePool::decode(const fs::path& path,
 		const TextureParams& params, bool hotReload)
 	{
 		Content::DecodedImage img = Content::decode_image(path);

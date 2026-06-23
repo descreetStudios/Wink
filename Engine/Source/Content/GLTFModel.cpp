@@ -8,6 +8,8 @@
 #include <fastgltf/tools.hpp>
 #include <fastgltf/glm_element_traits.hpp>
 
+#include <mikktspace.h>
+
 namespace Wink::Content
 {
 	using namespace GFX;
@@ -28,6 +30,64 @@ namespace Wink::Content
 				for (MeshHandle h : meshes) get_mesh_pool().unload(h);
 			}
 		};
+
+		void generate_tangents_mikktspace(MeshData& data)
+		{
+			struct UserData { MeshData* mesh; };
+			UserData ud{ &data };
+
+			SMikkTSpaceInterface iface{};
+
+			iface.m_getNumFaces = [](const SMikkTSpaceContext* ctx) -> i32
+				{
+					auto* ud = static_cast<UserData*>(ctx->m_pUserData);
+					return static_cast<i32>(ud->mesh->indices.size() / 3);
+				};
+
+			iface.m_getNumVerticesOfFace = [](const SMikkTSpaceContext*, i32) -> i32
+				{
+					return 3;
+				};
+
+			iface.m_getPosition = [](const SMikkTSpaceContext* ctx,
+				float out[], i32 face, i32 vert)
+				{
+					auto* ud = static_cast<UserData*>(ctx->m_pUserData);
+					u32 idx = ud->mesh->indices[static_cast<size_t>(face) * 3 + vert];
+					const glm::vec3& p = ud->mesh->vertices[idx].position;
+					out[0] = p.x; out[1] = p.y; out[2] = p.z;
+				};
+
+			iface.m_getNormal = [](const SMikkTSpaceContext* ctx,
+				float out[], i32 face, i32 vert)
+				{
+					auto* ud = static_cast<UserData*>(ctx->m_pUserData);
+					u32 idx = ud->mesh->indices[static_cast<size_t>(face) * 3 + vert];
+					const glm::vec3& n = ud->mesh->vertices[idx].normal;
+					out[0] = n.x; out[1] = n.y; out[2] = n.z;
+				};
+
+			iface.m_getTexCoord = [](const SMikkTSpaceContext* ctx,
+				float out[], i32 face, i32 vert)
+				{
+					auto* ud = static_cast<UserData*>(ctx->m_pUserData);
+					u32 idx = ud->mesh->indices[static_cast<size_t>(face) * 3 + vert];
+					const glm::vec2& uv = ud->mesh->vertices[idx].uv;
+					out[0] = uv.x; out[1] = uv.y;
+				};
+
+			iface.m_setTSpaceBasic = [](const SMikkTSpaceContext* ctx,
+				const float tangent[], float sign, i32 face, i32 vert)
+				{
+					auto* ud = static_cast<UserData*>(ctx->m_pUserData);
+					u32 idx = ud->mesh->indices[static_cast<size_t>(face) * 3 + vert];
+					ud->mesh->vertices[idx].tangent = {
+						tangent[0], tangent[1], tangent[2], sign };
+				};
+
+			SMikkTSpaceContext ctx{ &iface, &ud };
+			genTangSpaceDefault(&ctx);
+		}
 
 		std::span<const u8> resolve_embedded_bytes(
 			const fastgltf::Asset& asset,
@@ -101,6 +161,14 @@ namespace Wink::Content
 			return handle;
 		}
 
+		template <typename TexInfoT>
+		u32 resolve_tex_coord(const TexInfoT& texInfo)
+		{
+			if (texInfo.transform && texInfo.transform->texCoordIndex.has_value())
+				return static_cast<u32>(*texInfo.transform->texCoordIndex);
+			return static_cast<u32>(texInfo.texCoordIndex);
+		}
+
 		[[nodiscard]] MaterialHandle build_material(
 			const fastgltf::Asset& asset,
 			size_t matIndex, const fs::path& baseDir,
@@ -121,24 +189,57 @@ namespace Wink::Content
 			auto* mat = materialPool.try_get(handle);
 
 			/* --- Params --- */
-			const auto& baseColor = src.pbrData.baseColorFactor;
-			mat->params.baseColor = { baseColor[0], baseColor[1],
-				baseColor[2], baseColor[3] };
+			mat->params.baseColor = {
+				src.pbrData.baseColorFactor[0],
+				src.pbrData.baseColorFactor[1],
+				src.pbrData.baseColorFactor[2],
+				src.pbrData.baseColorFactor[3] };
+			mat->params.metallic = src.pbrData.metallicFactor;
+			mat->params.roughness = src.pbrData.roughnessFactor;
+			mat->params.emissiveFactor = {
+				src.emissiveFactor[0],
+				src.emissiveFactor[1],
+				src.emissiveFactor[2] };
 
 			/* --- Maps --- */
 			const TextureParams albedoParams{ .sRGB = true };
-			const TextureParams normalParams{ .sRGB = false };
-
 			if (auto albedo = load_material_texture<fastgltf::TextureInfo>(
 				asset, src.pbrData.baseColorTexture, baseDir, albedoParams, progress))
 			{
 				mat->textures.albedo = *albedo;
+				mat->params.albedoTexCoord = resolve_tex_coord(*src.pbrData.baseColorTexture);
 			}
 
+			const TextureParams normalParams{ .sRGB = false, .hasAlpha = false };
 			if (auto normal = load_material_texture<fastgltf::NormalTextureInfo>(
 				asset, src.normalTexture, baseDir, normalParams, progress))
 			{
 				mat->textures.normal = *normal;
+				mat->params.normalTexCoord = resolve_tex_coord(*src.normalTexture);
+			}
+
+			const TextureParams mrParams{ .sRGB = false };
+			if (auto mr = load_material_texture<fastgltf::TextureInfo>(
+				asset, src.pbrData.metallicRoughnessTexture, baseDir, mrParams, progress))
+			{
+				mat->textures.metallicRoughness = *mr;
+				mat->params.mrTexCoord = resolve_tex_coord(*src.pbrData.metallicRoughnessTexture);
+			}
+
+			const TextureParams aoParams{ .sRGB = false };
+			if (auto ao = load_material_texture<fastgltf::OcclusionTextureInfo>(
+				asset, src.occlusionTexture, baseDir, aoParams, progress))
+			{
+				mat->textures.ao = *ao;
+				mat->params.aoTexCoord = resolve_tex_coord(*src.occlusionTexture);
+			}
+
+			const TextureParams emissiveParams{ .sRGB = true };
+			if (auto em = load_material_texture<fastgltf::TextureInfo>(
+				asset, src.emissiveTexture, baseDir, emissiveParams, progress))
+			{
+				mat->textures.emissive = *em;
+				mat->params.emissiveTexCoord = resolve_tex_coord(*src.emissiveTexture);
 			}
 
 			return handle;
@@ -184,12 +285,12 @@ namespace Wink::Content
 					[&](glm::vec2 v, size_t i) { data.vertices[i].uv = { v.x, 1.0f - v.y }; });
 			}
 
-			if (const auto* tanIt = prim.findAttribute("TANGENT");
-				tanIt != prim.attributes.end())
+			if (const auto* uv1It = prim.findAttribute("TEXCOORD_1");
+				uv1It != prim.attributes.end())
 			{
-				fastgltf::iterateAccessorWithIndex<glm::vec4>(
-					asset, asset.accessors[tanIt->accessorIndex],
-					[&](glm::vec4 v, size_t i) { data.vertices[i].tangent = v; });
+				fastgltf::iterateAccessorWithIndex<glm::vec2>(
+					asset, asset.accessors[uv1It->accessorIndex],
+					[&](glm::vec2 v, size_t i) { data.vertices[i].uv1 = { v.x, 1.0f - v.y }; });
 			}
 
 			if (!prim.indicesAccessor.has_value())
@@ -206,6 +307,15 @@ namespace Wink::Content
 
 			fastgltf::iterateAccessorWithIndex<u32>(asset, idxAccessor,
 				[&](u32 v, size_t i) { data.indices[i] = v; });
+
+			if (const auto* tanIt = prim.findAttribute("TANGENT");
+				tanIt != prim.attributes.end())
+			{
+				fastgltf::iterateAccessorWithIndex<glm::vec4>(
+					asset, asset.accessors[tanIt->accessorIndex],
+					[&](glm::vec4 v, size_t i) { data.vertices[i].tangent = v; });
+			}
+			else generate_tangents_mikktspace(data);
 
 			MeshHandle handle = get_mesh_pool().load(data);
 			if (!handle.is_valid()) return std::nullopt;
@@ -261,7 +371,8 @@ namespace Wink::Content
 				fastgltf::Options::DecomposeNodeMatrices |
 				fastgltf::Options::LoadGLBBuffers };
 
-			fastgltf::Parser parser;
+			fastgltf::Parser parser(fastgltf::Extensions::KHR_materials_transmission |
+				fastgltf::Extensions::KHR_materials_volume);
 			auto assetResult = parser.loadGltf(
 				bufferResult.get(), baseDir, options);
 

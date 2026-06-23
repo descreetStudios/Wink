@@ -8,11 +8,24 @@ namespace Wink::GFX
 	{
 		std::optional<Resource::TextureHandle> albedo;
 		std::optional<Resource::TextureHandle> normal;
+		std::optional<Resource::TextureHandle> metallicRoughness;
+		std::optional<Resource::TextureHandle> ao;
+		std::optional<Resource::TextureHandle> emissive;
 	};
 
 	struct MaterialParams
 	{
 		glm::vec4 baseColor = glm::vec4(1.0f);
+		float metallic = 0.0f;
+		float roughness = 1.0f;
+		glm::vec3 emissiveFactor = glm::vec3(0.0f);
+		float aoStrength = 1.0f;
+
+		u32 albedoTexCoord = 0;
+		u32 normalTexCoord = 0;
+		u32 mrTexCoord = 0;
+		u32 aoTexCoord = 0;
+		u32 emissiveTexCoord = 0;
 	};
 
 	class Material

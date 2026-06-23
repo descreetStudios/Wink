@@ -30,8 +30,8 @@ namespace Wink::GFX
 		bool create_default_material()
 		{
 			gDefaultShader = gShaderPool.load(std::vector<ShaderFile>{
-				{ ShaderType::Vertex, "Shaders/default_vs.glsl" },
-				{ ShaderType::Fragment, "Shaders/default_fs.glsl" },
+				{ ShaderType::Vertex, "Shaders/DefaultVS.glsl" },
+				{ ShaderType::Fragment, "Shaders/DefaultFS.glsl" },
 			});
 
 			gDefaultMaterial = gMaterialPool.create(gDefaultShader);
