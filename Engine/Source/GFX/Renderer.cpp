@@ -5,6 +5,7 @@
 #include <WinkEngine/ECS/Components/TransformComponent.hpp>
 #include <WinkEngine/ECS/Components/RenderObjectComponent.hpp>
 #include <WinkEngine/ECS/Components/CameraComponent.hpp>
+#include <WinkEngine/ECS/Components/LightComponent.hpp>
 #include <WinkEngine/ECS/Systems/TransformSystem.hpp>
 
 #include <WinkEngine/Core/Logger.hpp>
@@ -91,28 +92,37 @@ namespace Wink::GFX
 		void draw(const DrawData& drawData)
 		{
 			auto& matPool = get_material_pool();
-			auto& shaderPool = get_shader_pool();
 			auto& meshPool = get_mesh_pool();
 
 			auto material = matPool.is_valid(drawData.renderObj.material) ?
 				drawData.renderObj.material : gDefaultMaterial;
-
 			auto mesh = drawData.renderObj.mesh;
-			if (!meshPool.is_valid(mesh))
-			{
-				Logger::Internal::error("Trying to draw an invalid mesh");
-				return;
-			}
+			auto* shader = get_shader_pool().
+				try_get(matPool.try_get(material)->shader);
 
 			matPool.apply(material);
-			auto* shader = shaderPool.try_get(matPool.try_get(material)->shader);
 
+			/* --- Core Uniforms --- */
 			shader->set("uCamPos", drawData.camData.position);
 			shader->set("uView", drawData.camData.view);
 			shader->set("uProj", drawData.camData.proj);
 			shader->set("uModel", drawData.modelMat);
 			shader->set("uNormalMatrix", drawData.normalMat);
 
+			/* --- Dir Lights --- */
+			const i32 lightCount = std::min(
+				static_cast<i32>(drawData.dirLights.size()), MAX_DIR_LIGHTS);
+			shader->set("uDirLightCount", lightCount);
+			for (i32 i = 0; i < lightCount; ++i)
+			{
+				const auto& light = drawData.dirLights[i];
+				const std::string base = "uDirLights[" + std::to_string(i) + "].";
+				shader->set(base + "direction", light.direction);
+				shader->set(base + "intensity", light.intensity);
+				shader->set(base + "color", light.color);
+			}
+
+			/* --- Draw --- */
 			glBindVertexArray(meshPool.get_vao_id(mesh));
 			glDrawElements(GL_TRIANGLES,
 				static_cast<GLsizei>(meshPool.get_index_count(mesh)),
@@ -126,6 +136,7 @@ namespace Wink::GFX
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		/* --- Scene --- */
 		auto scene = ECS::get_active_scene();
 		static bool sceneWarn = true;
 		if (!scene)
@@ -138,6 +149,7 @@ namespace Wink::GFX
 			return;
 		}
 
+		/* --- Camera --- */
 		auto camEOpt = scene->find_first<ECS::CameraComponent>();
 		static bool camWarn = true;
 		if (!camEOpt)
@@ -162,6 +174,24 @@ namespace Wink::GFX
 		CameraData camData{ .position = cam.position,
 			.view = cam.get_view(), .proj = cam.get_proj() };
 
+
+		/* --- Lights --- */
+		std::vector<DirLight> dirLights;
+		dirLights.reserve(MAX_DIR_LIGHTS);
+
+		for (auto&& [id, dlC] :
+			scene->view<ECS::DirLightComponent>())
+		{
+			if (static_cast<i32>(dirLights.size()) >= MAX_DIR_LIGHTS)
+				break;
+
+			dirLights.push_back({
+				.direction = glm::normalize(dlC.direction),
+				.intensity = dlC.intensity,
+				.color = dlC.color});
+		}
+
+		/* --- RenderObject --- */
 		for (auto&& [id, tC, roC] :
 			scene->view<ECS::TransformComponent,
 			ECS::RenderObjectComponent>())
@@ -174,8 +204,8 @@ namespace Wink::GFX
 				.renderObj = roC.renderObj,
 				.camData = camData,
 				.modelMat = tC.worldMatrix,
-				.normalMat = glm::transpose(glm::inverse(glm::mat3(tC.worldMatrix)))
-			});
+				.normalMat = glm::transpose(glm::inverse(glm::mat3(tC.worldMatrix))),
+				.dirLights = dirLights});
 		}
 	}
 
@@ -186,12 +216,6 @@ namespace Wink::GFX
 			Logger::Internal::critical("Failed to initialize GLAD");
 			return false;
 		}
-
-		// TODO: Make a GFX::Configuration,
-		// store every renderer config and init with them
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
 
 		if (!create_default_material())
 		{

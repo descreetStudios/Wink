@@ -3,6 +3,7 @@
 #include "ToneMapping.glsli"
 #include "Material.glsli"
 #include "PBR.glsli"
+#include "Light.glsli"
 
 // #define DEBUG_ALBEDO
 // #define DEBUG_NORMALS
@@ -24,50 +25,51 @@ out vec4 FragColor;
 
 uniform vec3 uCamPos;
 
-const vec3 LIGHT_POS = vec3(10.0, 20.0, 10.0);
-const vec3 LIGHT_COLOR = vec3(1.0);
-
 vec2 get_uv(int texCoord)
 {
     return texCoord == 1 ? vTexCoord1 : vTexCoord;
 }
 
-vec3 compute_pbr(vec3 albedo, vec3 N, vec3 V,
-    vec3 fragPos, float metallic, float roughness,
-    float ao, vec3 emissive)
+vec3 compute_dir_light(DirLight light,
+    vec3 albedo, vec3 N, vec3 V,
+    float metallic, float roughness, vec3 F0)
 {
-    // Light setup
-    vec3 L = normalize(LIGHT_POS - fragPos);
+    vec3 L = normalize(-light.direction);
     vec3 H = normalize(L + V);
 
     float NdL = max(dot(N, L), 0.0);
     float NdV = max(dot(N, V), 0.0);
     float HdV = max(dot(H, V), 0.0);
 
-    // Fresnel base reflectance
-    vec3 F0 = mix(vec3(0.04), albedo, metallic);
-
-    // BRDF terms
     float D = DistributionGGX(N, H, roughness);
     float G = GeometrySmith(N, V, L, roughness);
     vec3  F = FresnelSchlick(HdV, F0);
 
-    // Specular
     vec3 specular = (D * G * F) / max(4.0 * NdV * NdL, 0.001);
 
-    // Diffuse
     vec3 kD = (1.0 - F) * (1.0 - metallic);
     vec3 diffuse = kD * albedo / PI;
 
-    // Direct lighting
-    vec3 color = (diffuse + specular) * LIGHT_COLOR * NdL;
+    vec3 radiance = light.color * light.intensity;
+    return (diffuse + specular) * radiance * NdL;
+}
 
-    // Ambient approximation
-    color += albedo * F0 * 0.3 * ao;
+vec3 compute_pbr(vec3 albedo, vec3 N, vec3 V,
+    float metallic, float roughness,
+    float ao, vec3 emissive)
+{
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
-    // Emissive
-    color += emissive;
+    // Accumulate directional lights
+    vec3 directLight = vec3(0.0);
+    for (int i = 0; i < uDirLightCount; ++i)
+        directLight += compute_dir_light(uDirLights[i],
+        albedo, N, V, metallic, roughness, F0);
 
+    // Approximate ambient
+    vec3 ambient = albedo * F0 * 0.15 * ao;
+
+    vec3 color = directLight + ambient + emissive;
     return color;
 }
 
@@ -121,7 +123,7 @@ void main()
     vec3 V = normalize(uCamPos - vFragPos);
 
     vec3 color = compute_pbr(albedo.rgb, N, V,
-        vFragPos, metallic, roughness, ao, emissive);
+        metallic, roughness, ao, emissive);
 
     // Post Processing
     color = tonemap_uchimura(color);

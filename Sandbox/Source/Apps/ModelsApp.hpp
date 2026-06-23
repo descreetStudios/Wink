@@ -25,6 +25,14 @@ public:
 		camT.position = { -5.0f, 2.0f, 0.0f };
 		mCamEntity.add<CameraComponent>(mCam);
 
+		mSponzaDirLight = sponzaScene->spawn();
+		auto& sdlC = mSponzaDirLight.add<ECS::DirLightComponent>();
+		sdlC.direction = { 0.0f, -1.0f, 0.3f };
+
+		mGameDirLight = gameScene->spawn();
+		auto& gdlC = mGameDirLight.add<ECS::DirLightComponent>();
+		gdlC.direction = { 0.0f, -1.0f, -0.3f };
+
 		auto& meshPool = get_mesh_pool();
 		auto& shaderPool = get_shader_pool();
 		auto& texturePool = get_texture_pool();
@@ -82,6 +90,22 @@ public:
 			t.translate({ 0.0f, move, 0.0f });
 		if (Input::is_key_down(Key::Q))
 			t.translate({ 0.0f, -move, 0.0f });
+
+		static float angle = 0.0f;
+		angle += static_cast<float>(dt) * 0.5f;
+
+		ECS::Entity activeLightEntity =
+			(mActiveSceneName == "A Beautiful Game Scene")
+			? mGameDirLight
+			: mSponzaDirLight;
+
+		auto& light = activeLightEntity.get<ECS::DirLightComponent>();
+
+		light.direction = glm::normalize(glm::vec3(
+			glm::cos(angle),
+			-1.0f,
+			glm::sin(angle)
+		));
 	}
 
 	void on_render(double alpha) override
@@ -117,6 +141,7 @@ private:
 			mCamEntity.get<TransformComponent>(); // intended copy
 
 		auto* scene = set_active_scene(name);
+		mActiveSceneName = name;
 
 		mCamEntity.destroy();
 		mCamEntity = scene->spawn();
@@ -165,7 +190,6 @@ private:
 			{
 				mCam.fov -= e.offsetY;
 				mCam.fov = std::clamp(mCam.fov, 10.0f, 100.0f);
-				Logger::info("Fov '{}'", mCam.fov);
 			}
 			});
 	}
@@ -180,4 +204,9 @@ private:
 	const float MOVE_SPEED = 5.0f;
 	GFX::Camera mCam;
 	ECS::Entity mCamEntity;
+
+	std::string mActiveSceneName;
+
+	ECS::Entity mSponzaDirLight;
+	ECS::Entity mGameDirLight;
 };

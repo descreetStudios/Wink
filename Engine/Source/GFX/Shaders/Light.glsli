@@ -1,0 +1,17 @@
+#ifndef LIGHT_GLSLI
+#define LIGHT_GLSLI
+
+#define MAX_DIR_LIGHTS 2
+
+struct DirLight
+{
+	vec3 direction;
+	float intensity;
+	vec3 color;
+	float _pad;
+};
+
+uniform DirLight uDirLights[MAX_DIR_LIGHTS];
+uniform int uDirLightCount;
+
+#endif // LIGHT_GLSLI

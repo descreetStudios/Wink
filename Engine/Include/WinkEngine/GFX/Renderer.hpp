@@ -55,12 +55,23 @@ namespace Wink::GFX
 		glm::mat4 proj;
 	};
 
+#define MAX_DIR_LIGHTS 2
+
+	struct DirLight
+	{
+		glm::vec3 direction = { 0.0f, -1.0f, 0.0f };
+		float intensity = 1.0f;
+		glm::vec3 color = glm::vec3(1.0f);
+	};
+
 	struct DrawData
 	{
 		const RenderObject& renderObj;
 		const CameraData& camData;
 		const glm::mat4& modelMat;
 		const glm::mat3& normalMat;
+
+		std::vector<DirLight> dirLights;
 	};
 
 	bool init();

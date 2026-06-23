@@ -7,6 +7,7 @@
 #include <WinkEngine/ECS/Components/TransformComponent.hpp>
 #include <WinkEngine/ECS/Components/RenderObjectComponent.hpp>
 #include <WinkEngine/ECS/Components/CameraComponent.hpp>
+#include <WinkEngine/ECS/Components/LightComponent.hpp>
 
 /* Systems */
 #include <WinkEngine/ECS/Systems/TransformSystem.hpp>
