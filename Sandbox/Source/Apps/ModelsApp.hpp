@@ -12,11 +12,10 @@ public:
 	void on_init() override
 	{
 		using namespace ECS;
-		using namespace GFX::Resource;
+		using namespace GFX;
+		using namespace Resource;
 
 		subscribe_to_events();
-
-		//GFX::set_clear_color({ 0.53f, 0.81f, 0.92f, 1.0f });
 
 		auto* sponzaScene = create_scene("Sponza Scene");
 		auto* gameScene = create_scene("A Beautiful Game Scene");
@@ -33,11 +32,10 @@ public:
 		auto& modelPool = get_model_pool();
 
 		// For hot-reloading default shaders
-		const fs::path root = fs::path("..") / ".." / ".." / "..";
-		const fs::path shaders = root / "Engine" / "Source" / "GFX" / "Shaders";
-		ShaderHandle shader = shaderPool.load(std::vector<GFX::ShaderFile>{
-			{ GFX::ShaderType::Vertex, shaders / "DefaultVS.glsl" },
-			{ GFX::ShaderType::Fragment, shaders / "DefaultFS.glsl" },
+		const fs::path shaders = PROJ_REL_PATH / "Engine" / "Source" / "GFX" / "Shaders";
+		ShaderHandle shader = shaderPool.load(std::vector<ShaderFile>{
+			{ ShaderType::Vertex, shaders / "DefaultVS.glsl" },
+			{ ShaderType::Fragment, shaders / "DefaultFS.glsl" },
 		});
 
 		{
@@ -45,14 +43,14 @@ public:
 			{
 				APP_ZONE_COLOR("Load Model: Sponza", 0x4A90E2);
 				const ModelHandle sponza = load_model(
-					modelPool, fs::path("Sponza") / "glTF", shader);
+					modelPool, fs::path("Sponza"), shader);
 				const EntityID sponzaID = instantiate_model(sponza, sponzaScene);
 			}
 
 			{
 				APP_ZONE_COLOR("Load Model: A Beautiful Game", 0x2ECC71);
 				const ModelHandle game = load_model(
-					modelPool, fs::path("ABeautifulGame") / "glTF", shader);
+					modelPool, fs::path("ABeautifulGame"), shader);
 				const EntityID gameID = instantiate_model(game, gameScene);
 				gameScene->wrap(gameID).get<TransformComponent>().multiply_scale(glm::vec3(10.0f));
 			}
@@ -98,9 +96,7 @@ private:
 		GFX::Resource::ModelPool& modelPool,
 		const fs::path& path, GFX::Resource::ShaderHandle shader = {})
 	{
-		const fs::path root = fs::path("..") / ".." / ".." / "..";
-		const fs::path models = root / fs::path("..")
-			/ "glTF-Sample-Models" / "2.0";
+		const fs::path models = RES_PATH / "Models";
 
 		const GFX::Resource::ModelHandle handle =
 			modelPool.load(models / path, shader);
@@ -175,6 +171,9 @@ private:
 	}
 
 private:
+	const fs::path PROJ_REL_PATH = fs::path("..") / ".." / ".." / "..";
+	const fs::path RES_PATH = PROJ_REL_PATH / "Sandbox" / "Resources";
+
 	GFX::Configuration mGFXConfig;
 
 	const float LOOK_SENS = 0.1f;
