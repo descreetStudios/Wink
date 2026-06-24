@@ -65,4 +65,31 @@ namespace Wink::GFX
 		u32 mWidth = 0;
 		u32 mHeight = 0;
 	};
+
+	class TextureCubemap
+	{
+	public:
+		TextureCubemap();
+		~TextureCubemap();
+
+		DISABLE_COPY(TextureCubemap);
+		MOVE_CTOR(TextureCubemap) noexcept;
+		MOVE_ASSIGN(TextureCubemap) noexcept;
+
+		// Allocate immutable storage for all 6 faces
+		void allocate(u32 faceSize, u32 internalFmt,
+			bool genMips = true) noexcept;
+
+		void bind(u32 unit = 0) const noexcept;
+
+		[[nodiscard]] u32 get_id() const noexcept { return mID; }
+		[[nodiscard]] u32 get_face_size() const noexcept { return mFaceSize; }
+		[[nodiscard]] bool is_valid() const noexcept { return mID != 0; }
+
+		explicit operator bool() const noexcept { return is_valid(); }
+
+	private:
+		u32 mID = 0;
+		u32 mFaceSize = 0;
+	};
 }
