@@ -9,8 +9,8 @@ namespace Wink::GFX::Resource
 	{
 	public:
 		MaterialHandle create(ShaderHandle shader);
-
 		void destroy(MaterialHandle handle) noexcept;
+		MaterialHandle clone(MaterialHandle handle);
 
 		/* Material operations */
 		void apply(MaterialHandle handle) const noexcept;

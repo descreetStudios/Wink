@@ -40,7 +40,7 @@ public:
 		mCamEntity = sponzaScene->spawn();
 		auto& camT = mCamEntity.add<TransformComponent>();
 		camT.position = { -5.0f, 2.0f, 0.0f };
-		mCamEntity.add<CameraComponent>(mCam);
+		mCamEntity.add<CameraComponent>(mCam).camera.yaw = -90.0f;
 
 		// Dir Lights
 		mSponzaDirLight = sponzaScene->spawn();

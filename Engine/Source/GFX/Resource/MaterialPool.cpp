@@ -13,6 +13,13 @@ namespace Wink::GFX::Resource
 		deallocate(handle);
 	}
 
+	MaterialHandle MaterialPool::clone(MaterialHandle handle)
+	{
+		const Material* m = try_get(handle);
+		if (!m) return MaterialHandle();
+		return allocate(m->shader, m->textures, m->params);
+	}
+
 	void MaterialPool::apply(Handle<MaterialTag> handle) const noexcept
 	{
 		const auto* mat = try_get(handle);

@@ -2,7 +2,8 @@
 #define APP_EVENTS 0
 #define APP_ECS 0
 #define APP_RESOURCES 0
-#define APP_MODELS 1
+#define APP_MODELS 0
+#define APP_IBL 1
 
 #if APP_APP
 #include "Apps/App.hpp"
@@ -14,6 +15,8 @@
 #include "Apps/ResourcesApp.hpp"
 #elif APP_MODELS
 #include "Apps/ModelsApp.hpp"
+#elif APP_IBL
+#include "Apps/IBLApp.hpp"
 #else
 #error No apps enabled!
 #endif

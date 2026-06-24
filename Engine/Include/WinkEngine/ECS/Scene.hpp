@@ -1,6 +1,7 @@
 #pragma once
 
 #include <WinkEngine/ECS/Entity.hpp>
+#include <WinkEngine/ECS/Components/TransformComponent.hpp>
 
 namespace Wink::ECS
 {
@@ -45,6 +46,26 @@ namespace Wink::ECS
 		{
 			for (auto id : mRegistry.storage<EntityID>())
 				fn(Entity(id, mRegistry));
+		}
+
+		template <std::invocable<Entity> Fn>
+		void each_descendant(EntityID root, Fn&& fn)
+		{
+			std::unordered_set<EntityID> visited{ root };
+			bool changed = true;
+			while (changed)
+			{
+				changed = false;
+				for (auto id : mRegistry.storage<EntityID>())
+				{
+					if (visited.contains(id)) continue;
+					auto* t = mRegistry.try_get<TransformComponent>(id);
+					if (!t || !visited.contains(t->parent)) continue;
+					visited.insert(id);
+					fn(Entity(id, mRegistry));
+					changed = true;
+				}
+			}
 		}
 
 		void destroy(Entity& e);
