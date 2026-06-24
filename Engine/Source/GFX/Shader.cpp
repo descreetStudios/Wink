@@ -118,6 +118,17 @@ namespace Wink::GFX
 		glUseProgram(0);
 	}
 
+	void ShaderProgram::dispatch(u32 numGroupsX,
+		u32 numGroupsY, u32 numGroupsZ) noexcept
+	{
+		glDispatchCompute(numGroupsX, numGroupsY, numGroupsZ);
+	}
+
+	void ShaderProgram::memory_barrier(u32 barriers) noexcept
+	{
+		glMemoryBarrier(barriers);
+	}
+
 	i32 ShaderProgram::loc(std::string_view name) const noexcept
 	{
 		auto it = mUniformCache.find(std::string(name));

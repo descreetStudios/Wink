@@ -116,6 +116,7 @@ namespace Wink::GFX
 
 		[[nodiscard]] ShaderHandle get_default_shader() noexcept;
 		[[nodiscard]] MaterialHandle get_default_material() noexcept;
+		[[nodiscard]] ShaderHandle get_equirect_to_cubemap_shader() noexcept;
 
 		void clear_all_resources() noexcept;
 		void poll_hot_reloads() noexcept;

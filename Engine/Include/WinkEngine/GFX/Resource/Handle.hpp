@@ -24,12 +24,14 @@ namespace Wink::GFX::Resource
 	struct MeshTag {};
 	struct ShaderTag {};
 	struct TextureTag {};
+	struct CubemapTag {};
 	struct MaterialTag {};
 	struct ModelTag {};
 
 	using MeshHandle = Handle<MeshTag>;
 	using ShaderHandle = Handle<ShaderTag>;
 	using TextureHandle = Handle<TextureTag>;
+	using CubemapHandle = Handle<CubemapTag>;
 	using MaterialHandle = Handle<MaterialTag>;
 	using ModelHandle = Handle<ModelTag>;
 }

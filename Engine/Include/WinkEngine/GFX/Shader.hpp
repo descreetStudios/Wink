@@ -62,6 +62,9 @@ namespace Wink::GFX
 		void use() const noexcept;
 		static void unuse() noexcept;
 
+		static void dispatch(u32 numGroupsX, u32 numGroupsY, u32 numGroupsZ = 1) noexcept;
+		static void memory_barrier(u32 barriers = GL_ALL_BARRIER_BITS) noexcept;
+
 		void set(std::string_view name, bool v) const noexcept;
 		void set(std::string_view name, i32 v) const noexcept;
 		void set(std::string_view name, u32 v) const noexcept;
