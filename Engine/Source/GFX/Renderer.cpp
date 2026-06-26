@@ -105,8 +105,7 @@ namespace Wink::GFX
 
 			/* --- Core Uniforms --- */
 			shader->set("uCamPos", drawData.camData.position);
-			shader->set("uView", drawData.camData.view);
-			shader->set("uProj", drawData.camData.proj);
+			shader->set("uViewProj", drawData.camData.viewProj);
 			shader->set("uModel", drawData.modelMat);
 			shader->set("uNormalMatrix", drawData.normalMat);
 
@@ -201,7 +200,7 @@ namespace Wink::GFX
 		}
 
 		CameraData camData{ .position = cam.position,
-			.view = cam.get_view(), .proj = cam.get_proj() };
+			.viewProj = cam.get_proj() * cam.get_view() };
 
 		/* --- Lights --- */
 		std::vector<DirLight> dirLights;

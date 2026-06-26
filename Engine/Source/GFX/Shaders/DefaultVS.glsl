@@ -15,8 +15,7 @@ out vec3 vDebug;
 
 uniform mat4 uModel;
 uniform mat3 uNormalMatrix;
-uniform mat4 uView;
-uniform mat4 uProj;
+uniform mat4 uViewProj;
 
 void main()
 {
@@ -32,5 +31,5 @@ void main()
     vTBN = mat3(T, B, N);
     vDebug = T;
 
-    gl_Position = uProj * uView * worldPos;
+    gl_Position = uViewProj * worldPos;
 }
