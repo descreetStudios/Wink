@@ -27,7 +27,6 @@ namespace Wink::GFX
 
 		MaterialHandle gDefaultMaterial;
 		ShaderHandle gDefaultShader;
-		ShaderHandle gEquirectToCubemapShader;
 
 		bool create_default_material()
 		{
@@ -284,10 +283,6 @@ namespace Wink::GFX
 			return false;
 		}
 
-		gEquirectToCubemapShader = gShaderPool.load(std::vector<ShaderFile>{
-			{ ShaderType::Compute, "Shaders/EquirectToCubemapCS.glsl" },
-		});
-
 		return true;
 	}
 
@@ -323,7 +318,6 @@ namespace Wink::GFX
 
 		ShaderHandle get_default_shader() noexcept { return gDefaultShader; }
 		MaterialHandle get_default_material() noexcept { return gDefaultMaterial; }
-		ShaderHandle get_equirect_to_cubemap_shader() noexcept { return gEquirectToCubemapShader; }
 
 		void clear_all_resources() noexcept
 		{
