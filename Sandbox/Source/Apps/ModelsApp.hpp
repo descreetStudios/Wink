@@ -196,11 +196,9 @@ public:
 		}
 	}
 
-	void on_render(double alpha) override
+	void pre_render(double alpha) override
 	{
-		using namespace GFX;
-
-		set_config(mGFXConfig);
+		GFX::set_config(mGFXConfig);
 	}
 
 private:

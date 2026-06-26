@@ -17,9 +17,17 @@ namespace Wink::GFX::Resource
 			const u8* encodedData, size_t size,
 			const TextureParams& params = {});
 
+		TextureHandle decode_hdr_from_memory(
+			const u8* encodedData, size_t size,
+			const TextureParams& params = {});
+
 		TextureHandle load(
 			const u8* pixels, u32 width, u32 height,
 			const TextureParams& params = {});
+
+		TextureHandle load(
+			const float* pixels, u32 width, u32 height,
+			u32 channels = 3, const TextureParams& params = {});
 
 		TextureHandle allocate_empty(
 			u32 width, u32 height, u32 internalFormat,

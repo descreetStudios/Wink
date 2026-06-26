@@ -25,10 +25,14 @@ namespace Wink::GFX
 		MaterialPool gMaterialPool;
 		ModelPool gModelPool;
 
-		MaterialHandle gDefaultMaterial;
 		ShaderHandle gDefaultShader;
+		MaterialHandle gDefaultMaterial;
 
-		bool create_default_material()
+		ShaderHandle gFullscreenShader;
+		MaterialHandle gFullscreenMaterial;
+		GLuint gFullscreenVAO = 0;
+
+		bool create_engine_materials()
 		{
 			gDefaultShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Vertex, "Shaders/DefaultVS.glsl" },
@@ -36,6 +40,15 @@ namespace Wink::GFX
 			});
 
 			gDefaultMaterial = gMaterialPool.create(gDefaultShader);
+
+			gFullscreenShader = gShaderPool.load(std::vector<ShaderFile>{
+				{ ShaderType::Vertex, "Shaders/FullscreenVS.glsl" },
+				{ ShaderType::Fragment, "Shaders/FullscreenFS.glsl" },
+			});
+
+			gFullscreenMaterial = gMaterialPool.create(gFullscreenShader);
+
+			glCreateVertexArrays(1, &gFullscreenVAO);
 
 			return gMaterialPool.is_valid(gDefaultMaterial);
 		}
@@ -87,6 +100,18 @@ namespace Wink::GFX
 			/* --- Multisampling --- */
 			if (cfg.multisample) glEnable(GL_MULTISAMPLE);
 			else glDisable(GL_MULTISAMPLE);
+		}
+
+		void draw_fullscreen(TextureHandle tex)
+		{
+			auto& matPool = get_material_pool();
+			auto& texPool = get_texture_pool();
+
+			matPool.apply(gFullscreenMaterial);
+			texPool.bind(tex, 0);
+
+			glBindVertexArray(gFullscreenVAO);
+			glDrawArrays(GL_TRIANGLES, 0, 3);
 		}
 
 		void draw(const DrawData& drawData)
@@ -269,6 +294,11 @@ namespace Wink::GFX
 		}
 	}
 
+	void render_fullscreen_texture(Resource::TextureHandle tex)
+	{
+		draw_fullscreen(tex);
+	}
+
 	bool init()
 	{
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -277,9 +307,9 @@ namespace Wink::GFX
 			return false;
 		}
 
-		if (!create_default_material())
+		if (!create_engine_materials())
 		{
-			Logger::Internal::error("Failed to create default material");
+			Logger::Internal::error("Failed to create engine materials");
 			return false;
 		}
 

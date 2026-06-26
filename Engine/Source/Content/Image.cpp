@@ -104,7 +104,6 @@ namespace Wink::Content
 
 		stbi_set_flip_vertically_on_load(flipVertically);
 
-		// stbi_loadf always returns 3 floats per pixel for .hdr
 		float* data = stbi_loadf(
 			path.string().c_str(),
 			&img.width, &img.height, &img.channels, 3);

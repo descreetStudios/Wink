@@ -8,16 +8,65 @@ namespace Wink::GFX::Resource
 	TextureHandle TexturePool::decode(const fs::path& path,
 		const TextureParams& params, bool hotReload)
 	{
-		Content::DecodedImage img = Content::decode_image(path);
-		if (!img) return TextureHandle();
+		if (path.empty())
+		{
+			Logger::Internal::error("Texture path is invalid");
+			return {};
+		}
 
-		TextureHandle handle = load(
-			img.pixels.data(), img.width, img.height, params);
+		if (!fs::exists(path))
+		{
+			Logger::Internal::error(
+				"Tetxure path does not exist '{}'", path.string());
+			return {};
+		}
+
+		if (!fs::is_regular_file(path))
+		{
+			Logger::Internal::error(
+				"Texture path is not a regular file '{}'", path.string());
+			return {};
+		}
+
+		std::string ext = path.extension().string();
+		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+		TextureHandle handle;
+
+		if (ext == ".hdr" || ext == ".exr")
+		{
+			Content::HDRImage hdr = Content::decode_hdr(path);
+			if (!hdr)
+			{
+				Logger::Internal::error(
+					"Failed to decode HDR image '{}'", path.string());
+				return handle;
+			}
+
+			handle = load(hdr.pixels.data(),
+				hdr.width, hdr.height, 3, params);
+			if (!handle.is_valid())
+				return handle;
+
+			mReloadSources[handle.index] = ReloadInfo{ path, params };
+			set_hot_reload(handle, hotReload);
+			return handle;
+		}
+
+		Content::DecodedImage img = Content::decode_image(path);
+		if (!img)
+		{
+			Logger::Internal::error(
+				"Failed to decode LDR image '{}'", path.string());
+			return handle;
+		}
+
+		handle = load(img.pixels.data(),
+			img.width, img.height, params);
 		if (!handle.is_valid())
 			return handle;
 
 		mReloadSources[handle.index] = ReloadInfo{ path, params };
-
 		set_hot_reload(handle, hotReload);
 		return handle;
 	}
@@ -35,6 +84,20 @@ namespace Wink::GFX::Resource
 			static_cast<u32>(img.height), params);
 	}
 
+	TextureHandle TexturePool::decode_hdr_from_memory(
+		const u8* encodedData, size_t size,
+		const TextureParams& params)
+	{
+		Content::HDRImage hdr = Content::decode_hdr_from_memory(
+			encodedData, size, params.hasAlpha);
+		if (!hdr) return TextureHandle();
+
+		return load(hdr.pixels.data(),
+			static_cast<u32>(hdr.width),
+			static_cast<u32>(hdr.height),
+			hdr.channels, params);
+	}
+
 	TextureHandle TexturePool::load(
 		const u8* pixels, u32 width, u32 height,
 		const TextureParams& params)
@@ -43,6 +106,18 @@ namespace Wink::GFX::Resource
 		with(handle, [&](Texture2D& tex)
 			{
 				tex.upload(pixels, width, height, params);
+			});
+		return handle;
+	}
+
+	TextureHandle TexturePool::load(
+		const float* pixels, u32 width, u32 height,
+		u32 channels, const TextureParams& params)
+	{
+		TextureHandle handle = allocate();
+		with(handle, [&](Texture2D& tex)
+			{
+				tex.upload(pixels, width, height, channels, params);
 			});
 		return handle;
 	}

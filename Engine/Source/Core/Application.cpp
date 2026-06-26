@@ -35,8 +35,9 @@ namespace Wink
 
 			on_update(Time::get_delta());
 
-			on_render(Time::get_alpha());
+			pre_render(Time::get_alpha());
 			GFX::render();
+			post_render();
 
 			Window::swap();
 

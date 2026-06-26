@@ -45,6 +45,9 @@ namespace Wink::GFX
 		void upload(const u8* pixels, u32 width, u32 height,
 			const TextureParams& params = {}) noexcept;
 
+		void upload(const float* pixels, u32 width, u32 height,
+			u32 channels = 3, const TextureParams& params = {}) noexcept;
+
 		void allocate(u32 width, u32 height, u32 internalFormat,
 			const TextureParams& params = {}) noexcept;
 

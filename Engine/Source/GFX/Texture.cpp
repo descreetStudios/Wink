@@ -60,6 +60,30 @@ namespace Wink::GFX
 			glGenerateTextureMipmap(mID);
 	}
 
+	void Texture2D::upload(const float* pixels,
+		u32 width, u32 height, u32 channels,
+		const TextureParams& params) noexcept
+	{
+		mWidth = width;
+		mHeight = height;
+
+		GLenum format = (channels == 3) ? GL_RGB : GL_RGBA;
+
+		glTextureStorage2D(mID,
+			params.genMips ? 8 : 1,
+			GL_RGB16F, width, height);
+
+		glTextureSubImage2D(
+			mID, 0, 0, 0, width, height,
+			format, GL_FLOAT, pixels
+		);
+
+		apply_params(params);
+
+		if (params.genMips)
+			glGenerateTextureMipmap(mID);
+	}
+
 	void Texture2D::allocate(
 		u32 width, u32 height, u32 internalFormat,
 		const TextureParams& params) noexcept

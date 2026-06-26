@@ -82,6 +82,13 @@ public:
 				t.scale /= 2.0f;
 			}
 		}
+
+		mTestTexture = texturePool.decode(RES_PATH / "HDRIs" / "monochrome_studio_02_4k.hdr");
+	}
+
+	void post_render() override
+	{
+		GFX::render_fullscreen_texture(mTestTexture);
 	}
 
 	void on_update(double dt) override
@@ -179,4 +186,6 @@ private:
 	const float MOVE_SPEED = 5.0f;
 	GFX::Camera mCam;
 	ECS::Entity mCamEntity;
+
+	GFX::Resource::TextureHandle mTestTexture;
 };

@@ -98,6 +98,7 @@ namespace Wink::GFX
 
 	bool init();
 	void render();
+	void render_fullscreen_texture(Resource::TextureHandle tex);
 	void shutdown();
 
 	void set_config(const Configuration& cfg);

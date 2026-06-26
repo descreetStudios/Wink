@@ -22,7 +22,7 @@ public:
 		Logger::info("Fixed DeltaTime: '{}'", dt);
 	}
 
-	void on_render(double alpha) override
+	void pre_render(double alpha) override
 	{
 		Logger::info("Alpha: '{}'", alpha);
 	}
