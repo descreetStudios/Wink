@@ -12,41 +12,40 @@
 // #define DEBUG_AO
 // #define DEBUG_EMISSIVE
 
+// #define DEBUG_IN
+
 #include "Debug.glsli"
 
 in vec3 vFragPos;
 in vec2 vTexCoord;
 in vec2 vTexCoord1;
 in mat3 vTBN;
-
 in vec3 vDebug;
 
 out vec4 FragColor;
 
 uniform vec3 uCamPos;
 
-vec2 get_uv(int texCoord)
-{
-	return texCoord == 1 ? vTexCoord1 : vTexCoord;
-}
+// ------------------------------------------------------------
+// LIGHTING HELPERS
+// ------------------------------------------------------------
 
 vec3 compute_dir_light(DirLight light,
 	vec3 albedo, vec3 N, vec3 V,
-	float metallic, float roughness, vec3 F0)
+	float NdV, float metallic, float roughness, vec3 F0)
 {
 	vec3 L = normalize(-light.direction);
-	vec3 H = normalize(L + V);
-
 	float NdL = max(dot(N, L), 0.0);
-	float NdV = max(dot(N, V), 0.0);
+	if (NdL <= 0.0) return vec3(0.0);
+
+	vec3 H = normalize(L + V);
 	float HdV = max(dot(H, V), 0.0);
 
 	float D = DistributionGGX(N, H, roughness);
 	float G = GeometrySmith(N, V, L, roughness);
-	vec3  F = FresnelSchlick(HdV, F0);
+	vec3 F = FresnelSchlick(HdV, F0);
 
 	vec3 specular = (D * G * F) / max(4.0 * NdV * NdL, 0.001);
-
 	vec3 kD = (1.0 - F) * (1.0 - metallic);
 	vec3 diffuse = kD * albedo / PI;
 
@@ -56,31 +55,28 @@ vec3 compute_dir_light(DirLight light,
 
 vec3 compute_point_light(PointLight light,
 	vec3 albedo, vec3 N, vec3 V, vec3 fragPos,
-	float metallic, float roughness, vec3 F0)
+	float NdV, float metallic, float roughness, vec3 F0)
 {
-	vec3  toLight = light.position - fragPos;
-	float dist    = length(toLight);
+	vec3 toLight = light.position - fragPos;
+	float dist = length(toLight);
 
-	// Soft cutoff at radius
-	float window  = 1.0 - smoothstep(light.radius * 0.75, light.radius, dist);
+	float window = 1.0 - smoothstep(light.radius * 0.75, light.radius, dist);
 	if (window <= 0.0) return vec3(0.0);
 
-	vec3  L = toLight / dist; // normalize without a second sqrt
-	vec3  H = normalize(L + V);
-
+	vec3 L = toLight / dist;
 	float NdL = max(dot(N, L), 0.0);
-	float NdV = max(dot(N, V), 0.0);
+	if (NdL <= 0.0) return vec3(0.0);
+
+	vec3 H = normalize(L + V);
 	float HdV = max(dot(H, V), 0.0);
 
-	// Inverse-square physical attenuation
 	float attenuation = (light.intensity * window) / (dist * dist + 1.0);
 
 	float D = DistributionGGX(N, H, roughness);
 	float G = GeometrySmith(N, V, L, roughness);
-	vec3  F = FresnelSchlick(HdV, F0);
+	vec3 F = FresnelSchlick(HdV, F0);
 
 	vec3 specular = (D * G * F) / max(4.0 * NdV * NdL, 0.001);
-
 	vec3 kD = (1.0 - F) * (1.0 - metallic);
 	vec3 diffuse = kD * albedo / PI;
 
@@ -90,34 +86,30 @@ vec3 compute_point_light(PointLight light,
 
 vec3 compute_spot_light(SpotLight light,
 	vec3 albedo, vec3 N, vec3 V, vec3 fragPos,
-	float metallic, float roughness, vec3 F0)
+	float NdV, float metallic, float roughness, vec3 F0)
 {
 	vec3 toLight = light.position - fragPos;
 	float dist = length(toLight);
 
-	// Distance soft cutoff
 	float window = 1.0 - smoothstep(light.range * 0.75, light.range, dist);
 	if (window <= 0.0) return vec3(0.0);
 
 	vec3 L = toLight / dist;
-	vec3 H = normalize(L + V);
+	float theta = dot(L, normalize(-light.direction));
 
-	float theta = dot(L, normalize(-light.direction)); 
-	
-	// Smoothly interpolate between inner and outer cones
 	float epsilon = light.innerCutoff - light.outerCutoff;
 	float spotIntensity = clamp((theta - light.outerCutoff) / epsilon, 0.0, 1.0);
-
 	if (spotIntensity <= 0.0) return vec3(0.0);
 
-	// Standard PBR BRDF Evaluation
 	float NdL = max(dot(N, L), 0.0);
-	float NdV = max(dot(N, V), 0.0);
+	if (NdL <= 0.0) return vec3(0.0);
+
+	vec3 H = normalize(L + V);
 	float HdV = max(dot(H, V), 0.0);
 
-	float D = DistributionGGX(N, H, roughness); 
+	float D = DistributionGGX(N, H, roughness);
 	float G = GeometrySmith(N, V, L, roughness);
-	vec3  F = FresnelSchlick(HdV, F0);
+	vec3 F = FresnelSchlick(HdV, F0);
 
 	vec3 specular = (D * G * F) / max(4.0 * NdV * NdL, 0.001);
 	vec3 kD = (1.0 - F) * (1.0 - metallic);
@@ -129,60 +121,64 @@ vec3 compute_spot_light(SpotLight light,
 	return (diffuse + specular) * radiance * NdL;
 }
 
+// ------------------------------------------------------------
+// PBR LIGHTING CORE
+// ------------------------------------------------------------
+
 vec3 compute_pbr(vec3 albedo, vec3 N, vec3 V,
 	float metallic, float roughness,
 	float ao, vec3 emissive)
 {
 	vec3 F0 = mix(vec3(0.04), albedo, metallic);
+	float NdV = max(dot(N, V), 0.0);
 
-	// Accumulate directional lights
 	vec3 directLight = vec3(0.0);
+
 	for (int i = 0; i < uDirLightCount; ++i)
 		directLight += compute_dir_light(uDirLights[i],
-			albedo, N, V, metallic, roughness, F0);
+			albedo, N, V, NdV, metallic, roughness, F0);
 
-	// Accumulate all active point lights
 	for (int i = 0; i < uPointLightCount; ++i)
 		directLight += compute_point_light(uPointLights[i], albedo,
-			N, V, vFragPos, metallic, roughness, F0);
+			N, V, vFragPos, NdV, metallic, roughness, F0);
 
-	// Accumulate all active spot lights
 	for (int i = 0; i < uSpotLightCount; ++i)
 		directLight += compute_spot_light(uSpotLights[i], albedo,
-			N, V, vFragPos, metallic, roughness, F0);
+			N, V, vFragPos, NdV, metallic, roughness, F0);
 
-	// Approximate ambient
-	vec3 ambient = albedo * F0 * 0.2 * ao;
+	vec3 ambient = albedo * F0 * (0.2 * ao);
 
-	vec3 color = directLight + ambient + emissive;
-	return color;
+	return directLight + ambient + emissive;
 }
 
 void main()
 {
+	// --------------------------------------------------------
+	// MATERIAL STAGE
+	// --------------------------------------------------------
+
+	vec2 baseUV = (uMaterial.albedoTexCoord == 1 ? vTexCoord1 : vTexCoord);
+
 	// Albedo
 	vec4 albedo = uMaterial.baseColor;
 	if (uMaterial.hasAlbedoMap)
-		albedo *= texture(uMaterial.albedoMap, get_uv(uMaterial.albedoTexCoord));
+		albedo *= texture(uMaterial.albedoMap, baseUV);
 
 	// Normals
 	vec3 N;
 	if (uMaterial.hasNormalMap)
 	{
-		vec3 tsN = texture(uMaterial.normalMap, get_uv(uMaterial.albedoTexCoord)).rgb * 2.0 - 1.0;
+		vec3 tsN = texture(uMaterial.normalMap, baseUV).rgb * 2.0 - 1.0;
 		N = normalize(vTBN * tsN);
 	}
-	else 
-	{
-		N = normalize(vTBN[2]);
-	}
+	else N = normalize(vTBN[2]);
 
 	// Metallic & Roughness
 	float metallic  = uMaterial.metallic;
 	float roughness = uMaterial.roughness;
 	if (uMaterial.hasMRMap)
 	{
-		vec2 mr = texture(uMaterial.mrMap, get_uv(uMaterial.albedoTexCoord)).gb; // G = roughness, B = metallic
+		vec2 mr = texture(uMaterial.mrMap, baseUV).gb;
 		roughness *= mr.x;
 		metallic  *= mr.y;
 	}
@@ -190,7 +186,7 @@ void main()
 	// Ambient Occlusion
 	float ao = 1.0;
 	if (uMaterial.hasAOMap)
-		ao = mix(1.0, texture(uMaterial.aoMap, get_uv(uMaterial.albedoTexCoord)).r, uMaterial.aoStrength);
+		ao = mix(1.0, texture(uMaterial.aoMap, baseUV).r, uMaterial.aoStrength);
 
 	// Emissive
 	vec3 emissive = uMaterial.emissiveFactor;
@@ -199,22 +195,32 @@ void main()
 
 	// Debug Overlays
 	vec4 debugColor;
-	if (applyDebugChannels(debugColor, albedo, N, roughness, metallic, ao, emissive))
+	if (applyDebugChannels(debugColor, albedo, N,
+		roughness, metallic, ao, emissive))
 	{
 		FragColor = debugColor;
 		return;
 	}
+
+	// --------------------------------------------------------
+    // LIGHTING STAGE
+    // --------------------------------------------------------
 
 	vec3 V = normalize(uCamPos - vFragPos);
 
 	vec3 color = compute_pbr(albedo.rgb, N, V,
 		metallic, roughness, ao, emissive);
 
-	// Post Processing
+	// --------------------------------------------------------
+    // POST-PROCESSING STAGE
+    // --------------------------------------------------------
+
 	color = tonemap_uchimura(color);
 	color = pow(color, vec3(1.0 / 2.2));
 
-	// FragColor = vec4(vDebug, 1.0);
-
+#if defined(DEBUG_IN)
+	FragColor = vec4(vDebug, 1.0);
+#else
 	FragColor = vec4(color, albedo.a);
+#endif
 }

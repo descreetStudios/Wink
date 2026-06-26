@@ -455,6 +455,10 @@ namespace Wink::Content
 						p.mesh = meshHandles.at(key);
 						p.material = prim.materialIndex.has_value() ?
 							matHandles[*prim.materialIndex] : get_default_material();
+
+						if (asset.materials.empty())
+							get_material_pool().try_get(p.material)->shader = shader;
+
 						node.primitives.push_back(p);
 					}
 				}

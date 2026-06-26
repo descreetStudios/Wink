@@ -10,7 +10,6 @@ out vec3 vFragPos;
 out vec2 vTexCoord;
 out vec2 vTexCoord1;
 out mat3 vTBN;
-
 out vec3 vDebug;
 
 uniform mat4 uModel;
