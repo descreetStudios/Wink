@@ -20,9 +20,10 @@ namespace Wink::GFX
 		using namespace Resource;
 
 		ShaderHandle gEquirectToCubemapShader;
+		ShaderHandle gIrradianceConvolutionShader;
+		TextureHandle gBRDFLUT;
 
 		IBLData gIBLData;
-		bool gShouldUpdate = true;
 	}
 
 	namespace
@@ -47,8 +48,6 @@ namespace Wink::GFX
 
 		ShaderHandle gSkyboxShader;
 		GLuint gSkyboxVAO = 0;
-
-		TextureHandle gBRDFLUT;
 
 		constexpr float SKYBOX_VERTICES[] =
 		{
@@ -112,13 +111,18 @@ namespace Wink::GFX
 				{ ShaderType::Compute, "Resources/Shaders/EquirectToCubemapCS.glsl" }
 			});
 
-			gBRDFLUT = gTexturePool.decode("Resources/brdf_lut.ktx");
+			IBL::gIrradianceConvolutionShader = gShaderPool.load(std::vector<ShaderFile>{
+				{ ShaderType::Compute, "Resources/Shaders/IrradianceConvolutionCS.glsl" }
+			});
+
+			IBL::gBRDFLUT = gTexturePool.decode("Resources/brdf_lut.ktx");
 
 			return gMaterialPool.is_valid(gDefaultMaterial) &&
 				gMaterialPool.is_valid(gFullscreenMaterial) &&
 				gShaderPool.is_valid(gSkyboxShader) &&
 				gShaderPool.is_valid(IBL::gEquirectToCubemapShader) &&
-				gTexturePool.is_valid(gBRDFLUT);
+				gShaderPool.is_valid(IBL::gIrradianceConvolutionShader) &&
+				gTexturePool.is_valid(IBL::gBRDFLUT);
 		}
 
 		void apply_config(const Configuration& cfg)
@@ -184,9 +188,9 @@ namespace Wink::GFX
 
 		void draw_skybox(const Camera& cam)
 		{
-			const TextureCubemap* cubemap =
-				gCubemapPool.try_get(IBL::gIBLData.cubemap);
-			if (!cubemap || !cubemap->is_valid()) return;
+			const TextureCubemap* envMap =
+				gCubemapPool.try_get(IBL::gIBLData.irradianceMap);
+			if (!envMap || !envMap->is_valid()) return;
 
 			const ShaderProgram* shader = gShaderPool.try_get(gSkyboxShader);
 			if (!shader || !shader->is_valid()) return;
@@ -200,7 +204,7 @@ namespace Wink::GFX
 			shader->use();
 			shader->set("uViewProj", viewProj);
 			shader->set("uSkybox", 0);
-			cubemap->bind(0);
+			envMap->bind(0);
 
 			glBindVertexArray(gSkyboxVAO);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -270,9 +274,6 @@ namespace Wink::GFX
 				shader->set(base + "intensity", light.intensity);
 			}
 
-			/* --- IBL --- */
-			// TODO: For now, just render a skybox with the cubemap
-
 			/* --- Draw --- */
 			glBindVertexArray(meshPool.get_vao_id(mesh));
 			glDrawElements(GL_TRIANGLES,
@@ -327,25 +328,7 @@ namespace Wink::GFX
 
 		/* --- IBL --- */
 		if (auto iblEOpt = scene->find_first<ECS::IBLComponent>())
-		{
-			using namespace IBL;
-
-			Resource::CubemapHandle cubemap =
-				iblEOpt->get<ECS::IBLComponent>().cubemap;
-
-			if (gIBLData.cubemap != cubemap)
-			{
-				gIBLData.cubemap = cubemap;
-				gShouldUpdate = true;
-			}
-
-			if (gShouldUpdate)
-			{
-				// TODO: bake irradiance map into gIBLData.irradianceMap
-				// TODO: bake prefiltered env map into gIBLData.prefilteredEnvMap
-				gShouldUpdate = false;
-			}
-		}
+			IBL::gIBLData = iblEOpt->get<ECS::IBLComponent>().iblData;
 
 		/* --- Lights --- */
 		std::vector<DirLight> dirLights;
@@ -497,9 +480,8 @@ namespace Wink::GFX
 			Resource::CubemapHandle equirect_to_cubemap(
 				Resource::TextureHandle hdr, u32 faceSize)
 			{
-				ENGINE_ZONE_NAME("Equirect To Cubemap");
-
 				using namespace Resource;
+				ENGINE_ZONE_NAME("Equirect To Cubemap");
 
 				const Texture2D* tex = gTexturePool.try_get(hdr);
 				if (!tex || !tex->is_valid())
@@ -548,6 +530,57 @@ namespace Wink::GFX
 
 				return outHandle;
 			}
+		} // namespace Internal
+
+		Resource::CubemapHandle bake_irradiance(
+			Resource::CubemapHandle envCubemap, u32 faceSize)
+		{
+			using namespace Resource;
+			ENGINE_ZONE_NAME("Bake Irradiance");
+
+			const TextureCubemap* env = gCubemapPool.try_get(envCubemap);
+			if (!env || !env->is_valid())
+			{
+				Logger::Internal::error("Invalid environment cubemap handle");
+				return CubemapHandle();
+			}
+
+			const ShaderProgram* cs = gShaderPool.try_get(gIrradianceConvolutionShader);
+			if (!cs || !cs->is_valid()) return CubemapHandle();
+
+			CubemapSpec spec;
+			spec.width = faceSize;
+			spec.height = faceSize;
+			spec.internalFormat = GL_RGBA16F;
+			spec.minFilter = TextureFilter::Linear;
+			spec.magFilter = TextureFilter::Linear;
+			spec.wrapMode = TextureWrap::ClampToEdge;
+			spec.generateMipmaps = false;
+			spec.mipLevels = 1;
+
+			CubemapHandle outHandle = gCubemapPool.allocate(spec);
+			TextureCubemap* irradiance = gCubemapPool.try_get(outHandle);
+			if (!irradiance || !irradiance->is_valid())
+			{
+				Logger::Internal::error("Failed to allocate irradiance cubemap");
+				return CubemapHandle();
+			}
+
+			cs->use();
+
+			env->bind(0);
+			cs->set("uEnvironment", 0);
+
+			irradiance->bind_image(1, 0, GL_TRUE, GL_WRITE_ONLY, GL_RGBA16F);
+
+			const u32 groups = (faceSize + 7) / 8;
+
+			cs->dispatch(groups, groups, 6);
+			cs->memory_barrier(GL_TEXTURE_FETCH_BARRIER_BIT |
+				GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+			glBindImageTexture(1, 0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+			return outHandle;
 		}
 	}
 }

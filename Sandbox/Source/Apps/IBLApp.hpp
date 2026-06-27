@@ -84,15 +84,18 @@ public:
 			}
 		}
 
-		mTestTexture = texturePool.decode(RES_PATH / "HDRIs" / "autumn_field_puresky_4k.hdr");
-		mTestCubemap = cubemapPool.hdr_to_cubemap(mTestTexture);
+		mTestTexture = texturePool.decode(RES_PATH / "HDRIs" / "meadow_2_4k.hdr");
+		auto env = cubemapPool.hdr_to_cubemap(mTestTexture);
+		auto irr = GFX::IBL::bake_irradiance(env);
 
-		scene->spawn().add<IBLComponent>().cubemap = mTestCubemap;
+		auto iblE = scene->spawn();
+		auto& iblC = iblE.add<IBLComponent>();
+		iblC.iblData = { env, irr };
 	}
 
 	void post_render() override
 	{
-		GFX::render_fullscreen_texture(mTestTexture);
+		//GFX::render_fullscreen_texture(mTestTexture);
 	}
 
 	void on_update(double dt) override
@@ -192,5 +195,4 @@ private:
 	ECS::Entity mCamEntity;
 
 	GFX::Resource::TextureHandle mTestTexture;
-	GFX::Resource::CubemapHandle mTestCubemap;
 };

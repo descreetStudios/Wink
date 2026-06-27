@@ -127,10 +127,13 @@ namespace Wink::GFX
 	{
 		struct IBLData
 		{
-			Resource::CubemapHandle cubemap;
+			Resource::CubemapHandle envMap;
 			Resource::CubemapHandle irradianceMap;
 			Resource::CubemapHandle prefilteredEnvMap;
 		};
+
+		[[nodiscard]] Resource::CubemapHandle bake_irradiance(
+			Resource::CubemapHandle envCubemap, u32 faceSize = 32);
 
 		namespace Internal
 		{

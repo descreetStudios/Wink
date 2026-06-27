@@ -1,11 +1,11 @@
 #pragma once
 
-#include <WinkEngine/GFX/Resource/Handle.hpp>
+#include <WinkEngine/GFX/Renderer.hpp>
 
 namespace Wink::ECS
 {
 	struct IBLComponent
 	{
-		GFX::Resource::CubemapHandle cubemap;
+		GFX::IBL::IBLData iblData;
 	};
 }
