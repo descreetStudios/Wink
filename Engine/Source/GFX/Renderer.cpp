@@ -48,6 +48,8 @@ namespace Wink::GFX
 		ShaderHandle gSkyboxShader;
 		GLuint gSkyboxVAO = 0;
 
+		TextureHandle gBRDFLUT;
+
 		constexpr float SKYBOX_VERTICES[] =
 		{
 			// -X face
@@ -85,35 +87,38 @@ namespace Wink::GFX
 			glVertexArrayAttribBinding(gSkyboxVAO, 0, 0);
 		}
 
-		bool create_engine_materials()
+		bool load_engine_resources()
 		{
 			gDefaultShader = gShaderPool.load(std::vector<ShaderFile>{
-				{ ShaderType::Vertex, "Shaders/DefaultVS.glsl" },
-				{ ShaderType::Fragment, "Shaders/DefaultFS.glsl" },
+				{ ShaderType::Vertex, "Resources/Shaders/DefaultVS.glsl" },
+				{ ShaderType::Fragment, "Resources/Shaders/DefaultFS.glsl" },
 			});
 			gDefaultMaterial = gMaterialPool.create(gDefaultShader);
 
 			gFullscreenShader = gShaderPool.load(std::vector<ShaderFile>{
-				{ ShaderType::Vertex, "Shaders/FullscreenVS.glsl" },
-				{ ShaderType::Fragment, "Shaders/FullscreenFS.glsl" },
+				{ ShaderType::Vertex, "Resources/Shaders/FullscreenVS.glsl" },
+				{ ShaderType::Fragment, "Resources/Shaders/FullscreenFS.glsl" },
 			});
 			gFullscreenMaterial = gMaterialPool.create(gFullscreenShader);
 			glCreateVertexArrays(1, &gFullscreenVAO);
 
 			gSkyboxShader = gShaderPool.load(std::vector<ShaderFile>{
-				{ ShaderType::Vertex, "Shaders/SkyboxVS.glsl" },
-				{ ShaderType::Fragment, "Shaders/SkyboxFS.glsl" },
+				{ ShaderType::Vertex, "Resources/Shaders/SkyboxVS.glsl" },
+				{ ShaderType::Fragment, "Resources/Shaders/SkyboxFS.glsl" },
 			});
 			create_skybox_geometry();
 
 			IBL::gEquirectToCubemapShader = gShaderPool.load(std::vector<ShaderFile>{
-				{ ShaderType::Compute, "Shaders/EquirectToCubemapCS.glsl" }
+				{ ShaderType::Compute, "Resources/Shaders/EquirectToCubemapCS.glsl" }
 			});
+
+			gBRDFLUT = gTexturePool.decode("Resources/brdf_lut.ktx");
 
 			return gMaterialPool.is_valid(gDefaultMaterial) &&
 				gMaterialPool.is_valid(gFullscreenMaterial) &&
 				gShaderPool.is_valid(gSkyboxShader) &&
-				gShaderPool.is_valid(IBL::gEquirectToCubemapShader);
+				gShaderPool.is_valid(IBL::gEquirectToCubemapShader) &&
+				gTexturePool.is_valid(gBRDFLUT);
 		}
 
 		void apply_config(const Configuration& cfg)
@@ -425,7 +430,7 @@ namespace Wink::GFX
 			return false;
 		}
 
-		if (!create_engine_materials())
+		if (!load_engine_resources())
 		{
 			Logger::Internal::error("Failed to create engine materials");
 			return false;

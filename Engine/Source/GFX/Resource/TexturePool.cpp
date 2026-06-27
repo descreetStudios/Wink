@@ -53,6 +53,31 @@ namespace Wink::GFX::Resource
 			return handle;
 		}
 
+		if (ext == ".ktx")
+		{
+			Content::DecodedImage ktx = Content::decode_ktx(path);
+			if (!ktx)
+			{
+				Logger::Internal::error(
+					"Failed to decode KTX texture '{}'", path.string());
+				return handle;
+			}
+
+			handle = load(
+				ktx.pixels.data(),
+				static_cast<u32>(ktx.width),
+				static_cast<u32>(ktx.height),
+				params
+			);
+
+			if (!handle.is_valid())
+				return handle;
+
+			mReloadSources[handle.index] = ReloadInfo{ path, params };
+			set_hot_reload(handle, hotReload);
+			return handle;
+		}
+
 		Content::DecodedImage img = Content::decode_image(path);
 		if (!img)
 		{

@@ -34,6 +34,9 @@ namespace Wink::Content
 		bool forceRGBA = true,
 		bool flipVertically = true) noexcept;
 
+	[[nodiscard]] DecodedImage decode_ktx(
+		const fs::path& path) noexcept;
+
 	[[nodiscard]] HDRImage decode_hdr(
 		const fs::path& path,
 		bool flipVertically = true) noexcept;

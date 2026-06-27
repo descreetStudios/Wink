@@ -76,6 +76,17 @@ add_library(MikkTSpace STATIC ${mikktspace_SOURCE_DIR}/mikktspace.c)
 target_include_directories(MikkTSpace PRIVATE ${mikktspace_SOURCE_DIR})
 target_include_directories(Engine PRIVATE ${mikktspace_SOURCE_DIR})
 
+# GLI
+FetchContent_Declare(
+    gli
+    GIT_REPOSITORY https://github.com/g-truc/gli.git
+    GIT_TAG master
+    CMAKE_ARGS
+        -DGLI_TEST_ENABLE=OFF
+)
+FetchContent_MakeAvailable(gli)
+target_include_directories(Engine PUBLIC ${gli_SOURCE_DIR})
+
 # GLAD
 add_library(glad ${CMAKE_CURRENT_SOURCE_DIR}/Vendor/glad/src/glad.c)
 target_include_directories(glad PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Vendor/glad/include)
@@ -187,21 +198,34 @@ PRIVATE
     "Source/GFX/Camera.cpp" 
     "Source/GFX/Renderer.cpp" "Source/GFX/Resource/CubemapPool.cpp")
 
-set(WINK_ENGINE_SHADERS_DIR
-    "${CMAKE_CURRENT_SOURCE_DIR}/Source/GFX/Shaders"
-    CACHE INTERNAL "Path to WinkEngine's default shader sources"
-)
+function(wink_copy_engine_resources target)
+    set(ENGINE_RESOURCES_DIR "${CMAKE_SOURCE_DIR}/Engine/Resources"
+        CACHE INTERNAL "Path to Engine's resources")
+    set(ENGINE_SHADERS_DIR "${CMAKE_SOURCE_DIR}/Engine/Source/GFX/Shaders"
+        CACHE INTERNAL "Path to Engine's default shader sources")
 
-function(wink_copy_engine_shaders target)
-    file(GLOB_RECURSE shader_files "${WINK_ENGINE_SHADERS_DIR}/*")
+    file(GLOB_RECURSE res_files "${ENGINE_RESOURCES_DIR}/*")
+    file(GLOB_RECURSE shader_files "${ENGINE_SHADERS_DIR}/*")
 
-    add_custom_target(${target}_CopyShaders ALL
+    add_custom_target(${target}_CopyResources ALL
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:${target}>/Resources"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:${target}>/Resources/Shaders"
+
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${WINK_ENGINE_SHADERS_DIR}"
-            "$<TARGET_FILE_DIR:${target}>/Shaders"
+            "${ENGINE_RESOURCES_DIR}"
+            "$<TARGET_FILE_DIR:${target}>/Resources"
+
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${ENGINE_SHADERS_DIR}"
+            "$<TARGET_FILE_DIR:${target}>/Resources/Shaders"
+
+        DEPENDS ${res_files}
         DEPENDS ${shader_files}
-        COMMENT "Copying engine shaders for ${target}"
+
+        COMMENT "Copying engine resources for ${target}"
     )
 
-    add_dependencies(${target} ${target}_CopyShaders)
+    add_dependencies(${target} ${target}_CopyResources)
 endfunction()

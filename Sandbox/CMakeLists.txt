@@ -10,4 +10,4 @@ PRIVATE
     Engine
 )
 
-wink_copy_engine_shaders(Sandbox)
+wink_copy_engine_resources(Sandbox)

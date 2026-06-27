@@ -3,6 +3,7 @@
 #include <WinkEngine/Core/Logger.hpp>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
+#include <gli/gli.hpp>
 
 namespace Wink::Content
 {
@@ -86,6 +87,47 @@ namespace Wink::Content
 
 		img.pixels.assign(data, data + total);
 		stbi_image_free(data);
+		return img;
+	}
+
+	DecodedImage decode_ktx(const fs::path& path) noexcept
+	{
+		DecodedImage img;
+
+		if (!fs::exists(path) || !fs::is_regular_file(path))
+		{
+			Logger::Internal::error(
+				"Trying to load a KTX from an invalid path: '{}'",
+				path.string());
+			return img;
+		}
+
+		gli::texture tex = gli::load(path.string());
+		if (tex.empty())
+		{
+			Logger::Internal::error(
+				"Failed to load KTX texture '{}'",
+				path.string());
+			return img;
+		}
+
+		gli::texture2d tex2D(tex);
+		if (tex2D.empty())
+		{
+			Logger::Internal::error(
+				"KTX texture '{}' is not 2D",
+				path.string());
+			return img;
+		}
+
+		img.width = static_cast<i32>(tex2D.extent().x);
+		img.height = static_cast<i32>(tex2D.extent().y);
+		img.channels = gli::component_count(tex.format());
+
+		size_t size = tex2D.size();
+		img.pixels.resize(size);
+		memcpy(img.pixels.data(), tex2D.data(), size);
+
 		return img;
 	}
 
