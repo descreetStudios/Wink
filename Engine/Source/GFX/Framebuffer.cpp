@@ -1,6 +1,6 @@
 #include <WinkEngine/pch.hpp>
 #include <WinkEngine/GFX/Framebuffer.hpp>
-#include <WinkEngine/GFX/Texture.hpp>
+#include <WinkEngine/GFX/Texture2D.hpp>
 #include <WinkEngine/Core/Logger.hpp>
 
 namespace Wink::GFX

@@ -6,7 +6,7 @@
 namespace Wink::GFX::Resource
 {
 	TextureHandle TexturePool::decode(const fs::path& path,
-		const TextureParams& params, bool hotReload)
+		const Texture2DParams& params, bool hotReload)
 	{
 		if (path.empty())
 		{
@@ -73,7 +73,7 @@ namespace Wink::GFX::Resource
 
 	TextureHandle TexturePool::decode_from_memory(
 		const u8* encodedData, size_t size,
-		const TextureParams& params)
+		const Texture2DParams& params)
 	{
 		Content::DecodedImage img = Content::decode_image_from_memory(
 			encodedData, size, params.hasAlpha);
@@ -86,7 +86,7 @@ namespace Wink::GFX::Resource
 
 	TextureHandle TexturePool::decode_hdr_from_memory(
 		const u8* encodedData, size_t size,
-		const TextureParams& params)
+		const Texture2DParams& params)
 	{
 		Content::HDRImage hdr = Content::decode_hdr_from_memory(
 			encodedData, size, params.hasAlpha);
@@ -100,7 +100,7 @@ namespace Wink::GFX::Resource
 
 	TextureHandle TexturePool::load(
 		const u8* pixels, u32 width, u32 height,
-		const TextureParams& params)
+		const Texture2DParams& params)
 	{
 		TextureHandle handle = allocate();
 		with(handle, [&](Texture2D& tex)
@@ -112,7 +112,7 @@ namespace Wink::GFX::Resource
 
 	TextureHandle TexturePool::load(
 		const float* pixels, u32 width, u32 height,
-		u32 channels, const TextureParams& params)
+		u32 channels, const Texture2DParams& params)
 	{
 		TextureHandle handle = allocate();
 		with(handle, [&](Texture2D& tex)
@@ -124,7 +124,7 @@ namespace Wink::GFX::Resource
 
 	TextureHandle TexturePool::allocate_empty(
 		u32 width, u32 height, u32 internalFormat,
-		const TextureParams& params)
+		const Texture2DParams& params)
 	{
 		TextureHandle handle = allocate();
 		with(handle, [&](Texture2D& tex)

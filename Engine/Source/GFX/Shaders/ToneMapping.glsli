@@ -1,6 +1,9 @@
 // Uchimura 2017 — GT Tone Mapping
 vec3 tonemap_uchimura(vec3 x)
 {
+    x = max(x, 0.0);
+    x = min(x, 64.0);
+
     const float P = 1.0;   // max brightness
     const float a = 1.0;   // contrast
     const float m = 0.22;  // linear start

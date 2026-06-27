@@ -6,13 +6,25 @@
 #include <WinkEngine/ECS/Components/RenderObjectComponent.hpp>
 #include <WinkEngine/ECS/Components/CameraComponent.hpp>
 #include <WinkEngine/ECS/Components/LightComponent.hpp>
+#include <WinkEngine/ECS/Components/IBLComponent.hpp>
 #include <WinkEngine/ECS/Systems/TransformSystem.hpp>
 
 #include <WinkEngine/Core/Logger.hpp>
+#include <WinkEngine/Core/Profiler.hpp>
 #include <GLFW/glfw3.h>
 
 namespace Wink::GFX
 {
+	namespace IBL
+	{
+		using namespace Resource;
+
+		ShaderHandle gEquirectToCubemapShader;
+
+		IBLData gIBLData;
+		bool gShouldUpdate = true;
+	}
+
 	namespace
 	{
 		using namespace Resource;
@@ -22,6 +34,7 @@ namespace Wink::GFX
 		MeshPool gMeshPool;
 		ShaderPool gShaderPool;
 		TexturePool gTexturePool;
+		CubemapPool gCubemapPool;
 		MaterialPool gMaterialPool;
 		ModelPool gModelPool;
 
@@ -32,25 +45,75 @@ namespace Wink::GFX
 		MaterialHandle gFullscreenMaterial;
 		GLuint gFullscreenVAO = 0;
 
+		ShaderHandle gSkyboxShader;
+		GLuint gSkyboxVAO = 0;
+
+		constexpr float SKYBOX_VERTICES[] =
+		{
+			// -X face
+			-1.0f,  1.0f, -1.0f,   -1.0f, -1.0f, -1.0f,   -1.0f, -1.0f,  1.0f,
+			-1.0f, -1.0f,  1.0f,   -1.0f,  1.0f,  1.0f,   -1.0f,  1.0f, -1.0f,
+			// +X face
+			 1.0f, -1.0f, -1.0f,    1.0f, -1.0f,  1.0f,    1.0f,  1.0f,  1.0f,
+			 1.0f,  1.0f,  1.0f,    1.0f,  1.0f, -1.0f,    1.0f, -1.0f, -1.0f,
+			// -Y face
+			-1.0f, -1.0f,  1.0f,   -1.0f, -1.0f, -1.0f,    1.0f, -1.0f, -1.0f,
+			 1.0f, -1.0f, -1.0f,    1.0f, -1.0f,  1.0f,   -1.0f, -1.0f,  1.0f,
+			// +Y face
+			-1.0f,  1.0f, -1.0f,   -1.0f,  1.0f,  1.0f,    1.0f,  1.0f,  1.0f,
+			 1.0f,  1.0f,  1.0f,    1.0f,  1.0f, -1.0f,   -1.0f,  1.0f, -1.0f,
+			// +Z face
+			-1.0f, -1.0f,  1.0f,    1.0f, -1.0f,  1.0f,    1.0f,  1.0f,  1.0f,
+			 1.0f,  1.0f,  1.0f,   -1.0f,  1.0f,  1.0f,   -1.0f, -1.0f,  1.0f,
+			// -Z face
+			-1.0f,  1.0f, -1.0f,    1.0f,  1.0f, -1.0f,    1.0f, -1.0f, -1.0f,
+			 1.0f, -1.0f, -1.0f,   -1.0f, -1.0f, -1.0f,   -1.0f,  1.0f, -1.0f,
+		};
+
+		void create_skybox_geometry()
+		{
+			u32 vbo;
+			glCreateVertexArrays(1, &gSkyboxVAO);
+			glCreateBuffers(1, &vbo);
+
+			glNamedBufferStorage(vbo,
+				sizeof(SKYBOX_VERTICES), SKYBOX_VERTICES, 0);
+
+			glVertexArrayVertexBuffer(gSkyboxVAO, 0, vbo, 0, 3 * sizeof(float));
+			glEnableVertexArrayAttrib(gSkyboxVAO, 0);
+			glVertexArrayAttribFormat(gSkyboxVAO, 0, 3, GL_FLOAT, GL_FALSE, 0);
+			glVertexArrayAttribBinding(gSkyboxVAO, 0, 0);
+		}
+
 		bool create_engine_materials()
 		{
 			gDefaultShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Vertex, "Shaders/DefaultVS.glsl" },
 				{ ShaderType::Fragment, "Shaders/DefaultFS.glsl" },
 			});
-
 			gDefaultMaterial = gMaterialPool.create(gDefaultShader);
 
 			gFullscreenShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Vertex, "Shaders/FullscreenVS.glsl" },
 				{ ShaderType::Fragment, "Shaders/FullscreenFS.glsl" },
 			});
-
 			gFullscreenMaterial = gMaterialPool.create(gFullscreenShader);
-
 			glCreateVertexArrays(1, &gFullscreenVAO);
 
-			return gMaterialPool.is_valid(gDefaultMaterial);
+			gSkyboxShader = gShaderPool.load(std::vector<ShaderFile>{
+				{ ShaderType::Vertex, "Shaders/SkyboxVS.glsl" },
+				{ ShaderType::Fragment, "Shaders/SkyboxFS.glsl" },
+			});
+			create_skybox_geometry();
+
+			IBL::gEquirectToCubemapShader = gShaderPool.load(std::vector<ShaderFile>{
+				{ ShaderType::Compute, "Shaders/EquirectToCubemapCS.glsl" }
+			});
+
+			return gMaterialPool.is_valid(gDefaultMaterial) &&
+				gMaterialPool.is_valid(gFullscreenMaterial) &&
+				gShaderPool.is_valid(gSkyboxShader) &&
+				gShaderPool.is_valid(IBL::gEquirectToCubemapShader);
 		}
 
 		void apply_config(const Configuration& cfg)
@@ -114,6 +177,34 @@ namespace Wink::GFX
 			glDrawArrays(GL_TRIANGLES, 0, 3);
 		}
 
+		void draw_skybox(const Camera& cam)
+		{
+			const TextureCubemap* cubemap =
+				gCubemapPool.try_get(IBL::gIBLData.cubemap);
+			if (!cubemap || !cubemap->is_valid()) return;
+
+			const ShaderProgram* shader = gShaderPool.try_get(gSkyboxShader);
+			if (!shader || !shader->is_valid()) return;
+
+			const glm::mat4 rotView = glm::mat4(glm::mat3(cam.get_view()));
+			const glm::mat4 viewProj = cam.get_proj() * rotView;
+
+			glDepthFunc(GL_LEQUAL);
+			glDepthMask(GL_FALSE);
+
+			shader->use();
+			shader->set("uViewProj", viewProj);
+			shader->set("uSkybox", 0);
+			cubemap->bind(0);
+
+			glBindVertexArray(gSkyboxVAO);
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+			glBindVertexArray(0);
+
+			glDepthMask(gConfig.depthWrite ? GL_TRUE : GL_FALSE);
+			glDepthFunc(gConfig.depthFunc);
+		}
+
 		void draw(const DrawData& drawData)
 		{
 			auto& matPool = get_material_pool();
@@ -174,6 +265,9 @@ namespace Wink::GFX
 				shader->set(base + "intensity", light.intensity);
 			}
 
+			/* --- IBL --- */
+			// TODO: For now, just render a skybox with the cubemap
+
 			/* --- Draw --- */
 			glBindVertexArray(meshPool.get_vao_id(mesh));
 			glDrawElements(GL_TRIANGLES,
@@ -225,6 +319,28 @@ namespace Wink::GFX
 
 		CameraData camData{ .position = cam.position,
 			.viewProj = cam.get_proj() * cam.get_view() };
+
+		/* --- IBL --- */
+		if (auto iblEOpt = scene->find_first<ECS::IBLComponent>())
+		{
+			using namespace IBL;
+
+			Resource::CubemapHandle cubemap =
+				iblEOpt->get<ECS::IBLComponent>().cubemap;
+
+			if (gIBLData.cubemap != cubemap)
+			{
+				gIBLData.cubemap = cubemap;
+				gShouldUpdate = true;
+			}
+
+			if (gShouldUpdate)
+			{
+				// TODO: bake irradiance map into gIBLData.irradianceMap
+				// TODO: bake prefiltered env map into gIBLData.prefilteredEnvMap
+				gShouldUpdate = false;
+			}
+		}
 
 		/* --- Lights --- */
 		std::vector<DirLight> dirLights;
@@ -292,6 +408,8 @@ namespace Wink::GFX
 				.normalMat = glm::transpose(glm::inverse(glm::mat3(tC.worldMatrix))),
 				.dirLights = dirLights, .pointLights = pointLights, .spotLights = spotLights });
 		}
+
+		draw_skybox(cam);
 	}
 
 	void render_fullscreen_texture(Resource::TextureHandle tex)
@@ -343,6 +461,7 @@ namespace Wink::GFX
 		MeshPool& get_mesh_pool() noexcept { return gMeshPool; }
 		ShaderPool& get_shader_pool() noexcept { return gShaderPool; }
 		TexturePool& get_texture_pool() noexcept { return gTexturePool; }
+		CubemapPool& get_cubemap_pool()  noexcept { return gCubemapPool; }
 		MaterialPool& get_material_pool() noexcept { return gMaterialPool; }
 		ModelPool& get_model_pool() noexcept { return gModelPool; }
 
@@ -351,14 +470,79 @@ namespace Wink::GFX
 
 		void clear_all_resources() noexcept
 		{
+			gMeshPool.clear();
 			gShaderPool.clear();
 			gTexturePool.clear();
+			gCubemapPool.clear();
+			gMaterialPool.clear();
+			gModelPool.clear();
 		}
 
 		void poll_hot_reloads() noexcept
 		{
 			gShaderPool.poll_hot_reload();
 			gTexturePool.poll_hot_reload();
+		}
+	}
+
+	namespace IBL
+	{
+		namespace Internal
+		{
+			Resource::CubemapHandle equirect_to_cubemap(
+				Resource::TextureHandle hdr, u32 faceSize)
+			{
+				ENGINE_ZONE_NAME("Equirect To Cubemap");
+
+				using namespace Resource;
+
+				const Texture2D* tex = gTexturePool.try_get(hdr);
+				if (!tex || !tex->is_valid())
+				{
+					Logger::Internal::error(
+						"Invalid HDR Texture");
+					return CubemapHandle();
+				}
+
+				CubemapSpec spec;
+				spec.width = faceSize;
+				spec.height = faceSize;
+				spec.internalFormat = GL_RGBA16F;
+				spec.minFilter = TextureFilter::LinearMipmapLinear;
+				spec.magFilter = TextureFilter::Linear;
+				spec.wrapMode = TextureWrap::ClampToEdge;
+				spec.generateMipmaps = true;
+
+				CubemapHandle outHandle = gCubemapPool.allocate(spec);
+				TextureCubemap* cubemap = gCubemapPool.try_get(outHandle);
+				if (!cubemap || !cubemap->is_valid())
+				{
+					Logger::Internal::error(
+						"Failed to allocate output cubemap");
+					return CubemapHandle();
+				}
+
+				const ShaderProgram* cs = gShaderPool.try_get(gEquirectToCubemapShader);
+				if (!cs || !cs->is_valid()) return CubemapHandle();
+
+				cs->use();
+
+				tex->bind(0);
+				cs->set("uEquirect", 0);
+
+				cubemap->bind_image(1, 0, GL_TRUE, GL_WRITE_ONLY, GL_RGBA16F);
+
+				const u32 groups = (faceSize + 7) / 8;
+				cs->dispatch(groups, groups, 6);
+				cs->memory_barrier(GL_TEXTURE_FETCH_BARRIER_BIT |
+					GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+				glBindImageTexture(1, 0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+
+				cubemap->generate_mipmaps();
+
+				return outHandle;
+			}
 		}
 	}
 }

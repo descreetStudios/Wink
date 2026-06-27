@@ -22,6 +22,7 @@ public:
 		auto& meshPool = get_mesh_pool();
 		auto& shaderPool = get_shader_pool();
 		auto& texturePool = get_texture_pool();
+		auto& cubemapPool = get_cubemap_pool();
 		auto& materialPool = get_material_pool();
 		auto& modelPool = get_model_pool();
 
@@ -83,7 +84,10 @@ public:
 			}
 		}
 
-		mTestTexture = texturePool.decode(RES_PATH / "HDRIs" / "monochrome_studio_02_4k.hdr");
+		mTestTexture = texturePool.decode(RES_PATH / "HDRIs" / "autumn_field_puresky_4k.hdr");
+		mTestCubemap = cubemapPool.hdr_to_cubemap(mTestTexture);
+
+		scene->spawn().add<IBLComponent>().cubemap = mTestCubemap;
 	}
 
 	void post_render() override
@@ -188,4 +192,5 @@ private:
 	ECS::Entity mCamEntity;
 
 	GFX::Resource::TextureHandle mTestTexture;
+	GFX::Resource::CubemapHandle mTestCubemap;
 };

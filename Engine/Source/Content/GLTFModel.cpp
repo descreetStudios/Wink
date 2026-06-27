@@ -125,7 +125,7 @@ namespace Wink::Content
 		std::optional<TextureHandle> load_material_texture(
 			const fastgltf::Asset& asset,
 			const fastgltf::Optional<TexInfoT>& texInfo,
-			const fs::path& baseDir, const TextureParams& params,
+			const fs::path& baseDir, const Texture2DParams& params,
 			LoadProgress& progress)
 		{
 			ENGINE_ZONE_NAME("Load Material Texture");
@@ -209,7 +209,7 @@ namespace Wink::Content
 				src.emissiveFactor[2] };
 
 			/* --- Maps --- */
-			const TextureParams albedoParams{ .sRGB = true };
+			const Texture2DParams albedoParams{ .sRGB = true };
 			if (auto albedo = load_material_texture<fastgltf::TextureInfo>(
 				asset, src.pbrData.baseColorTexture, baseDir, albedoParams, progress))
 			{
@@ -217,7 +217,7 @@ namespace Wink::Content
 				mat->params.albedoTexCoord = resolve_tex_coord(*src.pbrData.baseColorTexture);
 			}
 
-			const TextureParams normalParams{ .sRGB = false, .hasAlpha = false };
+			const Texture2DParams normalParams{ .sRGB = false, .hasAlpha = false };
 			if (auto normal = load_material_texture<fastgltf::NormalTextureInfo>(
 				asset, src.normalTexture, baseDir, normalParams, progress))
 			{
@@ -225,7 +225,7 @@ namespace Wink::Content
 				mat->params.normalTexCoord = resolve_tex_coord(*src.normalTexture);
 			}
 
-			const TextureParams mrParams{ .sRGB = false };
+			const Texture2DParams mrParams{ .sRGB = false };
 			if (auto mr = load_material_texture<fastgltf::TextureInfo>(
 				asset, src.pbrData.metallicRoughnessTexture, baseDir, mrParams, progress))
 			{
@@ -233,7 +233,7 @@ namespace Wink::Content
 				mat->params.mrTexCoord = resolve_tex_coord(*src.pbrData.metallicRoughnessTexture);
 			}
 
-			const TextureParams aoParams{ .sRGB = false };
+			const Texture2DParams aoParams{ .sRGB = false };
 			if (auto ao = load_material_texture<fastgltf::OcclusionTextureInfo>(
 				asset, src.occlusionTexture, baseDir, aoParams, progress))
 			{
@@ -241,7 +241,7 @@ namespace Wink::Content
 				mat->params.aoTexCoord = resolve_tex_coord(*src.occlusionTexture);
 			}
 
-			const TextureParams emissiveParams{ .sRGB = true };
+			const Texture2DParams emissiveParams{ .sRGB = true };
 			if (auto em = load_material_texture<fastgltf::TextureInfo>(
 				asset, src.emissiveTexture, baseDir, emissiveParams, progress))
 			{

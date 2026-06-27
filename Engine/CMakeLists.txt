@@ -166,7 +166,8 @@ PRIVATE
     # --- Graphics Abstractions --- #
     "Source/GFX/VAO.cpp" 
     "Source/GFX/Buffer.cpp" 
-    "Source/GFX/Texture.cpp" 
+    "Source/GFX/Texture2D.cpp" 
+    "Source/GFX/TextureCubemap.cpp" 
     "Source/GFX/Framebuffer.cpp" 
     "Source/GFX/Shader.cpp" 
     
@@ -184,7 +185,7 @@ PRIVATE
     # --- Graphics --- #
     "Source/GFX/Material.cpp" 
     "Source/GFX/Camera.cpp" 
-    "Source/GFX/Renderer.cpp")
+    "Source/GFX/Renderer.cpp" "Source/GFX/Resource/CubemapPool.cpp")
 
 set(WINK_ENGINE_SHADERS_DIR
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/GFX/Shaders"

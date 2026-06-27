@@ -3,6 +3,7 @@
 #include <WinkEngine/GFX/Resource/MeshPool.hpp>
 #include <WinkEngine/GFX/Resource/ShaderPool.hpp>
 #include <WinkEngine/GFX/Resource/TexturePool.hpp>
+#include <WinkEngine/GFX/Resource/CubemapPool.hpp>
 #include <WinkEngine/GFX/Resource/MaterialPool.hpp>
 #include <WinkEngine/GFX/Resource/ModelPool.hpp>
 
@@ -111,6 +112,7 @@ namespace Wink::GFX
 		[[nodiscard]] MeshPool& get_mesh_pool() noexcept;
 		[[nodiscard]] ShaderPool& get_shader_pool() noexcept;
 		[[nodiscard]] TexturePool& get_texture_pool() noexcept;
+		[[nodiscard]] CubemapPool& get_cubemap_pool()  noexcept;
 		[[nodiscard]] MaterialPool& get_material_pool() noexcept;
 		[[nodiscard]] ModelPool& get_model_pool() noexcept;
 
@@ -119,5 +121,21 @@ namespace Wink::GFX
 
 		void clear_all_resources() noexcept;
 		void poll_hot_reloads() noexcept;
+	}
+
+	namespace IBL
+	{
+		struct IBLData
+		{
+			Resource::CubemapHandle cubemap;
+			Resource::CubemapHandle irradianceMap;
+			Resource::CubemapHandle prefilteredEnvMap;
+		};
+
+		namespace Internal
+		{
+			[[nodiscard]] Resource::CubemapHandle equirect_to_cubemap(
+				Resource::TextureHandle hdr, u32 faceSize = 512);
+		}
 	}
 }

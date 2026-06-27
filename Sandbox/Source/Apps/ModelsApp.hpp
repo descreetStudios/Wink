@@ -26,6 +26,7 @@ public:
 		auto& meshPool = get_mesh_pool();
 		auto& shaderPool = get_shader_pool();
 		auto& texturePool = get_texture_pool();
+		auto& cubemapPool = get_cubemap_pool();
 		auto& materialPool = get_material_pool();
 		auto& modelPool = get_model_pool();
 
@@ -118,6 +119,17 @@ public:
 				gameScene->wrap(gameID).get<TransformComponent>().multiply_scale(glm::vec3(10.0f));
 			}
 		}
+
+		// Skybox
+		auto meadowHdr = texturePool.decode(RES_PATH / "HDRIs" / "meadow_2_4k.hdr");
+		auto pureskyHdr = texturePool.decode(RES_PATH / "HDRIs" / "autumn_field_puresky_4k.hdr");
+		auto studioHdr = texturePool.decode(RES_PATH / "HDRIs" / "monochrome_studio_02_4k.hdr");
+		auto meadowCubemap = cubemapPool.hdr_to_cubemap(meadowHdr);
+		auto pureskyCubemap = cubemapPool.hdr_to_cubemap(pureskyHdr);
+		auto studioCubemap = cubemapPool.hdr_to_cubemap(studioHdr);
+
+		sponzaScene->spawn().add<IBLComponent>().cubemap = pureskyCubemap;
+		gameScene->spawn().add<IBLComponent>().cubemap = studioCubemap;
 	}
 
 	void on_update(double dt) override

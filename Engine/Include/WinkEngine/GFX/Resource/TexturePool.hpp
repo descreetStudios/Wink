@@ -1,7 +1,7 @@
 #pragma once
 
 #include <WinkEngine/GFX/Resource/ResourcePool.hpp>
-#include <WinkEngine/GFX/Texture.hpp>
+#include <WinkEngine/GFX/Texture2D.hpp>
 #include <WinkEngine/Core/FileWatcher.hpp>
 
 namespace Wink::GFX::Resource
@@ -10,28 +10,28 @@ namespace Wink::GFX::Resource
 	{
 	public:
 		TextureHandle decode(const fs::path& path,
-			const TextureParams& params = {},
+			const Texture2DParams& params = {},
 			bool hotReload = true);
 
 		TextureHandle decode_from_memory(
 			const u8* encodedData, size_t size,
-			const TextureParams& params = {});
+			const Texture2DParams& params = {});
 
 		TextureHandle decode_hdr_from_memory(
 			const u8* encodedData, size_t size,
-			const TextureParams& params = {});
+			const Texture2DParams& params = {});
 
 		TextureHandle load(
 			const u8* pixels, u32 width, u32 height,
-			const TextureParams& params = {});
+			const Texture2DParams& params = {});
 
 		TextureHandle load(
 			const float* pixels, u32 width, u32 height,
-			u32 channels = 3, const TextureParams& params = {});
+			u32 channels = 3, const Texture2DParams& params = {});
 
 		TextureHandle allocate_empty(
 			u32 width, u32 height, u32 internalFormat,
-			const TextureParams& params = {});
+			const Texture2DParams& params = {});
 
 		void unload(TextureHandle handle) noexcept;
 
@@ -50,7 +50,7 @@ namespace Wink::GFX::Resource
 		struct ReloadInfo
 		{
 			fs::path path;
-			TextureParams params;
+			Texture2DParams params;
 		};
 
 		void start_watching(TextureHandle handle) const;
