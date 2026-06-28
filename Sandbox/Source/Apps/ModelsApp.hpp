@@ -128,8 +128,8 @@ public:
 		auto pureskyCubemap = cubemapPool.hdr_to_cubemap(pureskyHdr);
 		auto studioCubemap = cubemapPool.hdr_to_cubemap(studioHdr);
 
-		sponzaScene->spawn().add<IBLComponent>().iblData.cubemap = pureskyCubemap;
-		gameScene->spawn().add<IBLComponent>().iblData.cubemap = studioCubemap;
+		sponzaScene->spawn().add<IBLComponent>().iblData.envMap = pureskyCubemap;
+		gameScene->spawn().add<IBLComponent>().iblData.envMap = studioCubemap;
 	}
 
 	void on_update(double dt) override

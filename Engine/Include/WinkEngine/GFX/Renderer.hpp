@@ -132,8 +132,12 @@ namespace Wink::GFX
 			Resource::CubemapHandle prefilteredEnvMap;
 		};
 
-		[[nodiscard]] Resource::CubemapHandle bake_irradiance(
+		[[nodiscard]] Resource::CubemapHandle bake_irradiance_map(
 			Resource::CubemapHandle envCubemap, u32 faceSize = 32);
+
+		[[nodiscard]] Resource::CubemapHandle bake_prefiltered_env_map(
+			Resource::CubemapHandle envCubemap, u32 faceSize = 128,
+			u32 mipLevels = 5, u32 sampleCount = 1024);
 
 		namespace Internal
 		{

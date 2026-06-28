@@ -86,11 +86,12 @@ public:
 
 		mTestTexture = texturePool.decode(RES_PATH / "HDRIs" / "meadow_2_4k.hdr");
 		auto env = cubemapPool.hdr_to_cubemap(mTestTexture);
-		auto irr = GFX::IBL::bake_irradiance(env);
+		auto irr = GFX::IBL::bake_irradiance_map(env);
+		auto pref = GFX::IBL::bake_prefiltered_env_map(env);
 
 		auto iblE = scene->spawn();
 		auto& iblC = iblE.add<IBLComponent>();
-		iblC.iblData = { env, irr };
+		iblC.iblData = { env, irr, pref };
 	}
 
 	void post_render() override

@@ -21,6 +21,7 @@ namespace Wink::GFX
 
 		ShaderHandle gEquirectToCubemapShader;
 		ShaderHandle gIrradianceConvolutionShader;
+		ShaderHandle gPrefilteredEnvMapShader;
 		TextureHandle gBRDFLUT;
 
 		IBLData gIBLData;
@@ -117,12 +118,17 @@ namespace Wink::GFX
 
 			IBL::gBRDFLUT = gTexturePool.decode("Resources/brdf_lut.ktx");
 
+			IBL::gPrefilteredEnvMapShader = gShaderPool.load(std::vector<ShaderFile>{
+				{ ShaderType::Compute, "Resources/Shaders/PrefilterEnvMapCS.glsl" }
+			});
+
 			return gMaterialPool.is_valid(gDefaultMaterial) &&
 				gMaterialPool.is_valid(gFullscreenMaterial) &&
 				gShaderPool.is_valid(gSkyboxShader) &&
 				gShaderPool.is_valid(IBL::gEquirectToCubemapShader) &&
 				gShaderPool.is_valid(IBL::gIrradianceConvolutionShader) &&
-				gTexturePool.is_valid(IBL::gBRDFLUT);
+				gTexturePool.is_valid(IBL::gBRDFLUT) &&
+				gShaderPool.is_valid(IBL::gPrefilteredEnvMapShader);
 		}
 
 		void apply_config(const Configuration& cfg)
@@ -189,7 +195,7 @@ namespace Wink::GFX
 		void draw_skybox(const Camera& cam)
 		{
 			const TextureCubemap* envMap =
-				gCubemapPool.try_get(IBL::gIBLData.irradianceMap);
+				gCubemapPool.try_get(IBL::gIBLData.envMap);
 			if (!envMap || !envMap->is_valid()) return;
 
 			const ShaderProgram* shader = gShaderPool.try_get(gSkyboxShader);
@@ -532,7 +538,7 @@ namespace Wink::GFX
 			}
 		} // namespace Internal
 
-		Resource::CubemapHandle bake_irradiance(
+		Resource::CubemapHandle bake_irradiance_map(
 			Resource::CubemapHandle envCubemap, u32 faceSize)
 		{
 			using namespace Resource;
@@ -578,6 +584,68 @@ namespace Wink::GFX
 			cs->dispatch(groups, groups, 6);
 			cs->memory_barrier(GL_TEXTURE_FETCH_BARRIER_BIT |
 				GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+			glBindImageTexture(1, 0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+			return outHandle;
+		}
+
+		Resource::CubemapHandle bake_prefiltered_env_map(
+			Resource::CubemapHandle envCubemap, u32 faceSize,
+			u32 mipLevels, u32 sampleCount)
+		{
+			using namespace Resource;
+			ENGINE_ZONE_NAME("Bake Prefiltered Env Map");
+
+			const TextureCubemap* env = gCubemapPool.try_get(envCubemap);
+			if (!env || !env->is_valid())
+			{
+				Logger::Internal::error("Invalid environment cubemap handle");
+				return CubemapHandle();
+			}
+
+			const ShaderProgram* cs = gShaderPool.try_get(gPrefilteredEnvMapShader);
+			if (!cs || !cs->is_valid()) return CubemapHandle();
+
+			CubemapSpec spec;
+			spec.width = faceSize;
+			spec.height = faceSize;
+			spec.internalFormat = GL_RGBA16F;
+			spec.minFilter = TextureFilter::LinearMipmapLinear;
+			spec.magFilter = TextureFilter::Linear;
+			spec.wrapMode = TextureWrap::ClampToEdge;
+			spec.generateMipmaps = false;
+			spec.mipLevels = mipLevels;
+
+			CubemapHandle outHandle = gCubemapPool.allocate(spec);
+			TextureCubemap* prefiltered = gCubemapPool.try_get(outHandle);
+			if (!prefiltered || !prefiltered->is_valid())
+			{
+				Logger::Internal::error("Failed to allocate prefiltered env cubemap");
+				return CubemapHandle();
+			}
+
+			cs->use();
+			env->bind(0);
+			cs->set("uEnvironment", 0);
+			cs->set("uSampleCount", static_cast<u32>(sampleCount));
+
+			for (u32 mip = 0; mip < mipLevels; ++mip)
+			{
+				const u32 mipSize = faceSize >> mip;
+				const float roughness = static_cast<float>(mip) / static_cast<float>(mipLevels - 1);
+
+				cs->set("uRoughness", roughness);
+				cs->set("uFaceSize", static_cast<i32>(mipSize));
+
+				glBindImageTexture(1, prefiltered->get_id(),
+					static_cast<GLint>(mip), GL_TRUE, 0,
+					GL_WRITE_ONLY, GL_RGBA16F);
+
+				const u32 groups = std::max(1u, (mipSize + 7) / 8);
+				cs->dispatch(groups, groups, 6);
+				cs->memory_barrier(GL_TEXTURE_FETCH_BARRIER_BIT |
+					GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+			}
 
 			glBindImageTexture(1, 0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
 			return outHandle;
