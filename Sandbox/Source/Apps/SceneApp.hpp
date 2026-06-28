@@ -63,7 +63,8 @@ public:
 			auto& ibl = e.add<ECS::IBLComponent>();
 			ibl.iblData = { env,
 				GFX::IBL::bake_irradiance_map(env),
-				GFX::IBL::bake_prefiltered_env_map(env) };
+				GFX::IBL::bake_prefiltered_env_map(env)
+			};
 		}
 	}
 

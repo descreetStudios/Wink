@@ -32,7 +32,7 @@ uniform vec3 uCamPos;
 uniform samplerCube uIrradianceMap;
 uniform samplerCube uPrefilteredMap;
 uniform sampler2D uBRDFLUT;
-uniform bool uHasIBL = false;
+uniform bool uHasIBL;
 
 // ------------------------------------------------------------
 // LIGHTING HELPERS
@@ -144,7 +144,7 @@ vec3 compute_ibl(vec3 albedo, vec3 N, vec3 V,
 	vec3 diffuse = kD * irradiance * albedo;
 
 	vec3 R = reflect(-V, N);
-	float MAX_MIPS = float(textureQueryLevels(uPrefilteredMap));
+	float MAX_MIPS = 5.0;
 	vec3 prefilteredColor = textureLod(uPrefilteredMap, R, roughness * MAX_MIPS).rgb * 0.7;
 	vec2 brdf = texture(uBRDFLUT, vec2(NdV, roughness)).rg;
 	vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
@@ -179,18 +179,16 @@ vec3 compute_pbr(vec3 albedo, vec3 N, vec3 V,
 			N, V, vFragPos, NdV, metallic, roughness, F0);
 
 	vec3 ambient;
-	if (uHasIBL) // TODO: Glitched
-	{
-		ambient = compute_ibl(albedo, N, V, NdV,
-			metallic, roughness, ao, F0);
-	}
-	else ambient = albedo * F0 * (0.2 * ao);
+	uHasIBL ? ambient = compute_ibl(albedo, N, V,
+			NdV, metallic, roughness, ao, F0) :
+		ambient = albedo * F0 * (0.2 * ao);
 
 	return directLight + ambient + emissive;
 }
 
 void main()
 {
+
 	// --------------------------------------------------------
 	// MATERIAL STAGE
 	// --------------------------------------------------------

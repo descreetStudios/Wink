@@ -24,6 +24,10 @@ namespace Wink::GFX
 		ShaderHandle gPrefilteredEnvMapShader;
 		TextureHandle gBRDFLUT;
 
+		// Fallback
+		CubemapHandle gBlackPixel;
+		CubemapHandle gRedPixel;
+
 		IBLData gIBLData;
 		bool gRenderSkybox;
 	}
@@ -128,6 +132,12 @@ namespace Wink::GFX
 			IBL::gPrefilteredEnvMapShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Compute, "Resources/Shaders/PrefilterEnvMapCS.glsl" }
 			});
+
+			auto blackPixel = gTexturePool.decode("Resources/black_pixel.png");
+			auto redPixel = gTexturePool.decode("Resources/red_pixel.png");
+
+			IBL::gBlackPixel = gCubemapPool.hdr_to_cubemap(blackPixel, 1);
+			IBL::gRedPixel = gCubemapPool.hdr_to_cubemap(redPixel, 1);
 
 			return gMaterialPool.is_valid(gDefaultMaterial) &&
 				gMaterialPool.is_valid(gFullscreenMaterial) &&
@@ -290,24 +300,26 @@ namespace Wink::GFX
 			}
 
 			/* --- IBL --- */
-			const TextureCubemap* irradiance = gCubemapPool.try_get(IBL::gIBLData.irradianceMap);
-			const TextureCubemap* prefiltered = gCubemapPool.try_get(IBL::gIBLData.prefilteredEnvMap);
+			TextureCubemap* irradiance = gCubemapPool.try_get(IBL::gIBLData.irradianceMap);
+			TextureCubemap* prefiltered = gCubemapPool.try_get(IBL::gIBLData.prefilteredEnvMap);
 			const Texture2D* brdfLUT = gTexturePool.try_get(IBL::gBRDFLUT);
 
 			const bool hasIBL = irradiance && irradiance->is_valid()
-				&& prefiltered && prefiltered->is_valid()
-				&& brdfLUT && brdfLUT->is_valid();
+				&& prefiltered && prefiltered->is_valid();
 
 			shader->set("uHasIBL", hasIBL);
-			if (hasIBL)
+			if (!hasIBL)
 			{
-				irradiance->bind(12);
-				prefiltered->bind(13);
-				brdfLUT->bind(14);
-				shader->set("uIrradianceMap", 12);
-				shader->set("uPrefilteredMap", 13);
-				shader->set("uBRDFLUT", 14);
+				irradiance = gCubemapPool.try_get(IBL::gBlackPixel);
+				prefiltered = gCubemapPool.try_get(IBL::gRedPixel);
 			}
+
+			irradiance->bind(12);
+			prefiltered->bind(13);
+			brdfLUT->bind(14);
+			shader->set("uIrradianceMap", 12);
+			shader->set("uPrefilteredMap", 13);
+			shader->set("uBRDFLUT", 14);
 
 			/* --- Draw --- */
 			glBindVertexArray(meshPool.get_vao_id(mesh));
