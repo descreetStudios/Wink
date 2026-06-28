@@ -25,6 +25,7 @@ namespace Wink::GFX
 		TextureHandle gBRDFLUT;
 
 		IBLData gIBLData;
+		bool gRenderSkybox;
 	}
 
 	namespace
@@ -56,20 +57,20 @@ namespace Wink::GFX
 			-1.0f,  1.0f, -1.0f,   -1.0f, -1.0f, -1.0f,   -1.0f, -1.0f,  1.0f,
 			-1.0f, -1.0f,  1.0f,   -1.0f,  1.0f,  1.0f,   -1.0f,  1.0f, -1.0f,
 			// +X face
-			 1.0f, -1.0f, -1.0f,    1.0f, -1.0f,  1.0f,    1.0f,  1.0f,  1.0f,
-			 1.0f,  1.0f,  1.0f,    1.0f,  1.0f, -1.0f,    1.0f, -1.0f, -1.0f,
+			1.0f, -1.0f, -1.0f,     1.0f, -1.0f,  1.0f,    1.0f,  1.0f,  1.0f,
+			1.0f,  1.0f,  1.0f,     1.0f,  1.0f, -1.0f,    1.0f, -1.0f, -1.0f,
 			// -Y face
 			-1.0f, -1.0f,  1.0f,   -1.0f, -1.0f, -1.0f,    1.0f, -1.0f, -1.0f,
-			 1.0f, -1.0f, -1.0f,    1.0f, -1.0f,  1.0f,   -1.0f, -1.0f,  1.0f,
+			1.0f, -1.0f, -1.0f,     1.0f, -1.0f,  1.0f,   -1.0f, -1.0f,  1.0f,
 			// +Y face
 			-1.0f,  1.0f, -1.0f,   -1.0f,  1.0f,  1.0f,    1.0f,  1.0f,  1.0f,
-			 1.0f,  1.0f,  1.0f,    1.0f,  1.0f, -1.0f,   -1.0f,  1.0f, -1.0f,
+			1.0f,  1.0f,  1.0f,     1.0f,  1.0f, -1.0f,   -1.0f,  1.0f, -1.0f,
 			// +Z face
 			-1.0f, -1.0f,  1.0f,    1.0f, -1.0f,  1.0f,    1.0f,  1.0f,  1.0f,
-			 1.0f,  1.0f,  1.0f,   -1.0f,  1.0f,  1.0f,   -1.0f, -1.0f,  1.0f,
+			1.0f,  1.0f,  1.0f,    -1.0f,  1.0f,  1.0f,   -1.0f, -1.0f,  1.0f,
 			// -Z face
 			-1.0f,  1.0f, -1.0f,    1.0f,  1.0f, -1.0f,    1.0f, -1.0f, -1.0f,
-			 1.0f, -1.0f, -1.0f,   -1.0f, -1.0f, -1.0f,   -1.0f,  1.0f, -1.0f,
+			1.0f, -1.0f, -1.0f,    -1.0f, -1.0f, -1.0f,   -1.0f,  1.0f, -1.0f,
 		};
 
 		void create_skybox_geometry()
@@ -116,7 +117,13 @@ namespace Wink::GFX
 				{ ShaderType::Compute, "Resources/Shaders/IrradianceConvolutionCS.glsl" }
 			});
 
-			IBL::gBRDFLUT = gTexturePool.decode("Resources/brdf_lut.ktx");
+			Texture2DParams params;
+			params.wrapS = TextureWrap::ClampToEdge;
+			params.wrapT = TextureWrap::ClampToEdge;
+			params.sRGB = false;
+			params.hasAlpha = false;
+			params.genMips = false;
+			IBL::gBRDFLUT = gTexturePool.decode("Resources/brdf_lut.ktx", params);
 
 			IBL::gPrefilteredEnvMapShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Compute, "Resources/Shaders/PrefilterEnvMapCS.glsl" }
@@ -178,6 +185,8 @@ namespace Wink::GFX
 			/* --- Multisampling --- */
 			if (cfg.multisample) glEnable(GL_MULTISAMPLE);
 			else glDisable(GL_MULTISAMPLE);
+
+			glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 		}
 
 		void draw_fullscreen(TextureHandle tex)
@@ -280,6 +289,26 @@ namespace Wink::GFX
 				shader->set(base + "intensity", light.intensity);
 			}
 
+			/* --- IBL --- */
+			const TextureCubemap* irradiance = gCubemapPool.try_get(IBL::gIBLData.irradianceMap);
+			const TextureCubemap* prefiltered = gCubemapPool.try_get(IBL::gIBLData.prefilteredEnvMap);
+			const Texture2D* brdfLUT = gTexturePool.try_get(IBL::gBRDFLUT);
+
+			const bool hasIBL = irradiance && irradiance->is_valid()
+				&& prefiltered && prefiltered->is_valid()
+				&& brdfLUT && brdfLUT->is_valid();
+
+			shader->set("uHasIBL", hasIBL);
+			if (hasIBL)
+			{
+				irradiance->bind(12);
+				prefiltered->bind(13);
+				brdfLUT->bind(14);
+				shader->set("uIrradianceMap", 12);
+				shader->set("uPrefilteredMap", 13);
+				shader->set("uBRDFLUT", 14);
+			}
+
 			/* --- Draw --- */
 			glBindVertexArray(meshPool.get_vao_id(mesh));
 			glDrawElements(GL_TRIANGLES,
@@ -334,7 +363,15 @@ namespace Wink::GFX
 
 		/* --- IBL --- */
 		if (auto iblEOpt = scene->find_first<ECS::IBLComponent>())
+		{
 			IBL::gIBLData = iblEOpt->get<ECS::IBLComponent>().iblData;
+			IBL::gRenderSkybox = iblEOpt->get<ECS::IBLComponent>().skybox;
+		}
+		else
+		{
+			IBL::gIBLData = {};
+			IBL::gRenderSkybox = false;
+		}
 
 		/* --- Lights --- */
 		std::vector<DirLight> dirLights;
@@ -403,7 +440,7 @@ namespace Wink::GFX
 				.dirLights = dirLights, .pointLights = pointLights, .spotLights = spotLights });
 		}
 
-		draw_skybox(cam);
+		if (IBL::gRenderSkybox) draw_skybox(cam);
 	}
 
 	void render_fullscreen_texture(Resource::TextureHandle tex)
@@ -537,6 +574,11 @@ namespace Wink::GFX
 				return outHandle;
 			}
 		} // namespace Internal
+
+		Resource::TextureHandle get_brdf_lut()
+		{
+			return gBRDFLUT;
+		}
 
 		Resource::CubemapHandle bake_irradiance_map(
 			Resource::CubemapHandle envCubemap, u32 faceSize)

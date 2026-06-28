@@ -4,10 +4,8 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-layout(binding = 0) uniform sampler2D  uEquirect;
+layout(binding = 0) uniform sampler2D uEquirect;
 layout(rgba16f, binding = 1) uniform writeonly imageCube uCubemap;
-
-uniform float uExposure = 1.0;
 
 const vec2 INV_ATAN = vec2(0.15915494, 0.31830989);
 
@@ -23,12 +21,12 @@ vec3 face_dir(int face, vec2 st)
 {
 	switch (face)
 	{
-		case 0: return normalize(vec3( 1.0, -st.y, -st.x)); // +X
-		case 1: return normalize(vec3(-1.0, -st.y,  st.x)); // −X
-		case 2: return normalize(vec3( st.x,  1.0,  st.y)); // +Y
-		case 3: return normalize(vec3( st.x, -1.0, -st.y)); // −Y
-		case 4: return normalize(vec3( st.x, -st.y,  1.0)); // +Z
-		case 5: return normalize(vec3(-st.x, -st.y, -1.0)); // −Z
+		case 0: return normalize(vec3( 1.0, -st.y, -st.x));
+		case 1: return normalize(vec3(-1.0, -st.y,  st.x));
+		case 2: return normalize(vec3( st.x,  1.0,  st.y));
+		case 3: return normalize(vec3( st.x, -1.0, -st.y));
+		case 4: return normalize(vec3( st.x, -st.y,  1.0));
+		case 5: return normalize(vec3(-st.x, -st.y, -1.0));
 	}
 	return vec3(0.0);
 }
@@ -46,7 +44,7 @@ void main()
 	vec2 uv = sample_equirect(dir);
 
 	vec3 color = texture(uEquirect, uv).rgb;
-	color = tonemap_uchimura(color * uExposure);
+	color = tonemap_uchimura(color);
 
 	imageStore(uCubemap, ivec3(texel, face), vec4(color, 1.0));
 }

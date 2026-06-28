@@ -120,16 +120,17 @@ public:
 			}
 		}
 
-		// Skybox
-		auto meadowHdr = texturePool.decode(RES_PATH / "HDRIs" / "meadow_2_4k.hdr");
-		auto pureskyHdr = texturePool.decode(RES_PATH / "HDRIs" / "autumn_field_puresky_4k.hdr");
-		auto studioHdr = texturePool.decode(RES_PATH / "HDRIs" / "monochrome_studio_02_4k.hdr");
-		auto meadowCubemap = cubemapPool.hdr_to_cubemap(meadowHdr);
-		auto pureskyCubemap = cubemapPool.hdr_to_cubemap(pureskyHdr);
-		auto studioCubemap = cubemapPool.hdr_to_cubemap(studioHdr);
+		// IBL
+		auto meadowHdr = texturePool.decode(RES_PATH / "HDRIs" / "shanghai_bund_4k.hdr");
+		auto meadowEnv = cubemapPool.hdr_to_cubemap(meadowHdr);
+		auto meadowIrr = IBL::bake_irradiance_map(meadowEnv);
+		auto meadowPref = IBL::bake_prefiltered_env_map(meadowEnv);
 
-		sponzaScene->spawn().add<IBLComponent>().iblData.envMap = pureskyCubemap;
-		gameScene->spawn().add<IBLComponent>().iblData.envMap = studioCubemap;
+		auto siblE = sponzaScene->spawn();
+		auto& siblC = siblE.add<IBLComponent>();
+		siblC.iblData.envMap = meadowEnv;
+		siblC.iblData.irradianceMap = meadowIrr;
+		siblC.iblData.prefilteredEnvMap = meadowPref;
 	}
 
 	void on_update(double dt) override

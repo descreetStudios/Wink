@@ -21,13 +21,15 @@ namespace Wink::GFX::Resource
 			const u8* encodedData, size_t size,
 			const Texture2DParams& params = {});
 
-		TextureHandle load(
-			const u8* pixels, u32 width, u32 height,
+		TextureHandle load(const u8* pixels, u32 width,
+			u32 height, u32 channels = 3,
+			TextureDataType dataType = TextureDataType::UnsignedInt,
 			const Texture2DParams& params = {});
 
-		TextureHandle load(
-			const float* pixels, u32 width, u32 height,
-			u32 channels = 3, const Texture2DParams& params = {});
+		TextureHandle load(const float* pixels, u32 width,
+			u32 height, u32 channels = 3,
+			TextureDataType dataType = TextureDataType::Float,
+			const Texture2DParams& params = {});
 
 		TextureHandle allocate_empty(
 			u32 width, u32 height, u32 internalFormat,

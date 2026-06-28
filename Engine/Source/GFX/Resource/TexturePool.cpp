@@ -44,7 +44,9 @@ namespace Wink::GFX::Resource
 			}
 
 			handle = load(hdr.pixels.data(),
-				hdr.width, hdr.height, 3, params);
+				static_cast<u32>(hdr.width),
+				static_cast<u32>(hdr.height),
+				3, TextureDataType::Float, params);
 			if (!handle.is_valid())
 				return handle;
 
@@ -63,12 +65,11 @@ namespace Wink::GFX::Resource
 				return handle;
 			}
 
-			handle = load(
-				ktx.pixels.data(),
+			handle = load(ktx.pixels.data(),
 				static_cast<u32>(ktx.width),
 				static_cast<u32>(ktx.height),
-				params
-			);
+				static_cast<u32>(ktx.channels),
+				TextureDataType::HalfFloat, params);
 
 			if (!handle.is_valid())
 				return handle;
@@ -87,7 +88,10 @@ namespace Wink::GFX::Resource
 		}
 
 		handle = load(img.pixels.data(),
-			img.width, img.height, params);
+			static_cast<u32>(img.width),
+			static_cast<u32>(img.height),
+			static_cast<u32>(img.channels),
+			TextureDataType::UnsignedInt, params);
 		if (!handle.is_valid())
 			return handle;
 
@@ -106,7 +110,9 @@ namespace Wink::GFX::Resource
 
 		return load(img.pixels.data(),
 			static_cast<u32>(img.width),
-			static_cast<u32>(img.height), params);
+			static_cast<u32>(img.height),
+			static_cast<u32>(img.channels),
+			TextureDataType::UnsignedByte, params);
 	}
 
 	TextureHandle TexturePool::decode_hdr_from_memory(
@@ -120,29 +126,32 @@ namespace Wink::GFX::Resource
 		return load(hdr.pixels.data(),
 			static_cast<u32>(hdr.width),
 			static_cast<u32>(hdr.height),
-			hdr.channels, params);
+			static_cast<u32>(hdr.channels),
+			TextureDataType::Float, params);
 	}
 
 	TextureHandle TexturePool::load(
 		const u8* pixels, u32 width, u32 height,
+		u32 channels, TextureDataType dataType,
 		const Texture2DParams& params)
 	{
 		TextureHandle handle = allocate();
 		with(handle, [&](Texture2D& tex)
 			{
-				tex.upload(pixels, width, height, params);
+				tex.upload(pixels, width, height, channels, dataType, params);
 			});
 		return handle;
 	}
 
 	TextureHandle TexturePool::load(
 		const float* pixels, u32 width, u32 height,
-		u32 channels, const Texture2DParams& params)
+		u32 channels, TextureDataType dataType,
+		const Texture2DParams& params)
 	{
 		TextureHandle handle = allocate();
 		with(handle, [&](Texture2D& tex)
 			{
-				tex.upload(pixels, width, height, channels, params);
+				tex.upload(pixels, width, height, channels, dataType, params);
 			});
 		return handle;
 	}
@@ -253,7 +262,12 @@ namespace Wink::GFX::Resource
 		}
 
 		Texture2D fresh;
-		fresh.upload(img.pixels.data(), img.width, img.height, it->second.params);
+		fresh.upload(img.pixels.data(),
+			static_cast<u32>(img.width),
+			static_cast<u32>(img.height),
+			static_cast<u32>(img.channels),
+			TextureDataType::UnsignedInt,
+			it->second.params);
 		fresh.hotReloadEnabled = true;
 
 		const_cast<TexturePool*>(this)->replace(handle, std::move(fresh));

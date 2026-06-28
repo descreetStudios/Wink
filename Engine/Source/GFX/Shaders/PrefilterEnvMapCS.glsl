@@ -42,7 +42,7 @@ float distribution_ggx(float NdotH, float roughness)
     float a = roughness * roughness;
     float a2 = a * a;
     float d = (NdotH * NdotH) * (a2 - 1.0) + 1.0;
-    return a2 / (PI * d * d);
+    return a2 / max(PI * d * d, 0.0001);
 }
 
 vec3 face_dir(int face, vec2 st)
@@ -78,7 +78,6 @@ void main()
     vec3 n = face_dir(face, st);
     mat3 tbn = make_tbn(n);
 
-    vec3 R = n;
     vec3 V = n;
 
     vec3 prefilteredColor = vec3(0.0);
@@ -87,10 +86,8 @@ void main()
     for (uint i = 0u; i < uSampleCount; ++i)
     {
         vec2 xi = hammersley(i, uSampleCount);
-
         vec3 localH = importance_sample_ggx(xi, uRoughness);
         vec3 H = normalize(tbn * localH);
-
         vec3 L = normalize(2.0 * dot(V, H) * H - V);
 
         float NdotL = max(dot(n, L), 0.0);
@@ -103,13 +100,14 @@ void main()
 
         float saTexel = 4.0 * PI / (6.0 * float(uFaceSize * uFaceSize));
         float saSample = 1.0 / (float(uSampleCount) * pdf + 0.0001);
-        float mipBias = uRoughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel);
+        float mipBias = uRoughness == 0.0 ? 0.0 : max(0.5 * log2(saSample / saTexel), 5.0);
 
         prefilteredColor += textureLod(uEnvironment, L, mipBias).rgb * NdotL;
         totalWeight += NdotL;
     }
 
-    prefilteredColor /= totalWeight;
-
+    prefilteredColor = totalWeight > 0.0
+        ? prefilteredColor / totalWeight
+        : vec3(0.0);
     imageStore(uPrefiltered, ivec3(texel, face), vec4(prefilteredColor, 1.0));
 }

@@ -7,5 +7,6 @@ namespace Wink::ECS
 	struct IBLComponent
 	{
 		GFX::IBL::IBLData iblData;
+		bool skybox = true;
 	};
 }

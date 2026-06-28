@@ -35,7 +35,8 @@ namespace Wink::Content
 		bool flipVertically = true) noexcept;
 
 	[[nodiscard]] DecodedImage decode_ktx(
-		const fs::path& path) noexcept;
+		const fs::path& path,
+		bool flipVertically = true) noexcept;
 
 	[[nodiscard]] HDRImage decode_hdr(
 		const fs::path& path,

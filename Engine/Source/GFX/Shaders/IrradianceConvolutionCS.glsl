@@ -5,7 +5,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout(binding = 0) uniform samplerCube uEnvironment;
 layout(rgba16f, binding = 1)  uniform writeonly imageCube uIrradiance;
 
-const uint SAMPLE_COUNT = 1024u;
+const uint SAMPLE_COUNT = 2048u;
 const float PI = 3.14159265359;
 
 float radical_inverse_vdc(uint bits)
@@ -73,10 +73,9 @@ void main()
 		vec3 localDir = hemisphere_sample(xi);
 		vec3 worldDir = tbn * localDir;
 
-		irradiance += texture(uEnvironment, worldDir).rgb;
+		irradiance += textureLod(uEnvironment, worldDir, 2.0).rgb;
 	}
 
 	irradiance = PI * irradiance / float(SAMPLE_COUNT);
-
 	imageStore(uIrradiance, ivec3(texel, face), vec4(irradiance, 1.0));
 }

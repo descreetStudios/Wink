@@ -35,27 +35,29 @@ public:
 
 		// Camera
 		mCamEntity = scene->spawn();
-		auto& camT = mCamEntity.add<TransformComponent>().position = { -0.7f, -0.8f, -7.0f };
+		auto& camT = mCamEntity.add<TransformComponent>().position = { -0.7f, -0.8f, 14.0f };
 		mCamEntity.add<CameraComponent>(mCam);
 
 		// Dir Light
 		auto sun = scene->spawn();
-		sun.add<DirLightComponent>().dirLight.direction = { 0.3f, -1.0f, 0.2f };
+		sun.add<DirLightComponent>().dirLight.direction = { -0.5f, -1.0f, 0.8f };
 
 		// Spheres
 		const ModelHandle sphereModel = load_model(
 			modelPool, fs::path("Sphere.glb"), shader);
 
-		const i32 rows = 5;
-		const i32 cols = 5;
+		const i32 rows = 11;
+		const i32 cols = 11;
 		const float spacing = 1.3f;
 
 		for (i32 row = 0; row < rows; ++row)
 		{
-			float roughness = 0.05f + ((float)row / (float)(rows - 1)) * 0.95f;
-			for (int col = 0; col < cols; ++col)
+			float roughness = (rows == 1)
+				? 0.0f : (float)row / (float)(rows - 1);
+			for (i32 col = 0; col < cols; ++col)
 			{
-				float metallic = (float)col / (float)(cols - 1);
+				float metallic = (cols == 1)
+					? 0.0f : (float)col / (float)(cols - 1);
 
 				const EntityID sphereID = instantiate_model(sphereModel, scene);
 
@@ -84,7 +86,7 @@ public:
 			}
 		}
 
-		mTestTexture = texturePool.decode(RES_PATH / "HDRIs" / "meadow_2_4k.hdr");
+		mTestTexture = texturePool.decode(RES_PATH / "HDRIs" / "kloofendal_48d_partly_cloudy_puresky_4k.hdr");
 		auto env = cubemapPool.hdr_to_cubemap(mTestTexture);
 		auto irr = GFX::IBL::bake_irradiance_map(env);
 		auto pref = GFX::IBL::bake_prefiltered_env_map(env);
@@ -92,11 +94,12 @@ public:
 		auto iblE = scene->spawn();
 		auto& iblC = iblE.add<IBLComponent>();
 		iblC.iblData = { env, irr, pref };
+		iblC.skybox = true;
 	}
 
 	void post_render() override
 	{
-		//GFX::render_fullscreen_texture(mTestTexture);
+		//GFX::render_fullscreen_texture(GFX::IBL::get_brdf_lut());
 	}
 
 	void on_update(double dt) override

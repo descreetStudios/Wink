@@ -27,6 +27,14 @@ out vec4 FragColor;
 uniform vec3 uCamPos;
 
 // ------------------------------------------------------------
+// IBL
+// ------------------------------------------------------------
+uniform samplerCube uIrradianceMap;
+uniform samplerCube uPrefilteredMap;
+uniform sampler2D uBRDFLUT;
+uniform bool uHasIBL = false;
+
+// ------------------------------------------------------------
 // LIGHTING HELPERS
 // ------------------------------------------------------------
 
@@ -122,6 +130,30 @@ vec3 compute_spot_light(SpotLight light,
 }
 
 // ------------------------------------------------------------
+// IBL AMBIENT
+// ------------------------------------------------------------
+
+vec3 compute_ibl(vec3 albedo, vec3 N, vec3 V,
+	float NdV, float metallic, float roughness,
+	float ao, vec3 F0)
+{
+	vec3 F = FresnelSchlickRoughness(NdV, F0, roughness);
+	vec3 kD = (1.0 - F) * (1.0 - metallic);
+
+	vec3 irradiance = texture(uIrradianceMap, N).rgb * 0.3;
+	vec3 diffuse = kD * irradiance * albedo;
+
+	vec3 R = reflect(-V, N);
+	float MAX_MIPS = float(textureQueryLevels(uPrefilteredMap));
+	vec3 prefilteredColor = textureLod(uPrefilteredMap, R, roughness * MAX_MIPS).rgb * 0.7;
+	vec2 brdf = texture(uBRDFLUT, vec2(NdV, roughness)).rg;
+	vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+
+	return (diffuse + specular) * ao;
+}
+
+
+// ------------------------------------------------------------
 // PBR LIGHTING CORE
 // ------------------------------------------------------------
 
@@ -146,7 +178,13 @@ vec3 compute_pbr(vec3 albedo, vec3 N, vec3 V,
 		directLight += compute_spot_light(uSpotLights[i], albedo,
 			N, V, vFragPos, NdV, metallic, roughness, F0);
 
-	vec3 ambient = albedo * F0 * (0.2 * ao);
+	vec3 ambient;
+	if (uHasIBL) // TODO: Glitched
+	{
+		ambient = compute_ibl(albedo, N, V, NdV,
+			metallic, roughness, ao, F0);
+	}
+	else ambient = albedo * F0 * (0.2 * ao);
 
 	return directLight + ambient + emissive;
 }

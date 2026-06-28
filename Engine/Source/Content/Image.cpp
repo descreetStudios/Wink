@@ -90,7 +90,8 @@ namespace Wink::Content
 		return img;
 	}
 
-	DecodedImage decode_ktx(const fs::path& path) noexcept
+	DecodedImage decode_ktx(const fs::path& path,
+		bool flipVertically) noexcept
 	{
 		DecodedImage img;
 
@@ -110,6 +111,8 @@ namespace Wink::Content
 				path.string());
 			return img;
 		}
+
+		if (flipVertically) tex = gli::flip(tex);
 
 		gli::texture2d tex2D(tex);
 		if (tex2D.empty())
