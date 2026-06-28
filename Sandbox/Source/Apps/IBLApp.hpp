@@ -9,7 +9,7 @@ using namespace Wink;
 class SandboxApp : public Application
 {
 public:
-	void on_init()
+	void on_init() override
 	{
 		using namespace ECS;
 		using namespace GFX;

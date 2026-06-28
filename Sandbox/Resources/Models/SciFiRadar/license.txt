@@ -1,0 +1,11 @@
+Model Information:
+* title:	Sci-fi Compact-Radar
+* source:	https://sketchfab.com/3d-models/sci-fi-compact-radar-6a81f881ec3d4f11b45c4bdf32f30f8c
+* author:	JazOone (https://sketchfab.com/JazOone)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Sci-fi Compact-Radar" (https://sketchfab.com/3d-models/sci-fi-compact-radar-6a81f881ec3d4f11b45c4bdf32f30f8c) by JazOone (https://sketchfab.com/JazOone) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -575,11 +575,6 @@ namespace Wink::GFX
 			}
 		} // namespace Internal
 
-		Resource::TextureHandle get_brdf_lut()
-		{
-			return gBRDFLUT;
-		}
-
 		Resource::CubemapHandle bake_irradiance_map(
 			Resource::CubemapHandle envCubemap, u32 faceSize)
 		{

@@ -132,8 +132,6 @@ namespace Wink::GFX
 			Resource::CubemapHandle prefilteredEnvMap;
 		};
 
-		Resource::TextureHandle get_brdf_lut();
-
 		[[nodiscard]] Resource::CubemapHandle bake_irradiance_map(
 			Resource::CubemapHandle envCubemap, u32 faceSize = 32);
 
