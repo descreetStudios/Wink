@@ -25,11 +25,11 @@ namespace Wink::Content
 	};
 
 	[[nodiscard]] DecodedImage decode_image(
-		const fs::path& path,
+		const fs::path& path, bool forceRGBA = true,
 		bool flipVertically = true) noexcept;
 
 	[[nodiscard]] DecodedImage decode_image_from_memory(
-		const u8* buffer, size_t size,
+		const u8* buffer, size_t size, bool forceRGBA = true,
 		bool flipVertically = true) noexcept;
 
 	[[nodiscard]] DecodedImage decode_ktx(

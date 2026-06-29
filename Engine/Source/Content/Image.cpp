@@ -8,7 +8,8 @@
 namespace Wink::Content
 {
 	DecodedImage decode_image(
-		const fs::path& path, bool flipVertically) noexcept
+		const fs::path& path, bool forceRGBA,
+		bool flipVertically) noexcept
 	{
 		DecodedImage img;
 
@@ -24,7 +25,7 @@ namespace Wink::Content
 
 		unsigned char* data = stbi_load(
 			path.string().c_str(), &img.width, &img.height,
-			&img.channels, 0);
+			&img.channels, forceRGBA ? 4 : 0);
 
 		if (!data)
 		{
@@ -35,6 +36,8 @@ namespace Wink::Content
 			);
 			return img;
 		}
+
+		if (forceRGBA) img.channels = 4;
 
 		const size_t total =
 			static_cast<size_t>(img.width) *
@@ -47,7 +50,8 @@ namespace Wink::Content
 	}
 
 	DecodedImage decode_image_from_memory(
-		const u8* buffer, size_t size, bool flipVertically) noexcept
+		const u8* buffer, size_t size,
+		bool forceRGBA, bool flipVertically) noexcept
 	{
 		DecodedImage img;
 
@@ -62,7 +66,8 @@ namespace Wink::Content
 
 		unsigned char* data = stbi_load_from_memory(
 			buffer, static_cast<i32>(size),
-			&img.width, &img.height, &img.channels, 0);
+			&img.width, &img.height, &img.channels,
+			forceRGBA ? 4 : 0);
 
 		if (!data)
 		{
@@ -72,6 +77,8 @@ namespace Wink::Content
 			);
 			return img;
 		}
+
+		if (forceRGBA) img.channels = 4;
 
 		const size_t total =
 			static_cast<size_t>(img.width) *
