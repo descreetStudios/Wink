@@ -98,8 +98,10 @@ namespace Wink::Content
 		{
 			if (const auto* arr = std::get_if<
 				fastgltf::sources::Array>(&image.data))
+			{
 				return { reinterpret_cast<const u8*>(
 					arr->bytes.data()), arr->bytes.size() };
+			}
 
 			if (const auto* bv = std::get_if<
 				fastgltf::sources::BufferView>(&image.data))
@@ -378,7 +380,7 @@ namespace Wink::Content
 				return std::nullopt;
 			}
 
-			constexpr fastgltf::Options options = {
+			constexpr fastgltf::Options options{
 				fastgltf::Options::LoadExternalBuffers |
 				fastgltf::Options::LoadExternalImages |
 				fastgltf::Options::DecomposeNodeMatrices |
@@ -408,8 +410,10 @@ namespace Wink::Content
 			size_t matsSize = asset.materials.size();
 			matHandles.reserve(matsSize);
 			for (size_t i = 0; i < matsSize; ++i)
+			{
 				matHandles.push_back(build_material(
 					asset, i, baseDir, shader, progress));
+			}
 
 			/* --- Meshes --- */
 			std::unordered_map<u64, MeshHandle> meshHandles;
