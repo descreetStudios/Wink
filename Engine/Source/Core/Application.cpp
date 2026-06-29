@@ -12,10 +12,10 @@ namespace Wink
 	void Application::run()
 	{
 		Time::init();
-		Logger::init();
+		if (!Logger::init()) return;
 		if (!Window::init(window_config())) return;
 		Input::init();
-		GFX::init();
+		if (!GFX::init()) return;
 		on_init();
 
 		while (Window::is_open())

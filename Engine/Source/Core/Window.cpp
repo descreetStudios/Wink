@@ -8,7 +8,7 @@ namespace Wink::Window
 {
 	namespace
 	{
-		State gState = State();
+		State gState{};
 		GLFWwindow* gWindow = nullptr;
 
 		GLFWmonitor* get_current_monitor()

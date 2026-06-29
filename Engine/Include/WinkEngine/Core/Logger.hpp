@@ -2,8 +2,11 @@
 
 namespace Wink::Logger
 {
-	enum class Mode { Client, Internal };
-	enum class Level : i32
+	enum class Mode : u8
+	{
+		Client, Internal
+	};
+	enum class Level : u8
 	{
 		Trace, Debug, Info,
 		Warn, Error, Critical,

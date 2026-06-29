@@ -6,7 +6,7 @@ namespace Wink
 {
 	enum class EventType : u32
 	{
-		// Window
+		/* --- Window Events --- */
 		WindowClose,
 		WindowResize,
 		WindowMove,
@@ -16,12 +16,12 @@ namespace Wink
 		WindowRestore,
 		WindowFullscreen,
 
-		// Keyboard
+		/* --- Keyboard Events --- */
 		KeyPress,
 		KeyRelease,
 		KeyRepeat,
 
-		// Mouse
+		/* --- Mouse Events --- */
 		MouseMove,
 		MouseEnter,
 		MouseLeave,
@@ -30,6 +30,7 @@ namespace Wink
 		MouseScroll,
 	};
 
+	/* --- Window Events --- */
 	struct WindowCloseEvent {};
 
 	struct WindowResizeEvent
@@ -54,6 +55,7 @@ namespace Wink
 		bool fullscreen;
 	};
 
+	/* --- Keyboard Events --- */
 	struct KeyPressEvent
 	{
 		i32 key;       // GLFW_KEY_*
@@ -75,6 +77,7 @@ namespace Wink
 		i32 mods;
 	};
 
+	/* --- Mouse Events --- */
 	struct MouseMoveEvent
 	{
 		double posX;
@@ -88,7 +91,7 @@ namespace Wink
 
 	struct MouseButtonPressEvent
 	{
-		i32 button;    // GLFW_MOUSE_BUTTON_*
+		i32 button;
 		i32 mods;
 	};
 
@@ -119,7 +122,6 @@ namespace Wink
 		EventType, void(EventType, const void*),
 		EngineDispatcherPolicy>;
 
-	// One per process
 	inline EngineDispatcher& get_engine_dispatcher() noexcept
 	{
 		static EngineDispatcher instance;
@@ -136,7 +138,6 @@ namespace Wink
 			});
 	}
 
-	// Implemented with macros
 	template <typename TEvent, typename TCallback>
 	inline auto subscribe(TCallback&& cb);
 
@@ -162,23 +163,23 @@ namespace Wink
 			{ cb(*static_cast<const Struct*>(d)); });						\
 	}
 
-	WINK_EVENT_MAP(WindowClose, WindowCloseEvent)
-		WINK_EVENT_MAP(WindowResize, WindowResizeEvent)
-		WINK_EVENT_MAP(WindowMove, WindowMoveEvent)
-		WINK_EVENT_MAP(WindowFocus, WindowFocusEvent)
-		WINK_EVENT_MAP(WindowBlur, WindowBlurEvent)
-		WINK_EVENT_MAP(WindowMaximize, WindowMaximizeEvent)
-		WINK_EVENT_MAP(WindowRestore, WindowRestoreEvent)
-		WINK_EVENT_MAP(WindowFullscreen, WindowFullscreenEvent)
-		WINK_EVENT_MAP(KeyPress, KeyPressEvent)
-		WINK_EVENT_MAP(KeyRelease, KeyReleaseEvent)
-		WINK_EVENT_MAP(KeyRepeat, KeyRepeatEvent)
-		WINK_EVENT_MAP(MouseMove, MouseMoveEvent)
-		WINK_EVENT_MAP(MouseEnter, MouseEnterEvent)
-		WINK_EVENT_MAP(MouseLeave, MouseLeaveEvent)
-		WINK_EVENT_MAP(MouseButtonPress, MouseButtonPressEvent)
-		WINK_EVENT_MAP(MouseButtonRelease, MouseButtonReleaseEvent)
-		WINK_EVENT_MAP(MouseScroll, MouseScrollEvent)
+	WINK_EVENT_MAP(WindowClose, WindowCloseEvent);
+	WINK_EVENT_MAP(WindowResize, WindowResizeEvent);
+	WINK_EVENT_MAP(WindowMove, WindowMoveEvent);
+	WINK_EVENT_MAP(WindowFocus, WindowFocusEvent);
+	WINK_EVENT_MAP(WindowBlur, WindowBlurEvent);
+	WINK_EVENT_MAP(WindowMaximize, WindowMaximizeEvent);
+	WINK_EVENT_MAP(WindowRestore, WindowRestoreEvent);
+	WINK_EVENT_MAP(WindowFullscreen, WindowFullscreenEvent);
+	WINK_EVENT_MAP(KeyPress, KeyPressEvent);
+	WINK_EVENT_MAP(KeyRelease, KeyReleaseEvent);
+	WINK_EVENT_MAP(KeyRepeat, KeyRepeatEvent);
+	WINK_EVENT_MAP(MouseMove, MouseMoveEvent);
+	WINK_EVENT_MAP(MouseEnter, MouseEnterEvent);
+	WINK_EVENT_MAP(MouseLeave, MouseLeaveEvent);
+	WINK_EVENT_MAP(MouseButtonPress, MouseButtonPressEvent);
+	WINK_EVENT_MAP(MouseButtonRelease, MouseButtonReleaseEvent);
+	WINK_EVENT_MAP(MouseScroll, MouseScrollEvent);
 
 #undef WINK_EVENT_MAP
 }

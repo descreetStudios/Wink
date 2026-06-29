@@ -16,7 +16,7 @@ namespace Wink::Window
 	};
 	using State = Config;
 
-	bool init(const Config& config = Config());
+	bool init(const Config& config = {});
 	void poll();
 	void swap();
 	void close();

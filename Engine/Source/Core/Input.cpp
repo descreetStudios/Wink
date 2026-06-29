@@ -9,10 +9,10 @@ namespace Wink::Input
 		constexpr i32 KEY_COUNT = 512;
 		constexpr i32 MOUSE_BTN_COUNT = 8;
 
-		std::array<bool, KEY_COUNT> gKeys = {};
-		std::array<bool, KEY_COUNT> gKeysPrev = {};
-		std::array<bool, MOUSE_BTN_COUNT> gMouseBtns = {};
-		std::array<bool, MOUSE_BTN_COUNT> gMouseBtnsPrev = {};
+		std::array<bool, KEY_COUNT> gKeys{};
+		std::array<bool, KEY_COUNT> gKeysPrev{};
+		std::array<bool, MOUSE_BTN_COUNT> gMouseBtns{};
+		std::array<bool, MOUSE_BTN_COUNT> gMouseBtnsPrev{};
 
 		double gMouseX = 0.0, gMouseY = 0.0;
 		double gMouseDX = 0.0, gMouseDY = 0.0;
