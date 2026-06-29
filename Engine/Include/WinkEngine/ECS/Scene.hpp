@@ -28,7 +28,7 @@ namespace Wink::ECS
 		[[nodiscard]] auto view() const { return mRegistry.view<const Cs...>().each(); }
 
 		template <Component... Cs, Component... Ex>
-		[[nodiscard]] auto view_ex(entt::exclude_t<Ex...> excl = {})
+		[[nodiscard]] auto view_ex(entt::exclude_t<Ex...> excl)
 		{
 			return mRegistry.view<Cs...>(excl).each();
 		}

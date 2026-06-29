@@ -97,7 +97,10 @@ namespace Wink::ECS
 			return;
 		}
 
-		destroy_scene(**it);
+		if (gActiveScene == it->get())
+			gActiveScene = nullptr;
+
+		gScenes.erase(it);
 	}
 
 	void clear_scenes()
@@ -118,7 +121,8 @@ namespace Wink::ECS
 
 	Scene* set_active_scene(std::string_view name)
 	{
-		auto* scene = get_scene(name);
+		Scene* scene = get_scene(name);
+		if (!scene) return nullptr;
 		gActiveScene = scene;
 		return scene;
 	}

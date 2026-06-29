@@ -8,23 +8,6 @@
 
 namespace Wink::ECS
 {
-	namespace
-	{
-		EntityID create_node_entity(Scene& scene,
-			const Content::ModelNode& node, EntityID parent)
-		{
-			auto e = scene.spawn();
-
-			auto& transform = e.add<TransformComponent>();
-			transform.position = node.position;
-			transform.rotation = node.rotation;
-			transform.scale = node.scale;
-			transform.parent = parent;
-
-			return e.get_id();
-		}
-	} // anonymous namespace
-
 	EntityID instantiate_model(
 		GFX::Resource::ModelHandle handle,
 		Scene* scene, std::optional<EntityID> root)
@@ -51,9 +34,14 @@ namespace Wink::ECS
 			return NULL_ENTITY;
 		}
 
-		const EntityID modelRoot = root.value_or(scene->spawn());
-		if (!root.has_value())
-			scene->wrap(modelRoot).add<TransformComponent>();
+		EntityID modelRoot;
+		if (root.has_value()) modelRoot = *root;
+		else
+		{
+			auto e = scene->spawn();
+			e.add<TransformComponent>();
+			modelRoot = e.get_id();
+		}
 
 		// First pass: spawn all node entities and set local transforms
 		std::vector<ECS::EntityID> nodeEntities(model->nodes.size(), ECS::NULL_ENTITY);
@@ -84,7 +72,7 @@ namespace Wink::ECS
 
 			for (const ModelPrimitive& prim : node.primitives)
 			{
-				auto pe = scene->wrap(scene->spawn());
+				auto pe = scene->spawn();
 				auto& primTransform = pe.add<TransformComponent>();
 				primTransform.parent = nodeEntity;
 

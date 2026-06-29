@@ -11,7 +11,7 @@ namespace Wink::ECS
 	}
 
 	Entity::Entity(IDType id, Registry& reg) noexcept
-		: mID(static_cast<EntityID>(id))
+		: mID(static_cast<EntityID>(id)), mReg(&reg)
 	{
 	}
 
@@ -36,5 +36,6 @@ namespace Wink::ECS
 		assert_valid();
 		mReg->destroy(mID);
 		mID = NULL_ENTITY;
+		mReg = nullptr;
 	}
 }

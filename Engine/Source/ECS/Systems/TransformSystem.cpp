@@ -8,13 +8,13 @@ namespace Wink::ECS
 {
 	glm::mat4 get_local_matrix(const TransformComponent& t)
 	{
-		const glm::mat4 T = glm::translate(glm::mat4(1.0f), t.position);
-		const glm::mat4 R = glm::mat4_cast(t.rotation);
-		const glm::mat4 S = glm::scale(glm::mat4(1.0f), t.scale);
-		return T * R * S;
+		glm::mat4 m = glm::translate(glm::mat4(1.0f), t.position);
+		m *= glm::mat4_cast(t.rotation);
+		m = glm::scale(m, t.scale);
+		return m;
 	}
 
-	void update_world_transform(Scene& scene, EntityID id)
+	void update_world_transform(Scene& scene, EntityID id, u32 depth)
 	{
 		auto e = scene.wrap(id);
 		if (!e.is_valid())
@@ -23,14 +23,19 @@ namespace Wink::ECS
 			return;
 		}
 
-		auto& t = e.get<TransformComponent>();
+		assert(depth < 256);
+
+		auto* tPtr = e.try_get<TransformComponent>();
+		assert(tPtr != nullptr);
+		auto& t = *tPtr;
 
 		if (t.parent == NULL_ENTITY)
 			t.worldMatrix = get_local_matrix(t);
 		else
 		{
-			update_world_transform(scene, t.parent);
 			const auto& parentT = scene.wrap(t.parent).get<TransformComponent>();
+			if (parentT.dirty)
+				update_world_transform(scene, t.parent, depth + 1);
 			t.worldMatrix = parentT.worldMatrix * get_local_matrix(t);
 		}
 
