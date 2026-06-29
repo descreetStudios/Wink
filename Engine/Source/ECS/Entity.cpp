@@ -25,15 +25,9 @@ namespace Wink::ECS
 	{
 	}
 
-	void Entity::assert_valid() const
-	{
-		if (!is_valid())
-			Logger::Internal::critical("Operating on invalid entity");
-	}
-
 	void Entity::destroy()
 	{
-		assert_valid();
+		assert(is_valid());
 		mReg->destroy(mID);
 		mID = NULL_ENTITY;
 		mReg = nullptr;

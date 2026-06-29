@@ -27,7 +27,7 @@ namespace Wink::ECS
 		template <Component C, typename... Args>
 		C& add(Args&&... args)
 		{
-			assert_valid();
+			assert(is_valid());
 			if (mReg->any_of<C>(mID))
 			{
 				Logger::Internal::warn("Trying to add double component to an entity");
@@ -39,21 +39,21 @@ namespace Wink::ECS
 		template <Component C, typename... Args>
 		C& set(Args&&... args)
 		{
-			assert_valid();
+			assert(is_valid());
 			return mReg->emplace_or_replace<C>(mID, std::forward<Args>(args)...);
 		}
 
 		template <Component C>
 		Entity& remove()
 		{
-			assert_valid();
+			assert(is_valid());
 			mReg->remove<C>(mID);
 			return *this;
 		}
 
 		/* Component access */
-		template <Component C> [[nodiscard]] C& get() { assert_valid(); return mReg->get<C>(mID); }
-		template <Component C> [[nodiscard]] const C& get() const { assert_valid(); return mReg->get<C>(mID); }
+		template <Component C> [[nodiscard]] C& get() { assert(is_valid()); return mReg->get<C>(mID); }
+		template <Component C> [[nodiscard]] const C& get() const { assert(is_valid()); return mReg->get<C>(mID); }
 
 		template <Component C> [[nodiscard]] C* try_get() noexcept { return mReg ? mReg->try_get<C>(mID) : nullptr; }
 		template <Component C> [[nodiscard]] const C* try_get() const noexcept { return mReg ? mReg->try_get<C>(mID) : nullptr; }
@@ -77,8 +77,6 @@ namespace Wink::ECS
 		void destroy();
 
 	private:
-		void assert_valid() const;
-
 		EntityID mID = NULL_ENTITY;
 		Registry* mReg = nullptr;
 	};

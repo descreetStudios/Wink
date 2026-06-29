@@ -15,6 +15,7 @@ namespace Wink::ECS
 		bool dirty = true;
 
 		EntityID parent = NULL_ENTITY;
+		std::vector<EntityID> children = {};
 
 		void set_position(const glm::vec3& p) noexcept;
 		void set_rotation(const glm::quat& q) noexcept;

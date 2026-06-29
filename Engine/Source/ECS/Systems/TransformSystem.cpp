@@ -16,14 +16,10 @@ namespace Wink::ECS
 
 	void update_world_transform(Scene& scene, EntityID id, u32 depth)
 	{
-		auto e = scene.wrap(id);
-		if (!e.is_valid())
-		{
-			Logger::Internal::critical("Operating on invalid entity");
-			return;
-		}
-
 		assert(depth < 256);
+
+		auto e = scene.wrap(id);
+		assert(e.is_valid());
 
 		auto* tPtr = e.try_get<TransformComponent>();
 		assert(tPtr != nullptr);
@@ -39,7 +35,7 @@ namespace Wink::ECS
 			t.worldMatrix = parentT.worldMatrix * get_local_matrix(t);
 		}
 
-		t.normalMatrix = glm::mat3(glm::transpose(glm::inverse(t.worldMatrix)));
+		t.normalMatrix = glm::mat3(glm::transpose(glm::inverse(glm::mat3(t.worldMatrix))));
 		t.dirty = false;
 	}
 
@@ -51,5 +47,45 @@ namespace Wink::ECS
 		t.worldMatrix = glm::mat4(1.0f);
 		t.normalMatrix = glm::mat3(1.0f);
 		t.dirty = true;
+	}
+
+	void attach_to_parent(Scene& scene, EntityID child, EntityID newParent)
+	{
+		assert(child != newParent);
+
+		detach_from_parent(scene, child);
+
+		auto childE = scene.wrap(child);
+		auto newParentE = scene.wrap(newParent);
+
+		auto* childT = childE.try_get<TransformComponent>();
+		assert(childT != nullptr);
+
+		if (newParent == NULL_ENTITY) return;
+
+		auto* parentT = newParentE.try_get<TransformComponent>();
+		assert(parentT != nullptr);
+
+		childT->parent = newParent;
+		parentT->children.push_back(child);
+	}
+
+	void detach_from_parent(Scene& scene, EntityID child)
+	{
+		auto childE = scene.wrap(child);
+
+		auto* childT = childE.try_get<TransformComponent>();
+		if (!childT || childT->parent == NULL_ENTITY) return;
+
+		auto parentE = scene.wrap(childT->parent);
+
+		auto* parentT = parentE.try_get<TransformComponent>();
+		if (parentT)
+		{
+			auto& siblings = parentT->children;
+			siblings.erase(std::remove(siblings.begin(), siblings.end(), child), siblings.end());
+		}
+
+		childT->parent = NULL_ENTITY;
 	}
 }

@@ -51,20 +51,22 @@ namespace Wink::ECS
 		template <std::invocable<Entity> Fn>
 		void each_descendant(EntityID root, Fn&& fn)
 		{
-			std::unordered_set<EntityID> visited{ root };
-			bool changed = true;
-			while (changed)
+			std::queue<EntityID> pending;
+
+			if (const auto* t = mRegistry.try_get<TransformComponent>(root))
+				for (EntityID child : t->children)
+					pending.push(child);
+
+			while (!pending.empty())
 			{
-				changed = false;
-				for (auto id : mRegistry.storage<EntityID>())
-				{
-					if (visited.contains(id)) continue;
-					auto* t = mRegistry.try_get<TransformComponent>(id);
-					if (!t || !visited.contains(t->parent)) continue;
-					visited.insert(id);
-					fn(Entity(id, mRegistry));
-					changed = true;
-				}
+				const EntityID current = pending.front();
+				pending.pop();
+
+				fn(Entity(current, mRegistry));
+
+				if (const auto* t = mRegistry.try_get<TransformComponent>(current))
+					for (EntityID child : t->children)
+						pending.push(child);
 			}
 		}
 

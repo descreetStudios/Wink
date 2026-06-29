@@ -2,6 +2,7 @@
 #include <WinkEngine/ECS/Systems/ModelSystem.hpp>
 #include <WinkEngine/ECS/Components/TransformComponent.hpp>
 #include <WinkEngine/ECS/Components/RenderObjectComponent.hpp>
+#include <WinkEngine/ECS/Systems/TransformSystem.hpp>
 #include <WinkEngine/Content/Model.hpp>
 #include <WinkEngine/GFX/Renderer.hpp>
 #include <WinkEngine/Core/Logger.hpp>
@@ -68,13 +69,14 @@ namespace Wink::ECS
 				? nodeEntities[*node.parent]
 				: modelRoot;
 
-			scene->wrap(nodeEntity).get<TransformComponent>().parent = parentEntity;
+			attach_to_parent(*scene, nodeEntity, parentEntity);
 
 			for (const ModelPrimitive& prim : node.primitives)
 			{
 				auto pe = scene->spawn();
-				auto& primTransform = pe.add<TransformComponent>();
-				primTransform.parent = nodeEntity;
+
+				pe.add<TransformComponent>();
+				attach_to_parent(*scene, pe.get_id(), nodeEntity);
 
 				auto& renderObj = pe.add<RenderObjectComponent>();
 				renderObj.renderObj.mesh = prim.mesh;

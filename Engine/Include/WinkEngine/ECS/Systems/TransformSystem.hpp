@@ -9,4 +9,7 @@ namespace Wink::ECS
 	[[nodiscard]] glm::mat4 get_local_matrix(const TransformComponent& t);
 	void update_world_transform(Scene& scene, EntityID id, u32 depth = 0);
 	void reset_transform(TransformComponent& t);
+
+	void attach_to_parent(Scene& scene, EntityID child, EntityID newParent);
+	void detach_from_parent(Scene& scene, EntityID child);
 }

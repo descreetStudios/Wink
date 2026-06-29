@@ -3,7 +3,7 @@
 #define APP_ECS 0
 #define APP_RESOURCES 0
 #define APP_MODELS 0
-#define APP_IBL 0
+#define APP_IBL 1
 #define APP_SCENE 1
 
 #if APP_APP
