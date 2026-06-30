@@ -20,14 +20,14 @@ namespace Wink::GFX
 
 	enum class TextureDataType : u32
 	{
-		UnsignedByte,
-		Byte,
-		UnsignedShort,
-		Short,
-		UnsignedInt,
-		Int,
-		HalfFloat,
-		Float
+		UnsignedByte = GL_UNSIGNED_BYTE,
+		Byte = GL_BYTE,
+		UnsignedShort = GL_UNSIGNED_SHORT,
+		Short = GL_SHORT,
+		UnsignedInt = GL_UNSIGNED_INT,
+		Int = GL_INT,
+		HalfFloat = GL_HALF_FLOAT,
+		Float = GL_FLOAT
 	};
 
 	struct Texture2DParams

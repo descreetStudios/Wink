@@ -6,6 +6,9 @@
 #include <WinkEngine/GFX/Shader.hpp>
 #include <WinkEngine/GFX/Texture2D.hpp>
 #include <WinkEngine/GFX/TextureCubemap.hpp>
+#include <WinkEngine/GFX/Material.hpp>
+#include <WinkEngine/GFX/Renderbuffer.hpp>
+#include <WinkEngine/GFX/Framebuffer.hpp>
 #include <WinkEngine/GFX/Renderer.hpp>
 
 /* --- Resource --- */

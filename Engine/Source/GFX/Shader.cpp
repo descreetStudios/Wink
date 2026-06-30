@@ -19,12 +19,35 @@ namespace Wink::GFX
 			default: return "Unknown";
 			}
 		}
+
+		std::string read_info_log(u32 id, bool isProgram)
+		{
+			i32 logLen = 0;
+
+			if (isProgram) glGetProgramiv(id, GL_INFO_LOG_LENGTH, &logLen);
+			else glGetShaderiv(id, GL_INFO_LOG_LENGTH, &logLen);
+
+			if (logLen <= 0)
+				return {};
+
+			std::string log;
+			log.resize(static_cast<u32>(logLen));
+
+			if (isProgram) glGetProgramInfoLog(id, logLen, nullptr, log.data());
+			else glGetShaderInfoLog(id, logLen, nullptr, log.data());
+
+			if (!log.empty() && log.back() == '\0')
+				log.pop_back();
+
+			return log;
+		}
 	} // anonymous namespace
 
 	ShaderStage::ShaderStage(ShaderType type)
 		: mType(type)
 	{
-		mID = glCreateShader(static_cast<GLenum>(type));
+		mID = glCreateShader(static_cast<u32>(type));
+		assert(mID != 0);
 	}
 
 	ShaderStage::~ShaderStage()
@@ -52,6 +75,8 @@ namespace Wink::GFX
 
 	bool ShaderStage::compile(std::string_view src) const
 	{
+		assert(is_valid());
+
 		const char* ptr = src.data();
 		const i32 len = static_cast<i32>(src.size());
 		glShaderSource(mID, 1, &ptr, &len);
@@ -62,17 +87,10 @@ namespace Wink::GFX
 
 		if (!ok)
 		{
-			i32 logLen = 0;
-			glGetShaderiv(mID, GL_INFO_LOG_LENGTH, &logLen);
-
-			std::string error;
-			error.resize(logLen);
-			glGetShaderInfoLog(mID, logLen, nullptr, error.data());
-
 			Logger::Internal::error(
 				"Shader compilation error in '{}' shader:\n{}",
 				shader_type_to_string(mType),
-				error
+				read_info_log(mID, false)
 			);
 			return false;
 		}
@@ -83,6 +101,7 @@ namespace Wink::GFX
 	ShaderProgram::ShaderProgram()
 	{
 		mID = glCreateProgram();
+		assert(mID != 0);
 	}
 
 	ShaderProgram::~ShaderProgram()
@@ -110,6 +129,7 @@ namespace Wink::GFX
 
 	void ShaderProgram::use() const noexcept
 	{
+		assert(is_valid());
 		glUseProgram(mID);
 	}
 
@@ -121,6 +141,7 @@ namespace Wink::GFX
 	void ShaderProgram::dispatch(u32 numGroupsX,
 		u32 numGroupsY, u32 numGroupsZ) noexcept
 	{
+		assert(numGroupsX > 0 && numGroupsY > 0 && numGroupsZ > 0);
 		glDispatchCompute(numGroupsX, numGroupsY, numGroupsZ);
 	}
 
@@ -132,57 +153,68 @@ namespace Wink::GFX
 	i32 ShaderProgram::loc(std::string_view name) const noexcept
 	{
 		auto it = mUniformCache.find(std::string(name));
-		if (it != mUniformCache.end()) return it->second;
-		i32 l = glGetUniformLocation(mID, name.data());
-		mUniformCache.emplace(name, l);
+		if (it != mUniformCache.end())
+			return it->second;
+
+		std::string key(name);
+		i32 l = glGetUniformLocation(mID, key.c_str());
+		mUniformCache.emplace(std::move(key), l);
 		return l;
 	}
 
 	void ShaderProgram::set(
 		std::string_view name, bool v) const noexcept
 	{
+		assert(is_valid());
 		glProgramUniform1i(mID, loc(name), v ? 1 : 0);
 	}
 
 	void ShaderProgram::set(
 		std::string_view name, i32 v) const noexcept
 	{
+		assert(is_valid());
 		glProgramUniform1i(mID, loc(name), v);
 	}
 
 	void ShaderProgram::set(
 		std::string_view name, u32 v) const noexcept
 	{
+		assert(is_valid());
 		glProgramUniform1ui(mID, loc(name), v);
 	}
 
 	void ShaderProgram::set(
 		std::string_view name, float v) const noexcept
 	{
+		assert(is_valid());
 		glProgramUniform1f(mID, loc(name), v);
 	}
 
 	void ShaderProgram::set(
 		std::string_view name, glm::vec2 v) const noexcept
 	{
+		assert(is_valid());
 		glProgramUniform2fv(mID, loc(name), 1, glm::value_ptr(v));
 	}
 
 	void ShaderProgram::set(
 		std::string_view name, glm::vec3 v) const noexcept
 	{
+		assert(is_valid());
 		glProgramUniform3fv(mID, loc(name), 1, glm::value_ptr(v));
 	}
 
 	void ShaderProgram::set(
 		std::string_view name, glm::vec4 v) const noexcept
 	{
+		assert(is_valid());
 		glProgramUniform4fv(mID, loc(name), 1, glm::value_ptr(v));
 	}
 
 	void ShaderProgram::set(
 		std::string_view name, const glm::mat3& v) const noexcept
 	{
+		assert(is_valid());
 		glProgramUniformMatrix3fv(mID, loc(name), 1,
 			GL_FALSE, glm::value_ptr(v));
 	}
@@ -190,20 +222,19 @@ namespace Wink::GFX
 	void ShaderProgram::set(std::string_view name,
 		const glm::mat4& v) const noexcept
 	{
+		assert(is_valid());
 		glProgramUniformMatrix4fv(mID, loc(name), 1,
 			GL_FALSE, glm::value_ptr(v));
-	}
-
-	void ShaderProgram::set_texture(
-		std::string_view name, i32 unit) const noexcept
-	{
-		glProgramUniform1i(mID, loc(name), unit);
 	}
 
 	void ShaderProgram::bind_ubo_block(
 		std::string_view blockName, u32 bindingPoint) const noexcept
 	{
-		u32 idx = glGetUniformBlockIndex(mID, blockName.data());
+		assert(is_valid());
+
+		std::string name(blockName);
+		u32 idx = glGetUniformBlockIndex(mID, name.c_str());
+
 		if (idx != GL_INVALID_INDEX)
 			glUniformBlockBinding(mID, idx, bindingPoint);
 	}
@@ -244,6 +275,13 @@ namespace Wink::GFX
 				std::stringstream ss;
 				ss << file.rdbuf();
 				return ss.str();
+			}
+
+			bool paths_equivalent(const fs::path& a, const fs::path& b)
+			{
+				std::error_code ec;
+				bool result = fs::equivalent(a, b, ec);
+				return !ec && result;
 			}
 
 			bool parse_include_directive(
@@ -304,10 +342,10 @@ namespace Wink::GFX
 			{
 				for (size_t n = 0; n < fileTable.size(); ++n)
 				{
-					if (fs::equivalent(fileTable[n], path))
+					if (paths_equivalent(fileTable[n], path))
 						return static_cast<i32>(n);
 				}
-
+ 
 				fileTable.push_back(path);
 				return static_cast<i32>(fileTable.size() - 1);
 			}
@@ -321,7 +359,7 @@ namespace Wink::GFX
 			{
 				for (const fs::path& active : includeStack)
 				{
-					if (fs::equivalent(active, path))
+					if (paths_equivalent(active, path))
 					{
 						Logger::Internal::error(
 							"Circular #include detected involving '{}'",
@@ -432,22 +470,16 @@ namespace Wink::GFX
 				return result;
 			}
 
-			bool link_program(GLuint programID)
+			bool link_program(u32 programID)
 			{
 				glLinkProgram(programID);
 
-				GLint ok = 0;
+				i32 ok = 0;
 				glGetProgramiv(programID, GL_LINK_STATUS, &ok);
 				if (!ok)
 				{
-					GLint logLen = 0;
-					glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &logLen);
-
-					std::string error;
-					error.resize(logLen);
-					glGetProgramInfoLog(programID, logLen, nullptr, error.data());
-
-					Logger::Internal::error("Shader linking error: '{}'", error);
+					Logger::Internal::error("Shader linking error: '{}'",
+						read_info_log(programID, true));
 					return false;
 				}
 
@@ -458,6 +490,8 @@ namespace Wink::GFX
 		std::optional<ShaderProgram> create_program(
 			const std::vector<ShaderSource>& sources)
 		{
+			assert(!sources.empty());
+
 			std::vector<ShaderStage> stages;
 			stages.reserve(sources.size());
 
@@ -487,6 +521,8 @@ namespace Wink::GFX
 		std::optional<ShaderProgram> create_program(
 			const std::vector<ShaderFile>& files)
 		{
+			assert(!files.empty());
+
 			std::vector<ShaderSource> sources;
 			sources.reserve(files.size());
 
@@ -498,7 +534,7 @@ namespace Wink::GFX
 				if (src.empty())
 					return std::nullopt;
 
-				sources.push_back({ f.type, src });
+				sources.push_back({ f.type, std::move(src) });
 			}
 
 			auto program = create_program(sources);

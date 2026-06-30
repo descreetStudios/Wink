@@ -39,7 +39,7 @@ namespace Wink::GFX
 		[[nodiscard]] u32 get_id() const noexcept { return mID; }
 		[[nodiscard]] bool is_valid() const noexcept { return mID != 0; }
 
-		operator bool() const noexcept { return is_valid(); }
+		explicit operator bool() const noexcept { return is_valid(); }
 
 	private:
 		u32 mID = 0;

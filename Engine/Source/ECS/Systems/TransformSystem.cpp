@@ -2,7 +2,6 @@
 #include <WinkEngine/ECS/Scene.hpp>
 #include <WinkEngine/ECS/Systems/TransformSystem.hpp>
 #include <WinkEngine/ECS/Components/TransformComponent.hpp>
-#include <WinkEngine/Core/Logger.hpp>
 
 namespace Wink::ECS
 {

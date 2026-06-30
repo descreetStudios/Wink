@@ -10,7 +10,7 @@ namespace Wink::GFX
 			std::optional<Resource::TextureHandle> MaterialTextures::*slot;
 			const char* uniformName;
 			const char* hasUniformName;
-			u32 unit;
+			i32 unit;
 		};
 
 		constexpr i32 ALBEDO_UNIT = 0;
@@ -54,7 +54,7 @@ namespace Wink::GFX
 
 				t->bind(desc.unit);
 
-				s->set_texture(desc.uniformName, desc.unit);
+				s->set(desc.uniformName, desc.unit);
 				s->set(desc.hasUniformName, true);
 			}
 			else s->set(desc.hasUniformName, false);

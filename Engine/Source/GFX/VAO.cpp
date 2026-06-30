@@ -11,8 +11,7 @@ namespace Wink::GFX
 
 	VAO::~VAO() noexcept
 	{
-		if (mID != 0)
-			glDeleteVertexArrays(1, &mID);
+		glDeleteVertexArrays(1, &mID);
 	}
 
 	MOVE_CTOR_IMPL(VAO) noexcept
@@ -25,8 +24,7 @@ namespace Wink::GFX
 	{
 		if (this != &o)
 		{
-			if (mID != 0)
-				glDeleteVertexArrays(1, &mID);
+			glDeleteVertexArrays(1, &mID);
 			mID = o.mID;
 			o.mID = 0;
 		}

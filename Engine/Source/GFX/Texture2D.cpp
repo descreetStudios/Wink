@@ -10,22 +10,6 @@ namespace Wink::GFX
 			return static_cast<u32>(std::floor(
 				std::log2(std::max(width, height)))) + 1;
 		}
-
-		[[nodiscard]] GLenum texture_data_type_to_gl(TextureDataType type) noexcept
-		{
-			switch (type)
-			{
-			case TextureDataType::UnsignedByte: return GL_UNSIGNED_BYTE;
-			case TextureDataType::Byte: return GL_BYTE;
-			case TextureDataType::UnsignedShort: return GL_UNSIGNED_SHORT;
-			case TextureDataType::Short: return GL_SHORT;
-			case TextureDataType::UnsignedInt: return GL_UNSIGNED_INT;
-			case TextureDataType::Int: return GL_INT;
-			case TextureDataType::HalfFloat: return GL_HALF_FLOAT;
-			case TextureDataType::Float: return GL_FLOAT;
-			}
-			return 0;
-		}
 	} // anonymous namespace
 
 	Texture2D::Texture2D()
@@ -35,7 +19,7 @@ namespace Wink::GFX
 
 	Texture2D::~Texture2D()
 	{
-		if (mID) glDeleteTextures(1, &mID);
+		glDeleteTextures(1, &mID);
 	}
 
 	MOVE_CTOR_IMPL(Texture2D) noexcept
@@ -93,7 +77,7 @@ namespace Wink::GFX
 
 		if (pixels)
 			glTextureSubImage2D(mID, 0, 0, 0, width, height,
-				pixelFormat, texture_data_type_to_gl(dataType), pixels);
+				pixelFormat, static_cast<GLenum>(dataType), pixels);
 
 		apply_params(params);
 
@@ -139,7 +123,7 @@ namespace Wink::GFX
 		if (pixels)
 		{
 			glTextureSubImage2D(mID, 0, 0, 0, width, height,
-				pixelFormat, texture_data_type_to_gl(dataType), pixels);
+				pixelFormat, static_cast<GLenum>(dataType), pixels);
 		}
 
 		apply_params(params);
