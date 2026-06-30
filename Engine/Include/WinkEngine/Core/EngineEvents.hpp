@@ -4,7 +4,7 @@
 
 namespace Wink
 {
-	enum class EventType : u32
+	enum class EventType : u8
 	{
 		/* --- Window Events --- */
 		WindowClose,

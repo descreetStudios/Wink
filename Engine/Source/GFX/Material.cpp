@@ -30,25 +30,28 @@ namespace Wink::GFX
 
 	Material::Material(Resource::ShaderHandle shader,
 		MaterialTextures textures, MaterialParams params)
-		: shader(shader), textures(textures), params(params)
+		: textures(textures), params(params), shader(shader)
 	{
 	}
 
 	void Material::apply() const noexcept
 	{
+		assert(is_valid());
+
 		ShaderProgram* s = Resource::get_shader_pool().try_get(shader);
+		assert(s);
 
 		s->use();
 
-		const MaterialTextures& tex = textures;
-
 		for (const auto& desc : TEXTURE_SLOTS)
 		{
-			const auto& optTexID = tex.*(desc.slot);
+			const auto& optTexID = textures.*(desc.slot);
 
 			if (optTexID.has_value())
 			{
 				Texture2D* t = Resource::get_texture_pool().try_get(*optTexID);
+				assert(t);
+
 				t->bind(desc.unit);
 
 				s->set_texture(desc.uniformName, desc.unit);
@@ -63,11 +66,11 @@ namespace Wink::GFX
 		s->set("uMaterial.emissiveFactor", params.emissiveFactor);
 		s->set("uMaterial.aoStrength", params.aoStrength);
 
-		s->set("uMaterial.albedoTexCoord", (i32)params.albedoTexCoord);
-		s->set("uMaterial.normalTexCoord", (i32)params.normalTexCoord);
-		s->set("uMaterial.mrTexCoord", (i32)params.mrTexCoord);
-		s->set("uMaterial.aoTexCoord", (i32)params.aoTexCoord);
-		s->set("uMaterial.emissiveTexCoord", (i32)params.emissiveTexCoord);
+		s->set("uMaterial.albedoTexCoord", static_cast<i32>(params.albedoTexCoord));
+		s->set("uMaterial.normalTexCoord", static_cast<i32>(params.normalTexCoord));
+		s->set("uMaterial.mrTexCoord", static_cast<i32>(params.mrTexCoord));
+		s->set("uMaterial.aoTexCoord", static_cast<i32>(params.aoTexCoord));
+		s->set("uMaterial.emissiveTexCoord", static_cast<i32>(params.emissiveTexCoord));
 	}
 
 	bool Material::is_valid() const noexcept

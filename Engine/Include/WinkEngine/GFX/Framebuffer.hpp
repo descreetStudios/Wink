@@ -3,6 +3,7 @@
 namespace Wink::GFX
 {
 	class Texture2D;
+	class Renderbuffer;
 
 	enum class Attachment : u32
 	{
@@ -15,6 +16,8 @@ namespace Wink::GFX
 		DepthStencil = GL_DEPTH_STENCIL_ATTACHMENT,
 	};
 
+	inline constexpr u32 MAX_DRAW_BUFFERS = 8;
+
 	class Framebuffer
 	{
 	public:
@@ -26,7 +29,7 @@ namespace Wink::GFX
 		MOVE_ASSIGN(Framebuffer) noexcept;
 
 		void attach(const Texture2D& tex, Attachment slot) const noexcept;
-		void attach_renderbuffer(u32 rboID, Attachment slot) const noexcept;
+		void attach_renderbuffer(const Renderbuffer& rbo, Attachment slot) const noexcept;
 
 		void set_draw_buffers(std::initializer_list<Attachment> slots) const noexcept;
 
@@ -37,29 +40,6 @@ namespace Wink::GFX
 			u32 dstW, u32 dstH,
 			u32 mask = GL_COLOR_BUFFER_BIT,
 			u32 filter = GL_LINEAR) const noexcept;
-
-		[[nodiscard]] u32 get_id() const noexcept { return mID; }
-		[[nodiscard]] bool is_valid() const noexcept { return mID != 0; }
-
-		explicit operator bool() const noexcept { return is_valid(); }
-
-	private:
-		u32 mID = 0;
-	};
-
-	class Renderbuffer
-	{
-	public:
-		Renderbuffer();
-		~Renderbuffer();
-
-		DISABLE_COPY(Renderbuffer);
-		MOVE_CTOR(Renderbuffer) noexcept;
-		MOVE_ASSIGN(Renderbuffer) noexcept;
-
-		void allocate(u32 internalFormat,
-			u32 width, u32 height,
-			u32 samples = 1) const noexcept;
 
 		[[nodiscard]] u32 get_id() const noexcept { return mID; }
 		[[nodiscard]] bool is_valid() const noexcept { return mID != 0; }

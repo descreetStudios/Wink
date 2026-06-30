@@ -2,7 +2,7 @@
 
 namespace Wink::GFX
 {
-	enum class TextureFilter : i32
+	enum class TextureFilter : u32
 	{
 		Nearest = GL_NEAREST,
 		Linear = GL_LINEAR,
@@ -10,7 +10,7 @@ namespace Wink::GFX
 		NearestMipmapNearest = GL_NEAREST_MIPMAP_NEAREST,
 	};
 
-	enum class TextureWrap : i32
+	enum class TextureWrap : u32
 	{
 		Repeat = GL_REPEAT,
 		MirroredRepeat = GL_MIRRORED_REPEAT,

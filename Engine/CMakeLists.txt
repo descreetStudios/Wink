@@ -196,7 +196,7 @@ PRIVATE
     # --- Graphics --- #
     "Source/GFX/Material.cpp" 
     "Source/GFX/Camera.cpp" 
-    "Source/GFX/Renderer.cpp" "Source/GFX/Resource/CubemapPool.cpp")
+    "Source/GFX/Renderer.cpp" "Source/GFX/Resource/CubemapPool.cpp" "Source/GFX/Renderbuffer.cpp")
 
 function(wink_copy_engine_resources target)
     set(ENGINE_RESOURCES_DIR "${CMAKE_SOURCE_DIR}/Engine/Resources"

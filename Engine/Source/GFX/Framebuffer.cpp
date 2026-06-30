@@ -1,5 +1,6 @@
 #include <WinkEngine/pch.hpp>
 #include <WinkEngine/GFX/Framebuffer.hpp>
+#include <WinkEngine/GFX/Renderbuffer.hpp>
 #include <WinkEngine/GFX/Texture2D.hpp>
 #include <WinkEngine/Core/Logger.hpp>
 
@@ -8,6 +9,7 @@ namespace Wink::GFX
 	Framebuffer::Framebuffer()
 	{
 		glCreateFramebuffers(1, &mID);
+		assert(mID != 0);
 	}
 
 	Framebuffer::~Framebuffer()
@@ -36,6 +38,8 @@ namespace Wink::GFX
 		const Texture2D& tex,
 		Attachment slot) const noexcept
 	{
+		assert(is_valid());
+
 		glNamedFramebufferTexture(
 			mID,
 			static_cast<u32>(slot),
@@ -45,34 +49,40 @@ namespace Wink::GFX
 	}
 
 	void Framebuffer::attach_renderbuffer(
-		u32 rboID, Attachment slot) const noexcept
+		const Renderbuffer& rbo, Attachment slot) const noexcept
 	{
+		assert(is_valid());
+
 		glNamedFramebufferRenderbuffer(
 			mID,
 			static_cast<u32>(slot),
 			GL_RENDERBUFFER,
-			rboID
+			rbo.get_id()
 		);
 	}
 
 	void Framebuffer::set_draw_buffers(
 		std::initializer_list<Attachment> slots) const noexcept
 	{
-		std::vector<u32> bufs;
-		bufs.reserve(slots.size());
+		assert(slots.size() <= MAX_DRAW_BUFFERS);
+
+		std::array<u32, MAX_DRAW_BUFFERS> bufs{};
+		u32 count = 0;
 
 		for (auto s : slots)
-			bufs.push_back(static_cast<u32>(s));
+			bufs[count++] = static_cast<u32>(s);
 
 		glNamedFramebufferDrawBuffers(
 			mID,
-			static_cast<i32>(bufs.size()),
+			static_cast<i32>(count),
 			bufs.data()
 		);
 	}
 
 	bool Framebuffer::check() const noexcept
 	{
+		assert(is_valid());
+
 		u32 status = glCheckNamedFramebufferStatus(mID, GL_FRAMEBUFFER);
 
 		if (status == GL_FRAMEBUFFER_COMPLETE)
@@ -93,58 +103,5 @@ namespace Wink::GFX
 			0, 0, dstW, dstH,
 			mask, filter
 		);
-	}
-
-	Renderbuffer::Renderbuffer()
-	{
-		glCreateRenderbuffers(1, &mID);
-	}
-
-	Renderbuffer::~Renderbuffer()
-	{
-		glDeleteRenderbuffers(1, &mID);
-	}
-
-	MOVE_CTOR_IMPL(Renderbuffer) noexcept
-		: mID(o.mID)
-	{
-		o.mID = 0;
-	}
-
-	MOVE_ASSIGN_IMPL(Renderbuffer) noexcept
-	{
-		if (this != &o)
-		{
-			glDeleteRenderbuffers(1, &mID);
-			mID = o.mID;
-			o.mID = 0;
-		}
-		return *this;
-	}
-
-	void Renderbuffer::allocate(
-		u32 internalFormat,
-		u32 width, u32 height,
-		u32 samples) const noexcept
-	{
-		if (samples > 1)
-		{
-			glNamedRenderbufferStorageMultisample(
-				mID,
-				samples,
-				internalFormat,
-				width,
-				height
-			);
-		}
-		else
-		{
-			glNamedRenderbufferStorage(
-				mID,
-				internalFormat,
-				width,
-				height
-			);
-		}
 	}
 }

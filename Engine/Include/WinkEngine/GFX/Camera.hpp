@@ -21,11 +21,14 @@ namespace Wink::GFX
 		void look(float deltaX, float deltaY,
 			float deltaRoll, float sensitivity = 0.1f);
 
-		[[nodiscard]] const glm::mat4 get_view() const;
-		[[nodiscard]] const glm::mat4 get_proj() const;
+		[[nodiscard]] glm::mat4 get_view() const;
+		[[nodiscard]] glm::mat4 get_proj() const;
 
-		[[nodiscard]] const glm::vec3 get_forward() const;
-		[[nodiscard]] const glm::vec3 get_right() const;
-		[[nodiscard]] const glm::vec3 get_up() const;
+		[[nodiscard]] glm::vec3 get_forward() const;
+		[[nodiscard]] glm::vec3 get_right() const;
+		[[nodiscard]] glm::vec3 get_up() const;
+
+	private:
+		[[nodiscard]] glm::quat get_orientation() const;
 	};
 }
