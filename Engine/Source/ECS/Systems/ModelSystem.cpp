@@ -10,7 +10,7 @@
 namespace Wink::ECS
 {
 	EntityID instantiate_model(
-		GFX::Resource::ModelHandle handle,
+		GFX::RES::ModelHandle handle,
 		Scene* scene, std::optional<EntityID> root)
 	{
 		using namespace GFX;
@@ -27,7 +27,7 @@ namespace Wink::ECS
 			}
 		}
 
-		const Model* model = Resource::get_model_pool().try_get(handle);
+		const Model* model = RES::get_model_pool().try_get(handle);
 		if (!model)
 		{
 			Logger::Internal::error(

@@ -1,9 +1,9 @@
 #include <WinkEngine/pch.hpp>
-#include <WinkEngine/GFX/Resource/ModelPool.hpp>
+#include <WinkEngine/GFX/RES/ModelPool.hpp>
 #include <WinkEngine/GFX/Renderer.hpp>
 #include <WinkEngine/Core/Logger.hpp>
 
-namespace Wink::GFX::Resource
+namespace Wink::GFX::RES
 {
 	ModelHandle ModelPool::load(
 		const fs::path& path, ShaderHandle shader)
@@ -82,7 +82,7 @@ namespace Wink::GFX::Resource
 			model = Content::Internal::load_gltf(filePath, shader);
 
 		if (!model.has_value())
-			return GFX::Resource::ModelHandle{};
+			return GFX::RES::ModelHandle{};
 
 		return allocate(std::move(*model));
 	}
@@ -103,8 +103,8 @@ namespace Wink::GFX::Resource
 				for (size_t j = 0; j < node.primitives.size(); ++j)
 				{
 					auto& prim = node.primitives[j];
-					if (!GFX::Resource::get_mesh_pool().is_valid(prim.mesh) ||
-						!GFX::Resource::get_material_pool().is_valid(prim.material))
+					if (!GFX::RES::get_mesh_pool().is_valid(prim.mesh) ||
+						!GFX::RES::get_material_pool().is_valid(prim.material))
 					{
 						valid = false;
 						break;

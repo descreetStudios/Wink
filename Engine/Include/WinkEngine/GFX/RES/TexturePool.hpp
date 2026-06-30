@@ -1,10 +1,10 @@
 #pragma once
 
-#include <WinkEngine/GFX/Resource/ResourcePool.hpp>
+#include <WinkEngine/GFX/RES/ResourcePool.hpp>
 #include <WinkEngine/GFX/Texture2D.hpp>
 #include <WinkEngine/Core/FileWatcher.hpp>
 
-namespace Wink::GFX::Resource
+namespace Wink::GFX::RES
 {
 	class TexturePool final : public ResourcePool<Texture2D, TextureTag>
 	{

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <WinkEngine/GFX/Resource/ResourcePool.hpp>
+#include <WinkEngine/GFX/RES/ResourcePool.hpp>
 #include <WinkEngine/GFX/Shader.hpp>
 #include <WinkEngine/Core/FileWatcher.hpp>
 
-namespace Wink::GFX::Resource
+namespace Wink::GFX::RES
 {
 	class ShaderPool final : public ResourcePool<ShaderProgram, ShaderTag>
 	{

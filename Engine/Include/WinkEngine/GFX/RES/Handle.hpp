@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Wink::GFX::Resource
+namespace Wink::GFX::RES
 {
 	template<typename Tag>
 	struct Handle
@@ -37,10 +37,13 @@ namespace Wink::GFX::Resource
 }
 
 template<typename Tag>
-struct std::hash<Wink::GFX::Resource::Handle<Tag>>
+struct std::hash<Wink::GFX::RES::Handle<Tag>>
 {
-	size_t operator()(const Wink::GFX::Resource::Handle<Tag>& h) const noexcept
+	size_t operator()(const Wink::GFX::RES::Handle<Tag>& h) const noexcept
 	{
-		return (static_cast<size_t>(h.index) << 32) ^ h.generation;
+		const u64 packed = (static_cast<u64>(h.index) << 32)
+			| static_cast<u64>(h.generation);
+
+		return std::hash<u64>{}(packed);
 	}
 };

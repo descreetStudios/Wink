@@ -13,7 +13,7 @@ namespace Wink
 	{
 		Time::init();
 		if (!Logger::init()) return;
-		if (!Window::init(window_config())) return;
+		if (!Window::init(get_window_config())) return;
 		Input::init();
 		if (!GFX::init()) return;
 		on_init();
@@ -24,7 +24,7 @@ namespace Wink
 
 			Window::poll();
 			Input::tick();
-			GFX::Resource::poll_hot_reloads();
+			GFX::RES::poll_hot_reloads();
 			Time::tick();
 
 			while (Time::should_simulate())
@@ -50,7 +50,7 @@ namespace Wink
 		Logger::shutdown();
 	}
 
-	Window::Config Application::window_config() const
+	Window::Config Application::get_window_config() const
 	{
 		return Window::Config();
 	}

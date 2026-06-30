@@ -17,7 +17,7 @@ namespace Wink::GFX
 {
 	namespace IBL
 	{
-		using namespace Resource;
+		using namespace RES;
 
 		ShaderHandle gEquirectToCubemapShader;
 		ShaderHandle gIrradianceConvolutionShader;
@@ -34,7 +34,7 @@ namespace Wink::GFX
 
 	namespace
 	{
-		using namespace Resource;
+		using namespace RES;
 
 		Configuration gConfig;
 
@@ -455,7 +455,7 @@ namespace Wink::GFX
 		if (IBL::gRenderSkybox) draw_skybox(cam);
 	}
 
-	void render_fullscreen_texture(Resource::TextureHandle tex)
+	void render_fullscreen_texture(RES::TextureHandle tex)
 	{
 		draw_fullscreen(tex);
 	}
@@ -479,7 +479,7 @@ namespace Wink::GFX
 
 	void shutdown()
 	{
-		Resource::clear_all_resources();
+		RES::clear_all_resources();
 	}
 
 	void set_config(const Configuration& cfg)
@@ -499,7 +499,7 @@ namespace Wink::GFX
 		glClearColor(color.r, color.g, color.b, color.a);
 	}
 
-	namespace Resource
+	namespace RES
 	{
 		MeshPool& get_mesh_pool() noexcept { return gMeshPool; }
 		ShaderPool& get_shader_pool() noexcept { return gShaderPool; }
@@ -532,10 +532,10 @@ namespace Wink::GFX
 	{
 		namespace Internal
 		{
-			Resource::CubemapHandle equirect_to_cubemap(
-				Resource::TextureHandle hdr, u32 faceSize)
+			RES::CubemapHandle equirect_to_cubemap(
+				RES::TextureHandle hdr, u32 faceSize)
 			{
-				using namespace Resource;
+				using namespace RES;
 				ENGINE_ZONE_NAME("Equirect To Cubemap");
 
 				const Texture2D* tex = gTexturePool.try_get(hdr);
@@ -587,10 +587,10 @@ namespace Wink::GFX
 			}
 		} // namespace Internal
 
-		Resource::CubemapHandle bake_irradiance_map(
-			Resource::CubemapHandle envCubemap, u32 faceSize)
+		RES::CubemapHandle bake_irradiance_map(
+			RES::CubemapHandle envCubemap, u32 faceSize)
 		{
-			using namespace Resource;
+			using namespace RES;
 			ENGINE_ZONE_NAME("Bake Irradiance");
 
 			const TextureCubemap* env = gCubemapPool.try_get(envCubemap);
@@ -638,11 +638,11 @@ namespace Wink::GFX
 			return outHandle;
 		}
 
-		Resource::CubemapHandle bake_prefiltered_env_map(
-			Resource::CubemapHandle envCubemap, u32 faceSize,
+		RES::CubemapHandle bake_prefiltered_env_map(
+			RES::CubemapHandle envCubemap, u32 faceSize,
 			u32 mipLevels, u32 sampleCount)
 		{
-			using namespace Resource;
+			using namespace RES;
 			ENGINE_ZONE_NAME("Bake Prefiltered Env Map");
 
 			const TextureCubemap* env = gCubemapPool.try_get(envCubemap);

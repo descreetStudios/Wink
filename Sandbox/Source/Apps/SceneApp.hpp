@@ -51,8 +51,8 @@ public:
 
 		/* --- IBL Setup --- */
 		{
-			auto& texPool = GFX::Resource::get_texture_pool();
-			auto& cubemapPool = GFX::Resource::get_cubemap_pool();
+			auto& texPool = GFX::RES::get_texture_pool();
+			auto& cubemapPool = GFX::RES::get_cubemap_pool();
 
 			auto hdr = texPool.decode(RES_PATH / "HDRIs" /
 				"kloofendal_48d_partly_cloudy_puresky_4k.hdr");
@@ -97,13 +97,13 @@ public:
 	}
 
 private:
-	GFX::Resource::ModelHandle load_model(const fs::path& path,
-		GFX::Resource::ShaderHandle shader = {}) const
+	GFX::RES::ModelHandle load_model(const fs::path& path,
+		GFX::RES::ShaderHandle shader = {}) const
 	{
 		const fs::path modelsPath = RES_PATH / "Models";
-		auto& modelPool = GFX::Resource::get_model_pool();
+		auto& modelPool = GFX::RES::get_model_pool();
 
-		const GFX::Resource::ModelHandle handle =
+		const GFX::RES::ModelHandle handle =
 			modelPool.load(modelsPath / path, shader);
 		if (!modelPool.is_valid(handle))
 		{

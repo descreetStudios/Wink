@@ -1,7 +1,7 @@
 #include <WinkEngine/pch.hpp>
-#include <WinkEngine/GFX/Resource/MeshPool.hpp>
+#include <WinkEngine/GFX/RES/MeshPool.hpp>
 
-namespace Wink::GFX::Resource
+namespace Wink::GFX::RES
 {
 	MeshHandle MeshPool::load(const MeshData& data,
 		BufferUsage usage)

@@ -14,7 +14,7 @@
 namespace Wink::Content
 {
 	using namespace GFX;
-	using namespace Resource;
+	using namespace RES;
 
 	namespace
 	{

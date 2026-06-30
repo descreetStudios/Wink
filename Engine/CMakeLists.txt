@@ -179,15 +179,17 @@ PRIVATE
     "Source/GFX/Buffer.cpp" 
     "Source/GFX/Texture2D.cpp" 
     "Source/GFX/TextureCubemap.cpp" 
+    "Source/GFX/Renderbuffer.cpp" 
     "Source/GFX/Framebuffer.cpp" 
     "Source/GFX/Shader.cpp" 
     
     # --- Graphics Resources --- #
-    "Source/GFX/Resource/MeshPool.cpp" 
-    "Source/GFX/Resource/ShaderPool.cpp" 
-    "Source/GFX/Resource/TexturePool.cpp" 
-    "Source/GFX/Resource/MaterialPool.cpp" 
-    "Source/GFX/Resource/ModelPool.cpp" 
+    "Source/GFX/RES/MeshPool.cpp" 
+    "Source/GFX/RES/ShaderPool.cpp" 
+    "Source/GFX/RES/TexturePool.cpp" 
+    "Source/GFX/RES/CubemapPool.cpp" 
+    "Source/GFX/RES/MaterialPool.cpp" 
+    "Source/GFX/RES/ModelPool.cpp" 
     
     # --- Content --- #
     "Source/Content/Image.cpp" 
@@ -196,7 +198,7 @@ PRIVATE
     # --- Graphics --- #
     "Source/GFX/Material.cpp" 
     "Source/GFX/Camera.cpp" 
-    "Source/GFX/Renderer.cpp" "Source/GFX/Resource/CubemapPool.cpp" "Source/GFX/Renderbuffer.cpp")
+    "Source/GFX/Renderer.cpp")
 
 function(wink_copy_engine_resources target)
     set(ENGINE_RESOURCES_DIR "${CMAKE_SOURCE_DIR}/Engine/Resources"

@@ -1,16 +1,16 @@
 #pragma once
 
-#include <WinkEngine/GFX/Resource/Handle.hpp>
+#include <WinkEngine/GFX/RES/Handle.hpp>
 
 namespace Wink::GFX
 {
 	struct MaterialTextures
 	{
-		std::optional<Resource::TextureHandle> albedo;
-		std::optional<Resource::TextureHandle> normal;
-		std::optional<Resource::TextureHandle> metallicRoughness;
-		std::optional<Resource::TextureHandle> ao;
-		std::optional<Resource::TextureHandle> emissive;
+		std::optional<RES::TextureHandle> albedo;
+		std::optional<RES::TextureHandle> normal;
+		std::optional<RES::TextureHandle> metallicRoughness;
+		std::optional<RES::TextureHandle> ao;
+		std::optional<RES::TextureHandle> emissive;
 	};
 
 	struct MaterialParams
@@ -33,11 +33,11 @@ namespace Wink::GFX
 	public:
 		MaterialTextures textures;
 		MaterialParams params;
-		Resource::ShaderHandle shader;
+		RES::ShaderHandle shader;
 
 	public:
 		Material() = default;
-		explicit Material(Resource::ShaderHandle shader,
+		explicit Material(RES::ShaderHandle shader,
 			MaterialTextures textures = {},
 			MaterialParams params = {});
 

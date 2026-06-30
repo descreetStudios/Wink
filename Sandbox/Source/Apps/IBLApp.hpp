@@ -13,7 +13,7 @@ public:
 	{
 		using namespace ECS;
 		using namespace GFX;
-		using namespace Resource;
+		using namespace RES;
 
 		register_inputs();
 
@@ -131,12 +131,12 @@ public:
 	}
 
 private:
-	GFX::Resource::ModelHandle load_model(GFX::Resource::ModelPool& modelPool,
-		const fs::path& path, GFX::Resource::ShaderHandle shader = {}) const
+	GFX::RES::ModelHandle load_model(GFX::RES::ModelPool& modelPool,
+		const fs::path& path, GFX::RES::ShaderHandle shader = {}) const
 	{
 		const fs::path models = RES_PATH / "Models";
 
-		const GFX::Resource::ModelHandle handle =
+		const GFX::RES::ModelHandle handle =
 			modelPool.load(models / path, shader);
 		if (!modelPool.is_valid(handle))
 		{
@@ -198,5 +198,5 @@ private:
 	GFX::Camera mCam;
 	ECS::Entity mCamEntity;
 
-	GFX::Resource::TextureHandle mTestTexture;
+	GFX::RES::TextureHandle mTestTexture;
 };

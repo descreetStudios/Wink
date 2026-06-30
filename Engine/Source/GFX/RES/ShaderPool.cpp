@@ -1,8 +1,8 @@
 #include <WinkEngine/pch.hpp>
-#include <WinkEngine/GFX/Resource/ShaderPool.hpp>
+#include <WinkEngine/GFX/RES/ShaderPool.hpp>
 #include <WinkEngine/Core/Logger.hpp>
 
-namespace Wink::GFX::Resource
+namespace Wink::GFX::RES
 {
 	ShaderHandle ShaderPool::load(const std::vector<ShaderSource>& sources)
 	{

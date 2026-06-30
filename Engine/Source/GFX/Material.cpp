@@ -7,7 +7,7 @@ namespace Wink::GFX
 	namespace
 	{
 		struct TextureSlotDesc {
-			std::optional<Resource::TextureHandle> MaterialTextures::*slot;
+			std::optional<RES::TextureHandle> MaterialTextures::*slot;
 			const char* uniformName;
 			const char* hasUniformName;
 			i32 unit;
@@ -28,7 +28,7 @@ namespace Wink::GFX
 		};
 	}
 
-	Material::Material(Resource::ShaderHandle shader,
+	Material::Material(RES::ShaderHandle shader,
 		MaterialTextures textures, MaterialParams params)
 		: textures(textures), params(params), shader(shader)
 	{
@@ -38,7 +38,7 @@ namespace Wink::GFX
 	{
 		assert(is_valid());
 
-		ShaderProgram* s = Resource::get_shader_pool().try_get(shader);
+		ShaderProgram* s = RES::get_shader_pool().try_get(shader);
 		assert(s);
 
 		s->use();
@@ -49,7 +49,7 @@ namespace Wink::GFX
 
 			if (optTexID.has_value())
 			{
-				Texture2D* t = Resource::get_texture_pool().try_get(*optTexID);
+				Texture2D* t = RES::get_texture_pool().try_get(*optTexID);
 				assert(t);
 
 				t->bind(desc.unit);
@@ -75,6 +75,6 @@ namespace Wink::GFX
 
 	bool Material::is_valid() const noexcept
 	{
-		return Resource::get_shader_pool().is_valid(shader);
+		return RES::get_shader_pool().is_valid(shader);
 	}
 }

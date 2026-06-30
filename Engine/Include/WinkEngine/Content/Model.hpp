@@ -1,13 +1,13 @@
 #pragma once
 
-#include <WinkEngine/GFX/Resource/Handle.hpp>
+#include <WinkEngine/GFX/RES/Handle.hpp>
 
 namespace Wink::Content
 {
 	struct ModelPrimitive
 	{
-		GFX::Resource::MeshHandle mesh;
-		GFX::Resource::MaterialHandle material;
+		GFX::RES::MeshHandle mesh;
+		GFX::RES::MaterialHandle material;
 	};
 
 	struct ModelNode
@@ -35,6 +35,6 @@ namespace Wink::Content
 
 		std::optional<Model> load_gltf(
 			const fs::path& path, 
-			GFX::Resource::ShaderHandle shader = {});
+			GFX::RES::ShaderHandle shader = {});
 	}
 }

@@ -16,7 +16,7 @@ namespace Wink
 		virtual void post_render() {}
 		virtual void on_shutdown() {}
 
-		[[nodiscard]] virtual Window::Config window_config() const;
+		[[nodiscard]] virtual Window::Config get_window_config() const;
 
 		void run();
 	};

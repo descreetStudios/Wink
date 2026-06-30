@@ -1,9 +1,9 @@
 #pragma once
 
-#include <WinkEngine/GFX/Resource/ResourcePool.hpp>
+#include <WinkEngine/GFX/RES/ResourcePool.hpp>
 #include <WinkEngine/Content/Model.hpp>
 
-namespace Wink::GFX::Resource
+namespace Wink::GFX::RES
 {
 	class ModelPool final : public ResourcePool<Content::Model, ModelTag>
 	{

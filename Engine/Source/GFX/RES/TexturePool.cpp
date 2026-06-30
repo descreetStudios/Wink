@@ -1,9 +1,9 @@
 #include <WinkEngine/pch.hpp>
-#include <WinkEngine/GFX/Resource/TexturePool.hpp>
+#include <WinkEngine/GFX/RES/TexturePool.hpp>
 #include <WinkEngine/Content/Image.hpp>
 #include <WinkEngine/Core/Logger.hpp>
 
-namespace Wink::GFX::Resource
+namespace Wink::GFX::RES
 {
 	TextureHandle TexturePool::decode(const fs::path& path,
 		const Texture2DParams& params, bool hotReload, bool flipVertically)

@@ -11,13 +11,13 @@
 #include <WinkEngine/GFX/Framebuffer.hpp>
 #include <WinkEngine/GFX/Renderer.hpp>
 
-/* --- Resource --- */
-#include <WinkEngine/GFX/Resource/Handle.hpp>
-#include <WinkEngine/GFX/Resource/ResourcePool.hpp>
+/* --- Resources --- */
+#include <WinkEngine/GFX/RES/Handle.hpp>
+#include <WinkEngine/GFX/RES/ResourcePool.hpp>
 
-#include <WinkEngine/GFX/Resource/MeshPool.hpp>
-#include <WinkEngine/GFX/Resource/ShaderPool.hpp>
-#include <WinkEngine/GFX/Resource/TexturePool.hpp>
-#include <WinkEngine/GFX/Resource/CubemapPool.hpp>
-#include <WinkEngine/GFX/Resource/MaterialPool.hpp>
-#include <WinkEngine/GFX/Resource/ModelPool.hpp>
+#include <WinkEngine/GFX/RES/MeshPool.hpp>
+#include <WinkEngine/GFX/RES/ShaderPool.hpp>
+#include <WinkEngine/GFX/RES/TexturePool.hpp>
+#include <WinkEngine/GFX/RES/CubemapPool.hpp>
+#include <WinkEngine/GFX/RES/MaterialPool.hpp>
+#include <WinkEngine/GFX/RES/ModelPool.hpp>

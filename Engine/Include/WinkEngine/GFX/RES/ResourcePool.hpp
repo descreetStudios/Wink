@@ -1,16 +1,16 @@
 #pragma once
 
-#include <WinkEngine/GFX/Resource/Handle.hpp>
+#include <WinkEngine/GFX/RES/Handle.hpp>
 
-namespace Wink::GFX::Resource
+namespace Wink::GFX::RES
 {
 	class IResourcePool
 	{
 	public:
 		virtual ~IResourcePool() = default;
 
-		[[nodiscard]] virtual size_t live_count() const noexcept = 0;
-		[[nodiscard]] virtual size_t capacity() const noexcept = 0;
+		[[nodiscard]] virtual size_t get_live_count() const noexcept = 0;
+		[[nodiscard]] virtual size_t get_capacity() const noexcept = 0;
 		virtual void clear() noexcept = 0;
 	};
 
@@ -31,7 +31,10 @@ namespace Wink::GFX::Resource
 		{
 			const u32 index = acquire_slot();
 			Slot& slot = mSlots[index];
+
+			assert(!slot.value.has_value());
 			slot.value.emplace(std::forward<Args>(args)...);
+
 			return HandleType{ index, slot.generation };
 		}
 
@@ -66,14 +69,13 @@ namespace Wink::GFX::Resource
 			return &*mSlots[handle.index].value;
 		}
 
-		[[nodiscard]] size_t live_count() const noexcept override { return mLiveCount; }
-		[[nodiscard]] size_t capacity() const noexcept override { return mSlots.size(); }
+		[[nodiscard]] size_t get_live_count() const noexcept override { return mLiveCount; }
+		[[nodiscard]] size_t get_capacity() const noexcept override { return mSlots.size(); }
 
 		void clear() noexcept override
 		{
-			for (u32 i = 0; i < mSlots.size(); ++i)
+			for (Slot& slot : mSlots)
 			{
-				Slot& slot = mSlots[i];
 				if (slot.value.has_value())
 				{
 					slot.value.reset();
@@ -82,12 +84,22 @@ namespace Wink::GFX::Resource
 			}
 
 			mFreeList.clear();
-			for (u32 i = 0; i < mSlots.size(); ++i)
-				mFreeList.push_back(mSlots.size() - 1 - i);
+			mFreeList.reserve(mSlots.size());
+			for (u32 i = static_cast<u32>(mSlots.size()); i-- > 0; )
+				mFreeList.push_back(i);
+
 			mLiveCount = 0;
 		}
 
 	protected:
+		template<typename Fn>
+		bool with(HandleType handle, Fn&& fn)
+		{
+			if (!is_valid(handle)) return false;
+			fn(*const_cast<T*>(&*mSlots[handle.index].value));
+			return true;
+		}
+
 		template<typename Fn>
 		bool with(HandleType handle, Fn&& fn) const
 		{
@@ -119,6 +131,8 @@ namespace Wink::GFX::Resource
 				++mLiveCount;
 				return index;
 			}
+
+			assert(mSlots.size() < HandleType::INVALID_INDEX);
 
 			mSlots.emplace_back();
 			++mLiveCount;

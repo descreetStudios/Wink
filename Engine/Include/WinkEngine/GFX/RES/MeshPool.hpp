@@ -1,9 +1,9 @@
 #pragma once
 
-#include <WinkEngine/GFX/Resource/ResourcePool.hpp>
+#include <WinkEngine/GFX/RES/ResourcePool.hpp>
 #include <WinkEngine/GFX/Mesh.hpp>
 
-namespace Wink::GFX::Resource
+namespace Wink::GFX::RES
 {
 	class MeshPool final : public ResourcePool<Mesh, MeshTag>
 	{

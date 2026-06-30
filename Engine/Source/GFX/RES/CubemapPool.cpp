@@ -1,8 +1,8 @@
 #include <WinkEngine/pch.hpp>
-#include <WinkEngine/GFX/Resource/CubemapPool.hpp>
+#include <WinkEngine/GFX/RES/CubemapPool.hpp>
 #include <WinkEngine/GFX/Renderer.hpp>
 
-namespace Wink::GFX::Resource
+namespace Wink::GFX::RES
 {
 	CubemapHandle CubemapPool::hdr_to_cubemap(TextureHandle hdr, u32 faceSize)
 	{

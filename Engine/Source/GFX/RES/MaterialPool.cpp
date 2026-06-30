@@ -1,7 +1,7 @@
 #include <WinkEngine/pch.hpp>
-#include <WinkEngine/GFX/Resource/MaterialPool.hpp>
+#include <WinkEngine/GFX/RES/MaterialPool.hpp>
 
-namespace Wink::GFX::Resource
+namespace Wink::GFX::RES
 {
 	MaterialHandle MaterialPool::create(ShaderHandle shader)
 	{

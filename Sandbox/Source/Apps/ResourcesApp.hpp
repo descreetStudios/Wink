@@ -13,7 +13,7 @@ public:
 	{
 		using namespace ECS;
 		using namespace GFX;
-		using namespace Resource;
+		using namespace RES;
 
 		Logger::set_level(Logger::Level::Trace);
 		create_scene("Resources Test");

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <WinkEngine/GFX/Resource/MeshPool.hpp>
-#include <WinkEngine/GFX/Resource/ShaderPool.hpp>
-#include <WinkEngine/GFX/Resource/TexturePool.hpp>
-#include <WinkEngine/GFX/Resource/CubemapPool.hpp>
-#include <WinkEngine/GFX/Resource/MaterialPool.hpp>
-#include <WinkEngine/GFX/Resource/ModelPool.hpp>
+#include <WinkEngine/GFX/RES/MeshPool.hpp>
+#include <WinkEngine/GFX/RES/ShaderPool.hpp>
+#include <WinkEngine/GFX/RES/TexturePool.hpp>
+#include <WinkEngine/GFX/RES/CubemapPool.hpp>
+#include <WinkEngine/GFX/RES/MaterialPool.hpp>
+#include <WinkEngine/GFX/RES/ModelPool.hpp>
 
 namespace Wink::GFX
 {
@@ -45,8 +45,8 @@ namespace Wink::GFX
 
 	struct RenderObject
 	{
-		Resource::MeshHandle mesh;
-		Resource::MaterialHandle material;
+		RES::MeshHandle mesh;
+		RES::MaterialHandle material;
 	};
 
 	struct CameraData
@@ -99,7 +99,7 @@ namespace Wink::GFX
 
 	bool init();
 	void render();
-	void render_fullscreen_texture(Resource::TextureHandle tex);
+	void render_fullscreen_texture(RES::TextureHandle tex);
 	void shutdown();
 
 	void set_config(const Configuration& cfg);
@@ -107,7 +107,7 @@ namespace Wink::GFX
 	void resize(u32 width, u32 height);
 	void set_clear_color(const glm::vec4& color);
 
-	namespace Resource
+	namespace RES
 	{
 		[[nodiscard]] MeshPool& get_mesh_pool() noexcept;
 		[[nodiscard]] ShaderPool& get_shader_pool() noexcept;
@@ -127,22 +127,22 @@ namespace Wink::GFX
 	{
 		struct IBLData
 		{
-			Resource::CubemapHandle envMap;
-			Resource::CubemapHandle irradianceMap;
-			Resource::CubemapHandle prefilteredEnvMap;
+			RES::CubemapHandle envMap;
+			RES::CubemapHandle irradianceMap;
+			RES::CubemapHandle prefilteredEnvMap;
 		};
 
-		[[nodiscard]] Resource::CubemapHandle bake_irradiance_map(
-			Resource::CubemapHandle envCubemap, u32 faceSize = 32);
+		[[nodiscard]] RES::CubemapHandle bake_irradiance_map(
+			RES::CubemapHandle envCubemap, u32 faceSize = 32);
 
-		[[nodiscard]] Resource::CubemapHandle bake_prefiltered_env_map(
-			Resource::CubemapHandle envCubemap, u32 faceSize = 128,
+		[[nodiscard]] RES::CubemapHandle bake_prefiltered_env_map(
+			RES::CubemapHandle envCubemap, u32 faceSize = 128,
 			u32 mipLevels = 5, u32 sampleCount = 1024);
 
 		namespace Internal
 		{
-			[[nodiscard]] Resource::CubemapHandle equirect_to_cubemap(
-				Resource::TextureHandle hdr, u32 faceSize = 512);
+			[[nodiscard]] RES::CubemapHandle equirect_to_cubemap(
+				RES::TextureHandle hdr, u32 faceSize = 512);
 		}
 	}
 }
