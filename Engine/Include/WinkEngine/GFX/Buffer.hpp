@@ -44,7 +44,6 @@ namespace Wink::GFX
 		void update(const void* data, size_t size,
 			size_t offsetBytes = 0) const noexcept;
 
-		// Partial update, must be within already allocated range
 		template <typename T>
 		void update(std::span<const T> data,
 			size_t offsetBytes = 0) const noexcept
@@ -58,13 +57,14 @@ namespace Wink::GFX
 
 		[[nodiscard]] u32 get_id() const noexcept { return mID; }
 		[[nodiscard]] size_t get_size() const noexcept { return mSize; }
+		[[nodiscard]] BufferTarget get_target() const noexcept { return mTarget; }
 		[[nodiscard]] bool is_valid() const noexcept { return mID != 0; }
 
 		explicit operator bool() const noexcept { return is_valid(); }
 
 	private:
 		u32 mID = 0;
-		u32 mTarget = 0;
+		BufferTarget mTarget = BufferTarget::Vertex;
 		size_t mSize = 0;
 	};
 }

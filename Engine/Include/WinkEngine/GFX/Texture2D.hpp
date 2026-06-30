@@ -55,7 +55,7 @@ namespace Wink::GFX
 		MOVE_ASSIGN(Texture2D) noexcept;
 
 		void upload(const u8* pixels, u32 width, u32 height,
-			u32 channels = 3, TextureDataType dataType = TextureDataType::UnsignedInt,
+			u32 channels = 3, TextureDataType dataType = TextureDataType::UnsignedByte,
 			const Texture2DParams& params = {}) noexcept;
 
 		void upload(const float* pixels, u32 width, u32 height,

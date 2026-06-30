@@ -11,15 +11,15 @@ namespace Wink::GFX::Resource
 	public:
 		TextureHandle decode(const fs::path& path,
 			const Texture2DParams& params = {},
-			bool hotReload = true);
+			bool hotReload = true, bool flipVertically = true);
 
 		TextureHandle decode_from_memory(
 			const u8* encodedData, size_t size,
-			const Texture2DParams& params = {});
+			const Texture2DParams& params = {}, bool flipVertically = true);
 
 		TextureHandle decode_hdr_from_memory(
 			const u8* encodedData, size_t size,
-			const Texture2DParams& params = {});
+			const Texture2DParams& params = {}, bool flipVertically = true);
 
 		TextureHandle load(const u8* pixels, u32 width,
 			u32 height, u32 channels = 3,

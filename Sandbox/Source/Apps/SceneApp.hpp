@@ -17,7 +17,9 @@ public:
 
 		/* --- Camera Creation --- */
 		mCam.camE = scene->spawn();
-		mCam.camE.add<ECS::TransformComponent>().position.z = 5.0f;
+		mCam.camE.add<ECS::TransformComponent>().position = { 3.6f, -0.3f, 5.3f };
+		mCam.cam.yaw = 34.8f;
+		mCam.cam.pitch = 1.0f;
 		mCam.camE.add<ECS::CameraComponent>(mCam.cam);
 
 		/* --- Sun Creation --- */
@@ -34,20 +36,16 @@ public:
 				APP_ZONE_NAME("Model Load 'SciFi Radar'");
 				auto e = scene->wrap(ECS::instantiate_model(load_model("SciFiRadar")));
 				auto& t = e.get<ECS::TransformComponent>();
-				t.position.x -= 5.0f;
+				t.position.x -= 2.0f;
+				t.position.y += 0.5f;
 				t.rotate_pitch(90.0f);
 				t.scale /= 60.0f;
 			}
 			{
 				APP_ZONE_NAME("Model Load 'Damaged Helmet'");
 				auto e = scene->wrap(ECS::instantiate_model(load_model("DamagedHelmet")));
-			}
-			{
-				APP_ZONE_NAME("Model Load 'Guitar Backpack'");
-				auto e = scene->wrap(ECS::instantiate_model(load_model("LaFerrari")));
 				auto& t = e.get<ECS::TransformComponent>();
-				t.position.x += 5.0f;
-				t.scale *= 1.5f;
+				t.position.x += 2.0f;
 			}
 		}
 

@@ -11,7 +11,8 @@ namespace Wink::GFX
 
 	VAO::~VAO() noexcept
 	{
-		glDeleteVertexArrays(1, &mID);
+		if (mID != 0)
+			glDeleteVertexArrays(1, &mID);
 	}
 
 	MOVE_CTOR_IMPL(VAO) noexcept
@@ -24,7 +25,8 @@ namespace Wink::GFX
 	{
 		if (this != &o)
 		{
-			glDeleteVertexArrays(1, &mID);
+			if (mID != 0)
+				glDeleteVertexArrays(1, &mID);
 			mID = o.mID;
 			o.mID = 0;
 		}
@@ -32,44 +34,35 @@ namespace Wink::GFX
 	}
 
 	void VAO::attrib(u32 index, i32 count, u32 type,
-		size_t offset, bool normalized) const noexcept
+		size_t offset, u32 bindingIndex,
+		bool normalized) const noexcept
 	{
-		if (!is_valid())
-		{
-			Logger::Internal::error(
-				"Trying to set vertex attributes on an invalid VAO");
-			return;
-		}
+		assert(is_valid());
+		assert(offset <= UINT32_MAX);
 
 		glEnableVertexArrayAttrib(mID, index);
-		glVertexArrayAttribFormat(
-			mID, index, count, type,
-			normalized ? GL_TRUE : GL_FALSE,
+		glVertexArrayAttribFormat(mID, index, count, type,
+			static_cast<GLboolean>(normalized),
 			static_cast<u32>(offset));
-
-		glVertexArrayAttribBinding(mID, index, 0);
+		glVertexArrayAttribBinding(mID, index, bindingIndex);
 	}
 
 	void VAO::attrib_i(u32 index, i32 count,
-		u32 type, size_t offset) const noexcept
+		u32 type, size_t offset,
+		u32 bindingIndex) const noexcept
 	{
-		if (!is_valid())
-		{
-			Logger::Internal::error(
-				"Trying to set integer vertex attributes on an invalid VAO");
-			return;
-		}
+		assert(is_valid());
+		assert(offset <= UINT32_MAX);
 
 		glEnableVertexArrayAttrib(mID, index);
-		glVertexArrayAttribIFormat(
-			mID, index, count, type,
+		glVertexArrayAttribIFormat(mID, index, count, type,
 			static_cast<u32>(offset));
-
-		glVertexArrayAttribBinding(mID, index, 0);
+		glVertexArrayAttribBinding(mID, index, bindingIndex);
 	}
 
 	void VAO::divisor(u32 index, u32 div) const noexcept
 	{
+		assert(is_valid());
 		glVertexArrayBindingDivisor(mID, index, div);
 	}
 
@@ -77,32 +70,29 @@ namespace Wink::GFX
 		u32 bindingIndex, u32 bufferID,
 		size_t offset, i32 stride) const noexcept
 	{
-		glVertexArrayVertexBuffer(
-			mID, bindingIndex, bufferID,
-			static_cast<GLintptr>(offset),
-			stride);
+		assert(is_valid());
+		assert(stride >= 0);
+
+		glVertexArrayVertexBuffer(mID, bindingIndex, bufferID,
+			static_cast<GLintptr>(offset), stride);
 	}
 
 	void VAO::bind_index_buffer(u32 bufferID) const noexcept
 	{
+		assert(is_valid());
 		glVertexArrayElementBuffer(mID, bufferID);
 	}
 
 	void VAO::reset() noexcept
 	{
-		if (mID) glDeleteVertexArrays(1, &mID);
+		glDeleteVertexArrays(1, &mID);
 		glCreateVertexArrays(1, &mID);
 	}
 
 	void VAO::label(const char* name) const noexcept
 	{
-		if (!is_valid())
-		{
-			Logger::Internal::error(
-				"Trying to set an object label to an invalid VAO");
-			return;
-		}
-
+		assert(is_valid());
+		assert(name != nullptr);
 		glObjectLabel(GL_VERTEX_ARRAY, mID, -1, name);
 	}
 }

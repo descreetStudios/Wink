@@ -6,7 +6,7 @@
 namespace Wink::GFX::Resource
 {
 	TextureHandle TexturePool::decode(const fs::path& path,
-		const Texture2DParams& params, bool hotReload)
+		const Texture2DParams& params, bool hotReload, bool flipVertically)
 	{
 		if (path.empty())
 		{
@@ -102,10 +102,10 @@ namespace Wink::GFX::Resource
 
 	TextureHandle TexturePool::decode_from_memory(
 		const u8* encodedData, size_t size,
-		const Texture2DParams& params)
+		const Texture2DParams& params, bool flipVertically)
 	{
 		Content::DecodedImage img = Content::decode_image_from_memory(
-			encodedData, size, params.hasAlpha);
+			encodedData, size, params.hasAlpha, flipVertically);
 		if (!img) return TextureHandle();
 
 		return load(img.pixels.data(),
@@ -117,10 +117,10 @@ namespace Wink::GFX::Resource
 
 	TextureHandle TexturePool::decode_hdr_from_memory(
 		const u8* encodedData, size_t size,
-		const Texture2DParams& params)
+		const Texture2DParams& params, bool flipVertically)
 	{
 		Content::HDRImage hdr = Content::decode_hdr_from_memory(
-			encodedData, size, params.hasAlpha);
+			encodedData, size, flipVertically);
 		if (!hdr) return TextureHandle();
 
 		return load(hdr.pixels.data(),
