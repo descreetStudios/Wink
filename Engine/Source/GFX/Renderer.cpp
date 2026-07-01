@@ -179,7 +179,7 @@ namespace Wink::GFX
 
 			gSkyboxShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Vertex, "Resources/Shaders/SkyboxVS.glsl" },
-				{ ShaderType::Fragment, "Resources/Shaders/SkyboxFS.glsl" },
+				{ ShaderType::Fragment, "../../../../Engine/Source/GFX/Shaders/SkyboxFS.glsl" },
 			});
 			create_skybox_geometry();
 

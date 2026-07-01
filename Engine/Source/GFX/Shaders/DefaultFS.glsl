@@ -217,7 +217,7 @@ void main()
 		metallic, roughness, ao, emissive);
 
 	/* --- Post Processing --- */
-	color = tonemap_lottes(color, 2.2);
+	color = tonemap_lottes(color, 2.0);
 	color = apply_gamma(color, 2.2);
 
 #if defined(DEBUG_IN)
