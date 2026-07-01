@@ -11,31 +11,27 @@ class SandboxApp : public Application
 public:
 	void on_init() override
 	{
-		using namespace ECS;
 		using namespace GFX;
-		using namespace RES;
 
-		Logger::set_level(Logger::Level::Trace);
-		create_scene("Resources Test");
-		set_clear_color({ 0.53f, 0.81f, 0.92f, 1.0f });
+		auto* scene = ECS::create_scene("Resources Test");
 
-		auto& meshPool = get_mesh_pool();
-		auto& shaderPool = get_shader_pool();
-		auto& texturePool = get_texture_pool();
-		auto& materialPool = get_material_pool();
-		auto& modelPool = get_model_pool();
+		auto& meshPool = RES::get_mesh_pool();
+		auto& shaderPool = RES::get_shader_pool();
+		auto& texturePool = RES::get_texture_pool();
+		auto& materialPool = RES::get_material_pool();
+		auto& modelPool = RES::get_model_pool();
 
 		/* --- Shader --- */
-		const ShaderHandle shader = shaderPool.load(std::vector<ShaderFile>{
-			{ ShaderType::Vertex, "Shaders/default_vs.glsl" },
-			{ ShaderType::Fragment, "Shaders/default_fs.glsl" }
+		const RES::ShaderHandle shader = shaderPool.load(std::vector<ShaderFile>{
+			{ ShaderType::Vertex, "Resources/Shaders/DefaultVS.glsl" },
+			{ ShaderType::Fragment, "Resources/Shaders/DefaultFS.glsl" }
 		});
 
 		if (shader)
 			Logger::info("Loaded shader ID '{}'", shaderPool.get_id(shader));
 
 		/* --- Texture --- */
-		const TextureHandle tex = texturePool.decode("dog.png");
+		const RES::TextureHandle tex = texturePool.decode("dog.png");
 
 		if (tex)
 			Logger::info("Loaded texture ID '{}'", texturePool.get_id(tex));
@@ -50,7 +46,7 @@ public:
 			.indices = { 0, 1, 2 }
 		};
 
-		const MeshHandle mesh = meshPool.load(triangle);
+		const RES::MeshHandle mesh = meshPool.load(triangle);
 
 		if (mesh)
 			Logger::info("Loaded mesh VAO '{}', index count '{}'",
@@ -58,7 +54,7 @@ public:
 				meshPool.get_index_count(mesh));
 
 		/* --- Material --- */
-		const MaterialHandle mat = materialPool.create(shader);
+		const RES::MaterialHandle mat = materialPool.create(shader);
 
 		if (auto* m = materialPool.try_get(mat))
 		{
@@ -73,7 +69,7 @@ public:
 		/* --- Model --- */
 		fs::path root = fs::path("..") / ".." / ".." / "..";
 		fs::path models = root / fs::path("..") / "glTF-Sample-Models" / "2.0";
-		const ModelHandle sponza = modelPool.load(models / "Sponza" / "glTF");
+		const RES::ModelHandle sponza = modelPool.load(models / "Sponza" / "glTF");
 
 		if (auto* m = modelPool.try_get(sponza))
 		{

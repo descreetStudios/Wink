@@ -47,6 +47,7 @@ public:
 		mSponzaDirLight = sponzaScene->spawn();
 		auto& sdlC = mSponzaDirLight.add<DirLightComponent>();
 		sdlC.dirLight.direction = { 0.0f, -1.0f, 0.3f };
+		sdlC.dirLight.intensity = 5.0f;
 
 		mGameDirLight = gameScene->spawn();
 		auto& gdlC = mGameDirLight.add<DirLightComponent>();
@@ -121,16 +122,23 @@ public:
 		}
 
 		// IBL
-		auto meadowHdr = texturePool.decode(RES_PATH / "HDRIs" / "shanghai_bund_4k.hdr");
-		auto meadowEnv = cubemapPool.hdr_to_cubemap(meadowHdr);
-		auto meadowIrr = IBL::bake_irradiance_map(meadowEnv);
-		auto meadowPref = IBL::bake_prefiltered_env_map(meadowEnv);
+		auto hdr = texturePool.decode(RES_PATH / "HDRIs" / 
+			"kloofendal_48d_partly_cloudy_puresky_4k.hdr");
+		auto env = cubemapPool.hdr_to_cubemap(hdr);
+		auto irr = IBL::bake_irradiance_map(env);
+		auto pref = IBL::bake_prefiltered_env_map(env);
 
 		auto siblE = sponzaScene->spawn();
 		auto& siblC = siblE.add<IBLComponent>();
-		siblC.iblData.envMap = meadowEnv;
-		siblC.iblData.irradianceMap = meadowIrr;
-		siblC.iblData.prefilteredEnvMap = meadowPref;
+		siblC.iblData.envMap = env;
+		siblC.iblData.irradianceMap = irr;
+		siblC.iblData.prefilteredEnvMap = pref;
+
+		auto giblE = gameScene->spawn();
+		auto& giblC = giblE.add<IBLComponent>();
+		giblC.iblData.envMap = env;
+		giblC.iblData.irradianceMap = irr;
+		giblC.iblData.prefilteredEnvMap = pref;
 	}
 
 	void on_update(double dt) override

@@ -1,6 +1,6 @@
 #version 460 core
 
-#include "Tonemapping.glsli"
+#include "Tonemapping.glsl"
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
@@ -11,7 +11,8 @@ const vec2 INV_ATAN = vec2(0.15915494, 0.31830989);
 
 vec2 sample_equirect(vec3 dir)
 {
-	vec2 uv = vec2(atan(dir.z, dir.x), asin(clamp(dir.y, -1.0, 1.0)));
+	vec2 uv = vec2(atan(dir.z, dir.x),
+		asin(clamp(dir.y, -1.0, 1.0)));
 	uv *= INV_ATAN;
 	uv += 0.5;
 	return uv;
@@ -44,7 +45,7 @@ void main()
 	vec2 uv = sample_equirect(dir);
 
 	vec3 color = texture(uEquirect, uv).rgb;
-	color = tonemap_uchimura(color);
+	color = min(color, 16);
 
 	imageStore(uCubemap, ivec3(texel, face), vec4(color, 1.0));
 }

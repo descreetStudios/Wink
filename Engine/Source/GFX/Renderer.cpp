@@ -318,7 +318,7 @@ namespace Wink::GFX
 			shader->set("uNormalMatrix", drawData.normalMat);
 
 			/* --- Dir Lights --- */
-			shader->set("uDirLightCount", static_cast<i32>(drawData.dirLights.size()));
+			shader->set("uDirLightCount", static_cast<u32>(drawData.dirLights.size()));
 			for (size_t i = 0; i < drawData.dirLights.size(); ++i)
 			{
 				const auto& light = drawData.dirLights[i];
@@ -329,7 +329,7 @@ namespace Wink::GFX
 			}
 
 			/* --- Point Lights --- */
-			shader->set("uPointLightCount", static_cast<i32>(drawData.pointLights.size()));
+			shader->set("uPointLightCount", static_cast<u32>(drawData.pointLights.size()));
 			for (size_t i = 0; i < drawData.pointLights.size(); ++i)
 			{
 				const auto& light = drawData.pointLights[i];
@@ -341,7 +341,7 @@ namespace Wink::GFX
 			}
 
 			/* --- Spot Lights --- */
-			shader->set("uSpotLightCount", static_cast<i32>(drawData.spotLights.size()));
+			shader->set("uSpotLightCount", static_cast<u32>(drawData.spotLights.size()));
 			for (size_t i = 0; i < drawData.spotLights.size(); ++i)
 			{
 				const auto& light = drawData.spotLights[i];

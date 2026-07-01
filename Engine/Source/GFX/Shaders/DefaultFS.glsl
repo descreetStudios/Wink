@@ -1,9 +1,9 @@
 #version 460 core
 
-#include "ToneMapping.glsli"
-#include "Material.glsli"
-#include "PBR.glsli"
-#include "Light.glsli"
+#include "ToneMapping.glsl"
+#include "Material.glsl"
+#include "PBR.glsl"
+#include "Light.glsl"
 
 // #define DEBUG_ALBEDO
 // #define DEBUG_NORMALS
@@ -14,7 +14,7 @@
 
 // #define DEBUG_IN
 
-#include "Debug.glsli"
+#include "Debug.glsl"
 
 in vec3 vFragPos;
 in vec2 vTexCoord;
@@ -24,20 +24,16 @@ in vec3 vDebug;
 
 out vec4 FragColor;
 
+uniform Material uMaterial;
+
 uniform vec3 uCamPos;
 
-// ------------------------------------------------------------
-// IBL
-// ------------------------------------------------------------
 uniform samplerCube uIrradianceMap;
 uniform samplerCube uPrefilteredMap;
 uniform sampler2D uBRDFLUT;
 uniform bool uHasIBL;
 
-// ------------------------------------------------------------
-// LIGHTING HELPERS
-// ------------------------------------------------------------
-
+/* --- Directional Light --- */
 vec3 compute_dir_light(DirLight light,
 	vec3 albedo, vec3 N, vec3 V,
 	float NdV, float metallic, float roughness, vec3 F0)
@@ -49,9 +45,9 @@ vec3 compute_dir_light(DirLight light,
 	vec3 H = normalize(L + V);
 	float HdV = max(dot(H, V), 0.0);
 
-	float D = DistributionGGX(N, H, roughness);
-	float G = GeometrySmith(N, V, L, roughness);
-	vec3 F = FresnelSchlick(HdV, F0);
+	float D = distribution_ggx(N, H, roughness);
+	float G = geometry_smith(N, V, L, roughness);
+	vec3 F = fresnel_schlick(HdV, F0);
 
 	vec3 specular = (D * G * F) / max(4.0 * NdV * NdL, 0.001);
 	vec3 kD = (1.0 - F) * (1.0 - metallic);
@@ -61,6 +57,7 @@ vec3 compute_dir_light(DirLight light,
 	return (diffuse + specular) * radiance * NdL;
 }
 
+/* --- Point Light --- */
 vec3 compute_point_light(PointLight light,
 	vec3 albedo, vec3 N, vec3 V, vec3 fragPos,
 	float NdV, float metallic, float roughness, vec3 F0)
@@ -80,9 +77,9 @@ vec3 compute_point_light(PointLight light,
 
 	float attenuation = (light.intensity * window) / (dist * dist + 1.0);
 
-	float D = DistributionGGX(N, H, roughness);
-	float G = GeometrySmith(N, V, L, roughness);
-	vec3 F = FresnelSchlick(HdV, F0);
+	float D = distribution_ggx(N, H, roughness);
+	float G = geometry_smith(N, V, L, roughness);
+	vec3 F = fresnel_schlick(HdV, F0);
 
 	vec3 specular = (D * G * F) / max(4.0 * NdV * NdL, 0.001);
 	vec3 kD = (1.0 - F) * (1.0 - metallic);
@@ -92,6 +89,7 @@ vec3 compute_point_light(PointLight light,
 	return (diffuse + specular) * radiance * NdL;
 }
 
+/* --- Spot Light --- */
 vec3 compute_spot_light(SpotLight light,
 	vec3 albedo, vec3 N, vec3 V, vec3 fragPos,
 	float NdV, float metallic, float roughness, vec3 F0)
@@ -115,9 +113,9 @@ vec3 compute_spot_light(SpotLight light,
 	vec3 H = normalize(L + V);
 	float HdV = max(dot(H, V), 0.0);
 
-	float D = DistributionGGX(N, H, roughness);
-	float G = GeometrySmith(N, V, L, roughness);
-	vec3 F = FresnelSchlick(HdV, F0);
+	float D = distribution_ggx(N, H, roughness);
+	float G = geometry_smith(N, V, L, roughness);
+	vec3 F = fresnel_schlick(HdV, F0);
 
 	vec3 specular = (D * G * F) / max(4.0 * NdV * NdL, 0.001);
 	vec3 kD = (1.0 - F) * (1.0 - metallic);
@@ -129,34 +127,27 @@ vec3 compute_spot_light(SpotLight light,
 	return (diffuse + specular) * radiance * NdL;
 }
 
-// ------------------------------------------------------------
-// IBL AMBIENT
-// ------------------------------------------------------------
-
+/* --- IBL Ambient --- */
 vec3 compute_ibl(vec3 albedo, vec3 N, vec3 V,
 	float NdV, float metallic, float roughness,
 	float ao, vec3 F0)
 {
-	vec3 F = FresnelSchlickRoughness(NdV, F0, roughness);
+	vec3 F = fresnel_schlick_roughness(NdV, F0, roughness) * 0.85;
 	vec3 kD = (1.0 - F) * (1.0 - metallic);
 
-	vec3 irradiance = texture(uIrradianceMap, N).rgb * 0.3;
+	vec3 irradiance = texture(uIrradianceMap, N).rgb * 0.25;
 	vec3 diffuse = kD * irradiance * albedo;
 
 	vec3 R = reflect(-V, N);
 	float MAX_MIPS = 5.0;
-	vec3 prefilteredColor = textureLod(uPrefilteredMap, R, roughness * MAX_MIPS).rgb * 0.7;
+	vec3 prefilteredColor = textureLod(uPrefilteredMap, R, roughness * MAX_MIPS).rgb * 1.25;
 	vec2 brdf = texture(uBRDFLUT, vec2(NdV, roughness)).rg;
 	vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
 	return (diffuse + specular) * ao;
 }
 
-
-// ------------------------------------------------------------
-// PBR LIGHTING CORE
-// ------------------------------------------------------------
-
+/* --- PBR Shading --- */
 vec3 compute_pbr(vec3 albedo, vec3 N, vec3 V,
 	float metallic, float roughness,
 	float ao, vec3 emissive)
@@ -188,19 +179,14 @@ vec3 compute_pbr(vec3 albedo, vec3 N, vec3 V,
 
 void main()
 {
-
-	// --------------------------------------------------------
-	// MATERIAL STAGE
-	// --------------------------------------------------------
-
 	vec2 baseUV = (uMaterial.albedoTexCoord == 1 ? vTexCoord1 : vTexCoord);
 
-	// Albedo
+	/* --- Albedo --- */
 	vec4 albedo = uMaterial.baseColor;
 	if (uMaterial.hasAlbedoMap)
 		albedo *= texture(uMaterial.albedoMap, baseUV);
 
-	// Normals
+	/* --- Normals --- */
 	vec3 N;
 	if (uMaterial.hasNormalMap)
 	{
@@ -209,7 +195,7 @@ void main()
 	}
 	else N = normalize(vTBN[2]);
 
-	// Metallic & Roughness
+	/* --- Metallic & Roughness --- */
 	float metallic  = uMaterial.metallic;
 	float roughness = uMaterial.roughness;
 	if (uMaterial.hasMRMap)
@@ -219,40 +205,34 @@ void main()
 		metallic  *= mr.y;
 	}
 
-	// Ambient Occlusion
+	/* --- Ambient Occlusion --- */
 	float ao = 1.0;
 	if (uMaterial.hasAOMap)
 		ao = mix(1.0, texture(uMaterial.aoMap, baseUV).r, uMaterial.aoStrength);
 
-	// Emissive
+	/* --- Emissive --- */
 	vec3 emissive = uMaterial.emissiveFactor;
 	if (uMaterial.hasEmissiveMap)
 		emissive *= texture(uMaterial.emissiveMap, vTexCoord).rgb;
 
-	// Debug Overlays
+	/* --- Debug Overlays --- */
 	vec4 debugColor;
-	if (applyDebugChannels(debugColor, albedo, N,
+	if (apply_debug_channels(debugColor, albedo, N,
 		roughness, metallic, ao, emissive))
 	{
 		FragColor = debugColor;
 		return;
 	}
 
-	// --------------------------------------------------------
-    // LIGHTING STAGE
-    // --------------------------------------------------------
-
+	/* --- Lighting --- */
 	vec3 V = normalize(uCamPos - vFragPos);
 
 	vec3 color = compute_pbr(albedo.rgb, N, V,
 		metallic, roughness, ao, emissive);
 
-	// --------------------------------------------------------
-    // POST-PROCESSING STAGE
-    // --------------------------------------------------------
-
-	color = tonemap_uchimura(color);
-	color = pow(color, vec3(1.0 / 2.2));
+	/* --- Post Processing --- */
+	color = tonemap_lottes(color, 2.2);
+	color = apply_gamma(color, 2.2);
 
 #if defined(DEBUG_IN)
 	FragColor = vec4(vDebug, 1.0);

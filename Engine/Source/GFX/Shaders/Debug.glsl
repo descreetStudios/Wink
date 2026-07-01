@@ -1,8 +1,8 @@
-#ifndef DEBUG_GLSLI
-#define DEBUG_GLSLI
+#ifndef DEBUG_GLSL
+#define DEBUG_GLSL
 
-bool applyDebugChannels(out vec4 fragColor, vec4 albedo,
-vec3 N, float roughness, float metallic, float ao, vec3 emissive)
+bool apply_debug_channels(out vec4 fragColor, vec4 albedo,
+    vec3 N, float roughness, float metallic, float ao, vec3 emissive)
 {
 #if defined(DEBUG_ALBEDO)
     fragColor = vec4(albedo.rgb, 1.0);
@@ -27,4 +27,4 @@ vec3 N, float roughness, float metallic, float ao, vec3 emissive)
 #endif
 }
 
-#endif // DEBUG_GLSLI
+#endif // DEBUG_GLSL

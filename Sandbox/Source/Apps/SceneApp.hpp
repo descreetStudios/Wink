@@ -32,9 +32,16 @@ public:
 		{
 			APP_ZONE_NAME("Model Loading");
 
+			const fs::path shaders = PROJ_PATH / "Engine" / "Source" / "GFX" / "Shaders";
+			GFX::RES::ShaderHandle shader = GFX::RES::get_shader_pool().load(
+				std::vector<GFX::ShaderFile>{
+					{ GFX::ShaderType::Vertex, shaders / "DefaultVS.glsl" },
+					{ GFX::ShaderType::Fragment, shaders / "DefaultFS.glsl" },
+				});
+
 			{
 				APP_ZONE_NAME("Model Load 'SciFi Radar'");
-				auto e = scene->wrap(ECS::instantiate_model(load_model("SciFiRadar")));
+				auto e = scene->wrap(ECS::instantiate_model(load_model("SciFiRadar", shader)));
 				auto& t = e.get<ECS::TransformComponent>();
 				t.position.x -= 2.0f;
 				t.position.y += 0.5f;
@@ -43,7 +50,7 @@ public:
 			}
 			{
 				APP_ZONE_NAME("Model Load 'Damaged Helmet'");
-				auto e = scene->wrap(ECS::instantiate_model(load_model("DamagedHelmet")));
+				auto e = scene->wrap(ECS::instantiate_model(load_model("DamagedHelmet", shader)));
 				auto& t = e.get<ECS::TransformComponent>();
 				t.position.x += 2.0f;
 			}

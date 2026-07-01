@@ -1,12 +1,12 @@
-#ifndef MATERIAL_GLSLI
-#define MATERIAL_GLSLI
+#ifndef MATERIAL_GLSL
+#define MATERIAL_GLSL
 
 struct Material
 {
-    vec4  baseColor;
+    vec4 baseColor;
     float metallic;
     float roughness;
-    vec3  emissiveFactor;
+    vec3 emissiveFactor;
     float aoStrength;
 
     sampler2D albedoMap;    bool hasAlbedoMap;
@@ -22,6 +22,4 @@ struct Material
     int emissiveTexCoord;
 };
 
-uniform Material uMaterial;
-
-#endif // MATERIAL_GLSLI
+#endif // MATERIAL_GLSL

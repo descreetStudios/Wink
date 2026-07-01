@@ -35,12 +35,13 @@ public:
 
 		// Camera
 		mCamEntity = scene->spawn();
-		auto& camT = mCamEntity.add<TransformComponent>().position = { -0.7f, -0.8f, 14.0f };
-		mCamEntity.add<CameraComponent>(mCam);
+		auto& camT = mCamEntity.add<TransformComponent>().position = { -0.7f, -0.55f, 33.0f };
+		mCamEntity.add<CameraComponent>(mCam).camera.fov = 20.0f;
 
 		// Dir Light
 		auto sun = scene->spawn();
-		sun.add<DirLightComponent>().dirLight.direction = { -0.5f, -1.0f, 0.8f };
+		auto& l = sun.add<DirLightComponent>();
+		l.dirLight.direction = { -0.8f, -1.0f, -1.0f };
 
 		// Spheres
 		const ModelHandle sphereModel = load_model(
@@ -48,7 +49,7 @@ public:
 
 		const i32 rows = 11;
 		const i32 cols = 11;
-		const float spacing = 1.3f;
+		const float spacing = 1.0f;
 
 		for (i32 row = 0; row < rows; ++row)
 		{
@@ -86,10 +87,11 @@ public:
 			}
 		}
 
-		mTestTexture = texturePool.decode(RES_PATH / "HDRIs" / "kloofendal_48d_partly_cloudy_puresky_4k.hdr");
+		mTestTexture = texturePool.decode(RES_PATH / "HDRIs" / 
+			"kloofendal_48d_partly_cloudy_puresky_4k.hdr");
 		auto env = cubemapPool.hdr_to_cubemap(mTestTexture);
-		auto irr = GFX::IBL::bake_irradiance_map(env);
-		auto pref = GFX::IBL::bake_prefiltered_env_map(env);
+		auto irr = IBL::bake_irradiance_map(env);
+		auto pref = IBL::bake_prefiltered_env_map(env);
 
 		auto iblE = scene->spawn();
 		auto& iblC = iblE.add<IBLComponent>();

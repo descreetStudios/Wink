@@ -35,12 +35,12 @@ vec3 face_dir(int face, vec2 st)
 {
 	switch (face)
 	{
-		case 0: return normalize(vec3( 1.0, -st.y, -st.x)); // +X
-		case 1: return normalize(vec3(-1.0, -st.y,  st.x)); // -X
-		case 2: return normalize(vec3( st.x,  1.0,  st.y)); // +Y
-		case 3: return normalize(vec3( st.x, -1.0, -st.y)); // -Y
-		case 4: return normalize(vec3( st.x, -st.y,  1.0)); // +Z
-		case 5: return normalize(vec3(-st.x, -st.y, -1.0)); // -Z
+		case 0: return normalize(vec3( 1.0, -st.y, -st.x));
+		case 1: return normalize(vec3(-1.0, -st.y,  st.x));
+		case 2: return normalize(vec3( st.x,  1.0,  st.y));
+		case 3: return normalize(vec3( st.x, -1.0, -st.y));
+		case 4: return normalize(vec3( st.x, -st.y,  1.0));
+		case 5: return normalize(vec3(-st.x, -st.y, -1.0));
 	}
 	return vec3(0.0);
 }

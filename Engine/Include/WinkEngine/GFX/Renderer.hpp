@@ -136,7 +136,7 @@ namespace Wink::GFX
 			RES::CubemapHandle envCubemap, u32 faceSize = 32);
 
 		[[nodiscard]] RES::CubemapHandle bake_prefiltered_env_map(
-			RES::CubemapHandle envCubemap, u32 faceSize = 128,
+			RES::CubemapHandle envCubemap, u32 faceSize = 256,
 			u32 mipLevels = 5, u32 sampleCount = 1024);
 
 		namespace Internal
