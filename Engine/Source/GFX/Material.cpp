@@ -6,10 +6,10 @@ namespace Wink::GFX
 {
 	namespace
 	{
-		struct TextureSlotDesc {
-			std::optional<RES::TextureHandle> MaterialTextures::*slot;
+		struct TextureSlotDesc
+		{
+			RES::TextureHandle MaterialTextures::*slot;
 			const char* uniformName;
-			const char* hasUniformName;
 			i32 unit;
 		};
 
@@ -19,19 +19,40 @@ namespace Wink::GFX
 		constexpr i32 AO_UNIT = 3;
 		constexpr i32 EMISSIVE_UNIT = 4;
 
-		constexpr TextureSlotDesc TEXTURE_SLOTS[] = {
-			{ &MaterialTextures::albedo,            "uMaterial.albedoMap",    "uMaterial.hasAlbedoMap",    ALBEDO_UNIT   },
-			{ &MaterialTextures::normal,            "uMaterial.normalMap",    "uMaterial.hasNormalMap",    NORMAL_UNIT   },
-			{ &MaterialTextures::metallicRoughness, "uMaterial.mrMap",        "uMaterial.hasMRMap",        MR_UNIT       },
-			{ &MaterialTextures::ao,                "uMaterial.aoMap",        "uMaterial.hasAOMap",        AO_UNIT       },
-			{ &MaterialTextures::emissive,          "uMaterial.emissiveMap",  "uMaterial.hasEmissiveMap",  EMISSIVE_UNIT },
+		constexpr TextureSlotDesc TEXTURE_SLOTS[]{
+			{ &MaterialTextures::albedo, "uMaterial.albedoMap", ALBEDO_UNIT },
+			{ &MaterialTextures::normal, "uMaterial.normalMap", NORMAL_UNIT },
+			{ &MaterialTextures::metallicRoughness, "uMaterial.mrMap", MR_UNIT },
+			{ &MaterialTextures::ao, "uMaterial.aoMap", AO_UNIT },
+			{ &MaterialTextures::emissive, "uMaterial.emissiveMap", EMISSIVE_UNIT },
 		};
+	}
+
+	void Material::set_default_textures() noexcept
+	{
+		auto fill = [](RES::TextureHandle& slot, RES::TextureHandle fallback)
+			{
+				if (!RES::get_texture_pool().is_valid(slot))
+					slot = fallback;
+			};
+
+		fill(textures.albedo, GFX::RES::get_default_albedo());
+		fill(textures.normal, GFX::RES::get_default_normal());
+		fill(textures.metallicRoughness, GFX::RES::get_default_mr());
+		fill(textures.ao, GFX::RES::get_default_ao());
+		fill(textures.emissive, GFX::RES::get_default_emissive());
+	}
+
+	Material::Material()
+	{
+		set_default_textures();
 	}
 
 	Material::Material(RES::ShaderHandle shader,
 		MaterialTextures textures, MaterialParams params)
 		: textures(textures), params(params), shader(shader)
 	{
+		set_default_textures();
 	}
 
 	void Material::apply() const noexcept
@@ -45,19 +66,13 @@ namespace Wink::GFX
 
 		for (const auto& desc : TEXTURE_SLOTS)
 		{
-			const auto& optTexID = textures.*(desc.slot);
+			const RES::TextureHandle handle = textures.*(desc.slot);
 
-			if (optTexID.has_value())
-			{
-				Texture2D* t = RES::get_texture_pool().try_get(*optTexID);
-				assert(t);
+			Texture2D* t = RES::get_texture_pool().try_get(handle);
+			assert(t);
 
-				t->bind(desc.unit);
-
-				s->set(desc.uniformName, desc.unit);
-				s->set(desc.hasUniformName, true);
-			}
-			else s->set(desc.hasUniformName, false);
+			t->bind(desc.unit);
+			s->set(desc.uniformName, desc.unit);
 		}
 
 		s->set("uMaterial.baseColor", params.baseColor);

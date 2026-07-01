@@ -182,38 +182,24 @@ void main()
 	vec2 baseUV = (uMaterial.albedoTexCoord == 1 ? vTexCoord1 : vTexCoord);
 
 	/* --- Albedo --- */
-	vec4 albedo = uMaterial.baseColor;
-	if (uMaterial.hasAlbedoMap)
-		albedo *= texture(uMaterial.albedoMap, baseUV);
+	vec4 albedo = uMaterial.baseColor
+        * texture(uMaterial.albedoMap, baseUV);
 
 	/* --- Normals --- */
-	vec3 N;
-	if (uMaterial.hasNormalMap)
-	{
-		vec3 tsN = texture(uMaterial.normalMap, baseUV).rgb * 2.0 - 1.0;
-		N = normalize(vTBN * tsN);
-	}
-	else N = normalize(vTBN[2]);
+	vec3 tsN = texture(uMaterial.normalMap, baseUV).rgb * 2.0 - 1.0;
+    vec3 N = normalize(vTBN * tsN);
 
 	/* --- Metallic & Roughness --- */
-	float metallic  = uMaterial.metallic;
-	float roughness = uMaterial.roughness;
-	if (uMaterial.hasMRMap)
-	{
-		vec2 mr = texture(uMaterial.mrMap, baseUV).gb;
-		roughness *= mr.x;
-		metallic  *= mr.y;
-	}
+	vec2 mr = texture(uMaterial.mrMap, baseUV).gb;
+    float roughness = uMaterial.roughness * mr.x;
+    float metallic = uMaterial.metallic * mr.y;
 
 	/* --- Ambient Occlusion --- */
-	float ao = 1.0;
-	if (uMaterial.hasAOMap)
-		ao = mix(1.0, texture(uMaterial.aoMap, baseUV).r, uMaterial.aoStrength);
+	float ao = mix(1.0, texture(uMaterial.aoMap, baseUV).r, uMaterial.aoStrength);
 
 	/* --- Emissive --- */
-	vec3 emissive = uMaterial.emissiveFactor;
-	if (uMaterial.hasEmissiveMap)
-		emissive *= texture(uMaterial.emissiveMap, vTexCoord).rgb;
+	vec3 emissive = uMaterial.emissiveFactor
+        * texture(uMaterial.emissiveMap, vTexCoord).rgb;
 
 	/* --- Debug Overlays --- */
 	vec4 debugColor;

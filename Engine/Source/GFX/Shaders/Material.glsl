@@ -9,11 +9,11 @@ struct Material
     vec3 emissiveFactor;
     float aoStrength;
 
-    sampler2D albedoMap;    bool hasAlbedoMap;
-    sampler2D normalMap;    bool hasNormalMap;
-    sampler2D mrMap;        bool hasMRMap;
-    sampler2D aoMap;        bool hasAOMap;
-    sampler2D emissiveMap;  bool hasEmissiveMap;
+    sampler2D albedoMap;
+    sampler2D normalMap;
+    sampler2D mrMap;
+    sampler2D aoMap;
+    sampler2D emissiveMap;
 
     int albedoTexCoord;
     int normalTexCoord;

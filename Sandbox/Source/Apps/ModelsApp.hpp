@@ -47,7 +47,7 @@ public:
 		mSponzaDirLight = sponzaScene->spawn();
 		auto& sdlC = mSponzaDirLight.add<DirLightComponent>();
 		sdlC.dirLight.direction = { 0.0f, -1.0f, 0.3f };
-		sdlC.dirLight.intensity = 5.0f;
+		sdlC.dirLight.intensity = 2.0f;
 
 		mGameDirLight = gameScene->spawn();
 		auto& gdlC = mGameDirLight.add<DirLightComponent>();

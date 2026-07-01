@@ -37,7 +37,7 @@ public:
 				std::vector<GFX::ShaderFile>{
 					{ GFX::ShaderType::Vertex, shaders / "DefaultVS.glsl" },
 					{ GFX::ShaderType::Fragment, shaders / "DefaultFS.glsl" },
-				});
+			});
 
 			{
 				APP_ZONE_NAME("Model Load 'SciFi Radar'");

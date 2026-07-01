@@ -24,8 +24,8 @@ namespace Wink::GFX
 		ShaderHandle gPrefilteredEnvMapShader;
 		TextureHandle gBRDFLUT;
 
-		CubemapHandle gCubemapBlackPixel;
-		CubemapHandle gCubemapRedPixel;
+		CubemapHandle gDefaultIrradiance;
+		CubemapHandle gDefaultPrefiltered;
 
 		IBLData gIBLData;
 		bool gRenderSkybox;
@@ -45,6 +45,11 @@ namespace Wink::GFX
 		ModelPool gModelPool;
 
 		ShaderHandle gDefaultShader;
+		TextureHandle gDefaultAlbedo;
+		TextureHandle gDefaultNormal;
+		TextureHandle gDefaultMR;
+		TextureHandle gDefaultAO;
+		TextureHandle gDefaultEmissive;
 		MaterialHandle gDefaultMaterial;
 
 		ShaderHandle gFullscreenShader;
@@ -137,12 +142,32 @@ namespace Wink::GFX
 			glVertexArrayAttribBinding(gSkyboxVAO, 0, 0);
 		}
 
+		TextureHandle create_1x1_texture(u8 r, u8 g, u8 b, u8 a)
+		{
+			Texture2DParams params;
+			params.wrapS = TextureWrap::ClampToEdge;
+			params.wrapT = TextureWrap::ClampToEdge;
+			params.minFilter = TextureFilter::Nearest;
+			params.magFilter = TextureFilter::Nearest;
+			params.sRGB = false;
+			params.hasAlpha = true;
+			params.genMips = false;
+
+			const u8 pixel[4]{ r, g, b, a };
+			return gTexturePool.load(pixel, 1, 1, 4, TextureDataType::UnsignedByte, params);
+		}
+
 		bool load_engine_resources()
 		{
 			gDefaultShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Vertex, "Resources/Shaders/DefaultVS.glsl" },
 				{ ShaderType::Fragment, "Resources/Shaders/DefaultFS.glsl" },
 			});
+			gDefaultAlbedo = create_1x1_texture(255, 255, 255, 255);
+			gDefaultNormal = create_1x1_texture(128, 128, 255, 255);
+			gDefaultMR = create_1x1_texture(0, 255, 255, 255);
+			gDefaultAO = create_1x1_texture(255, 255, 255, 255);
+			gDefaultEmissive = create_1x1_texture(255, 255, 255, 255);
 			gDefaultMaterial = gMaterialPool.create(gDefaultShader);
 
 			gFullscreenShader = gShaderPool.load(std::vector<ShaderFile>{
@@ -178,13 +203,17 @@ namespace Wink::GFX
 				{ ShaderType::Compute, "Resources/Shaders/PrefilterEnvMapCS.glsl" }
 			});
 
-			auto blackPixel = gTexturePool.decode("Resources/black_pixel.png");
-			auto redPixel = gTexturePool.decode("Resources/red_pixel.png");
-
-			IBL::gCubemapBlackPixel = gCubemapPool.hdr_to_cubemap(blackPixel, 1);
-			IBL::gCubemapRedPixel = gCubemapPool.hdr_to_cubemap(redPixel, 1);
+			IBL::gDefaultIrradiance = gCubemapPool.hdr_to_cubemap(
+				create_1x1_texture(0, 0, 0, 255), 1);
+			IBL::gDefaultPrefiltered = gCubemapPool.hdr_to_cubemap(
+				create_1x1_texture(255, 0, 0, 255), 1);
 
 			return gMaterialPool.is_valid(gDefaultMaterial) &&
+				gTexturePool.is_valid(gDefaultAlbedo) &&
+				gTexturePool.is_valid(gDefaultNormal) &&
+				gTexturePool.is_valid(gDefaultMR) &&
+				gTexturePool.is_valid(gDefaultAO) &&
+				gTexturePool.is_valid(gDefaultEmissive) &&
 				gMaterialPool.is_valid(gFullscreenMaterial) &&
 				gShaderPool.is_valid(gSkyboxShader) &&
 				gShaderPool.is_valid(IBL::gEquirectToCubemapShader) &&
@@ -286,8 +315,6 @@ namespace Wink::GFX
 
 		void draw(const DrawData& drawData)
 		{
-			ENGINE_ZONE_NAME("Renderer::draw");
-
 			assert(drawData.dirLights.size() <= MAX_DIR_LIGHTS);
 			assert(drawData.pointLights.size() <= MAX_POINT_LIGHTS);
 			assert(drawData.spotLights.size() <= MAX_SPOT_LIGHTS);
@@ -366,8 +393,8 @@ namespace Wink::GFX
 			shader->set("uHasIBL", hasIBL);
 			if (!hasIBL)
 			{
-				irradiance = gCubemapPool.try_get(IBL::gCubemapBlackPixel);
-				prefiltered = gCubemapPool.try_get(IBL::gCubemapRedPixel);
+				irradiance = gCubemapPool.try_get(IBL::gDefaultIrradiance);
+				prefiltered = gCubemapPool.try_get(IBL::gDefaultPrefiltered);
 			}
 
 			assert(irradiance && prefiltered && brdfLUT);
@@ -573,6 +600,11 @@ namespace Wink::GFX
 		ModelPool& get_model_pool() noexcept { return gModelPool; }
 
 		ShaderHandle get_default_shader() noexcept { return gDefaultShader; }
+		TextureHandle get_default_albedo() noexcept { return gDefaultAlbedo; }
+		TextureHandle get_default_normal() noexcept { return gDefaultNormal; }
+		TextureHandle get_default_mr() noexcept { return gDefaultMR; }
+		TextureHandle get_default_ao() noexcept { return gDefaultAO; }
+		TextureHandle get_default_emissive() noexcept { return gDefaultEmissive; }
 		MaterialHandle get_default_material() noexcept { return gDefaultMaterial; }
 
 		void clear_all_resources() noexcept
@@ -707,7 +739,7 @@ namespace Wink::GFX
 			using namespace RES;
 			ENGINE_ZONE_NAME("Bake Prefiltered Env Map");
 
-			assert(mipLevels > 1 && "mipLevels must be > 1 to avoid a division by zero in roughness computation");
+			assert(mipLevels > 1);
 
 			const TextureCubemap* env = gCubemapPool.try_get(envCubemap);
 			if (!env || !env->is_valid())

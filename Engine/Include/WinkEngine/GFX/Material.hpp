@@ -6,11 +6,11 @@ namespace Wink::GFX
 {
 	struct MaterialTextures
 	{
-		std::optional<RES::TextureHandle> albedo;
-		std::optional<RES::TextureHandle> normal;
-		std::optional<RES::TextureHandle> metallicRoughness;
-		std::optional<RES::TextureHandle> ao;
-		std::optional<RES::TextureHandle> emissive;
+		RES::TextureHandle albedo;
+		RES::TextureHandle normal;
+		RES::TextureHandle metallicRoughness;
+		RES::TextureHandle ao;
+		RES::TextureHandle emissive;
 	};
 
 	struct MaterialParams
@@ -36,7 +36,7 @@ namespace Wink::GFX
 		RES::ShaderHandle shader;
 
 	public:
-		Material() = default;
+		Material();
 		explicit Material(RES::ShaderHandle shader,
 			MaterialTextures textures = {},
 			MaterialParams params = {});
@@ -46,5 +46,8 @@ namespace Wink::GFX
 		[[nodiscard]] bool is_valid() const noexcept;
 
 		explicit operator bool() const noexcept { return is_valid(); }
+
+	private:
+		void set_default_textures() noexcept;
 	};
 }

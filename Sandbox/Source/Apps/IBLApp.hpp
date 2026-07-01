@@ -35,7 +35,7 @@ public:
 
 		// Camera
 		mCamEntity = scene->spawn();
-		auto& camT = mCamEntity.add<TransformComponent>().position = { -0.7f, -0.55f, 33.0f };
+		auto& camT = mCamEntity.add<TransformComponent>().position = { -0.7f, -0.55f, 35.0f };
 		mCamEntity.add<CameraComponent>(mCam).camera.fov = 20.0f;
 
 		// Dir Light
@@ -49,7 +49,7 @@ public:
 
 		const i32 rows = 11;
 		const i32 cols = 11;
-		const float spacing = 1.0f;
+		const float spacing = 1.1f;
 
 		for (i32 row = 0; row < rows; ++row)
 		{
@@ -87,7 +87,7 @@ public:
 			}
 		}
 
-		mTestTexture = texturePool.decode(RES_PATH / "HDRIs" / 
+		mTestTexture = texturePool.decode(RES_PATH / "HDRIs" /
 			"kloofendal_48d_partly_cloudy_puresky_4k.hdr");
 		auto env = cubemapPool.hdr_to_cubemap(mTestTexture);
 		auto irr = IBL::bake_irradiance_map(env);

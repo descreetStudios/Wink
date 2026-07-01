@@ -117,6 +117,11 @@ namespace Wink::GFX
 		[[nodiscard]] ModelPool& get_model_pool() noexcept;
 
 		[[nodiscard]] ShaderHandle get_default_shader() noexcept;
+		[[nodiscard]] TextureHandle get_default_albedo() noexcept;
+		[[nodiscard]] TextureHandle get_default_normal() noexcept;
+		[[nodiscard]] TextureHandle get_default_mr() noexcept;
+		[[nodiscard]] TextureHandle get_default_ao() noexcept;
+		[[nodiscard]] TextureHandle get_default_emissive() noexcept;
 		[[nodiscard]] MaterialHandle get_default_material() noexcept;
 
 		void clear_all_resources() noexcept;
