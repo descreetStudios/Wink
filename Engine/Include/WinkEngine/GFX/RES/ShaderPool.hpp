@@ -9,13 +9,14 @@ namespace Wink::GFX::RES
 	class ShaderPool final : public ResourcePool<ShaderProgram, ShaderTag>
 	{
 	public:
-		ShaderHandle load(const std::vector<ShaderSource>& sources);
 		ShaderHandle load(const std::vector<ShaderFile>& files, bool hotReload = true);
+		ShaderHandle load(const std::vector<ShaderSource>& sources);
 		void unload(ShaderHandle handle) noexcept;
 
 		void set_hot_reload(ShaderHandle handle, bool enabled) const noexcept;
 		void poll_hot_reload();
 
+		/* --- Shader Operations --- */
 		[[nodiscard]] u32 get_id(ShaderHandle handle) const noexcept;
 		[[nodiscard]] bool is_valid(ShaderHandle handle) const noexcept;
 
@@ -28,7 +29,7 @@ namespace Wink::GFX::RES
 		void reload(ShaderHandle handle) const;
 
 	private:
-		std::unordered_map<u32, std::vector<ShaderFile>> mReloadSources;
+		std::unordered_map<ShaderHandle, std::vector<ShaderFile>> mReloadSources;
 		mutable FileWatcher mWatcher;
 	};
 }

@@ -5,8 +5,7 @@
 
 namespace Wink::GFX::RES
 {
-	ModelHandle ModelPool::load(
-		const fs::path& path, ShaderHandle shader)
+	ModelHandle ModelPool::load(const fs::path& path, ShaderHandle shader)
 	{
 		fs::path filePath;
 
@@ -18,12 +17,11 @@ namespace Wink::GFX::RES
 				if (!entry.is_regular_file())
 					continue;
 
-				const auto extension = entry.path().extension().string();
+				const auto ext = entry.path().extension().string();
 
-				for (const auto& format :
-					Content::Internal::SUPPORTED_MODEL_FORMATS)
+				for (const auto& format : Content::Internal::SUPPORTED_MODEL_FORMATS)
 				{
-					if (extension == format)
+					if (ext == format)
 					{
 						filePath = entry.path();
 						break;
@@ -38,29 +36,24 @@ namespace Wink::GFX::RES
 			{
 				Logger::Internal::error(
 					"No supported model format found in folder '{}'",
-					path.string()
-				);
-
-				return ModelHandle();
+					path.string());
+				return {};
 			}
 		}
 		else
 		{
 			Logger::Internal::error(
 				"Invalid model path '{}'",
-				path.string()
-			);
-
-			return ModelHandle();
+				path.string());
+			return {};
 		}
 
-		const auto extension = filePath.extension().string();
+		const auto ext = filePath.extension().string();
 
 		bool supported = false;
-		for (const auto& format :
-			Content::Internal::SUPPORTED_MODEL_FORMATS)
+		for (const auto& format : Content::Internal::SUPPORTED_MODEL_FORMATS)
 		{
-			if (extension == format)
+			if (ext == format)
 			{
 				supported = true;
 				break;
@@ -70,19 +63,15 @@ namespace Wink::GFX::RES
 		if (!supported)
 		{
 			Logger::Internal::error(
-				"Unsupported model format '{}'",
-				extension
-			);
-
-			return ModelHandle();
+				"Unsupported model format '{}'", ext);
+			return {};
 		}
 
 		std::optional<Content::Model> model;
-		if (extension == ".gltf" || extension == ".glb")
+		if (ext == ".gltf" || ext == ".glb")
 			model = Content::Internal::load_gltf(filePath, shader);
 
-		if (!model.has_value())
-			return GFX::RES::ModelHandle{};
+		if (!model.has_value()) return {};
 
 		return allocate(std::move(*model));
 	}
@@ -94,25 +83,25 @@ namespace Wink::GFX::RES
 
 	bool ModelPool::is_valid(ModelHandle handle) const noexcept
 	{
-		bool valid = ResourcePool::is_valid(handle);
-		with(handle, [&](Content::Model& model) {
-			if (!valid) return false;
-			for (size_t i = 0; i < model.nodes.size(); ++i)
+		if (!ResourcePool::is_valid(handle))
+			return false;
+
+		return get_or(handle, [](Content::Model& model) -> bool
 			{
-				auto& node = model.nodes[i];
-				for (size_t j = 0; j < node.primitives.size(); ++j)
+				auto& meshPool = GFX::RES::get_mesh_pool();
+				auto& materialPool = GFX::RES::get_material_pool();
+
+				for (const auto& node : model.nodes)
 				{
-					auto& prim = node.primitives[j];
-					if (!GFX::RES::get_mesh_pool().is_valid(prim.mesh) ||
-						!GFX::RES::get_material_pool().is_valid(prim.material))
+					for (const auto& prim : node.primitives)
 					{
-						valid = false;
-						break;
+						if (!meshPool.is_valid(prim.mesh) ||
+							!materialPool.is_valid(prim.material))
+							return false;
 					}
 				}
-			}
-			return true;
+
+				return true;
 			});
-		return valid;
 	}
 }

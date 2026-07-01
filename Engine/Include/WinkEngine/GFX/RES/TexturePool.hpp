@@ -49,10 +49,13 @@ namespace Wink::GFX::RES
 		[[nodiscard]] bool is_valid(TextureHandle handle) const noexcept;
 
 	private:
+		enum class ImageKind { LDR, HDR, KTX };
+
 		struct ReloadInfo
 		{
 			fs::path path;
 			Texture2DParams params;
+			ImageKind kind = ImageKind::LDR;
 		};
 
 		void start_watching(TextureHandle handle) const;
@@ -60,7 +63,7 @@ namespace Wink::GFX::RES
 		void reload(TextureHandle handle) const;
 
 	private:
-		std::unordered_map<u32, ReloadInfo> mReloadSources;
+		std::unordered_map<TextureHandle, ReloadInfo> mReloadSources;
 		mutable FileWatcher mWatcher;
 	};
 }

@@ -16,22 +16,18 @@ namespace Wink::GFX::RES
 	MaterialHandle MaterialPool::clone(MaterialHandle handle)
 	{
 		const Material* m = try_get(handle);
-		if (!m) return MaterialHandle();
+		if (!m) return {};
 		return allocate(m->shader, m->textures, m->params);
 	}
 
-	void MaterialPool::apply(Handle<MaterialTag> handle) const noexcept
+	void MaterialPool::apply(MaterialHandle handle) const noexcept
 	{
-		const auto* mat = try_get(handle);
-		if (!mat) return;
-
-		mat->apply();
+		with(handle, [](Material& m) { m.apply(); });
 	}
 
 	bool MaterialPool::is_valid(MaterialHandle handle) const noexcept
 	{
-		bool valid = ResourcePool::is_valid(handle);
-		with(handle, [&](Material& m) { valid &= m.is_valid(); });
-		return valid;
+		return ResourcePool::is_valid(handle)
+			&& get_or(handle, [](Material& m) { return m.is_valid(); });
 	}
 }

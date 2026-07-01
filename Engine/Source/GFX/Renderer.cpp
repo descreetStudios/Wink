@@ -24,9 +24,8 @@ namespace Wink::GFX
 		ShaderHandle gPrefilteredEnvMapShader;
 		TextureHandle gBRDFLUT;
 
-		// Fallback
-		CubemapHandle gBlackPixel;
-		CubemapHandle gRedPixel;
+		CubemapHandle gCubemapBlackPixel;
+		CubemapHandle gCubemapRedPixel;
 
 		IBLData gIBLData;
 		bool gRenderSkybox;
@@ -50,12 +49,13 @@ namespace Wink::GFX
 
 		ShaderHandle gFullscreenShader;
 		MaterialHandle gFullscreenMaterial;
-		GLuint gFullscreenVAO = 0;
+		u32 gFullscreenVAO = 0;
 
 		ShaderHandle gSkyboxShader;
-		GLuint gSkyboxVAO = 0;
+		u32 gSkyboxVAO = 0;
+		u32 gSkyboxVBO = 0;
 
-		constexpr float SKYBOX_VERTICES[] =
+		constexpr float SKYBOX_VERTICES[]
 		{
 			// -X face
 			-1.0f,  1.0f, -1.0f,   -1.0f, -1.0f, -1.0f,   -1.0f, -1.0f,  1.0f,
@@ -77,16 +77,61 @@ namespace Wink::GFX
 			1.0f, -1.0f, -1.0f,    -1.0f, -1.0f, -1.0f,   -1.0f,  1.0f, -1.0f,
 		};
 
+		struct DirLightNames { std::string direction, intensity, color; };
+		struct PointLightNames { std::string position, intensity, color, radius; };
+		struct SpotLightNames
+		{
+			std::string position, range, direction,
+				innerCutoff, color, outerCutoff, intensity;
+		};
+
+		template<typename NamesT, typename BuildFn>
+		auto make_light_names(u32 count, std::string_view arrayName, BuildFn&& build)
+		{
+			std::vector<NamesT> names;
+			names.reserve(count);
+
+			for (u32 i = 0; i < count; ++i)
+			{
+				std::string base(arrayName);
+				base += '[';
+				base += std::to_string(i);
+				base += "].";
+				names.push_back(build(base));
+			}
+
+			return names;
+		}
+
+		const std::vector<DirLightNames> DIR_LIGHT_NAMES = make_light_names<DirLightNames>(
+			MAX_DIR_LIGHTS, "uDirLights", [](const std::string& b)
+			{
+				return DirLightNames{ b + "direction", b + "intensity", b + "color" };
+			});
+
+		const std::vector<PointLightNames> POINT_LIGHT_NAMES = make_light_names<PointLightNames>(
+			MAX_POINT_LIGHTS, "uPointLights", [](const std::string& b)
+			{
+				return PointLightNames{ b + "position", b + "intensity", b + "color", b + "radius" };
+			});
+
+		const std::vector<SpotLightNames> SPOT_LIGHT_NAMES = make_light_names<SpotLightNames>(
+			MAX_SPOT_LIGHTS, "uSpotLights", [](const std::string& b)
+			{
+				return SpotLightNames{
+					b + "position", b + "range", b + "direction",
+					b + "innerCutoff", b + "color", b + "outerCutoff", b + "intensity" };
+			});
+
 		void create_skybox_geometry()
 		{
-			u32 vbo;
 			glCreateVertexArrays(1, &gSkyboxVAO);
-			glCreateBuffers(1, &vbo);
+			glCreateBuffers(1, &gSkyboxVBO);
 
-			glNamedBufferStorage(vbo,
+			glNamedBufferStorage(gSkyboxVBO,
 				sizeof(SKYBOX_VERTICES), SKYBOX_VERTICES, 0);
 
-			glVertexArrayVertexBuffer(gSkyboxVAO, 0, vbo, 0, 3 * sizeof(float));
+			glVertexArrayVertexBuffer(gSkyboxVAO, 0, gSkyboxVBO, 0, 3 * sizeof(float));
 			glEnableVertexArrayAttrib(gSkyboxVAO, 0);
 			glVertexArrayAttribFormat(gSkyboxVAO, 0, 3, GL_FLOAT, GL_FALSE, 0);
 			glVertexArrayAttribBinding(gSkyboxVAO, 0, 0);
@@ -136,8 +181,8 @@ namespace Wink::GFX
 			auto blackPixel = gTexturePool.decode("Resources/black_pixel.png");
 			auto redPixel = gTexturePool.decode("Resources/red_pixel.png");
 
-			IBL::gBlackPixel = gCubemapPool.hdr_to_cubemap(blackPixel, 1);
-			IBL::gRedPixel = gCubemapPool.hdr_to_cubemap(redPixel, 1);
+			IBL::gCubemapBlackPixel = gCubemapPool.hdr_to_cubemap(blackPixel, 1);
+			IBL::gCubemapRedPixel = gCubemapPool.hdr_to_cubemap(redPixel, 1);
 
 			return gMaterialPool.is_valid(gDefaultMaterial) &&
 				gMaterialPool.is_valid(gFullscreenMaterial) &&
@@ -241,14 +286,28 @@ namespace Wink::GFX
 
 		void draw(const DrawData& drawData)
 		{
+			ENGINE_ZONE_NAME("Renderer::draw");
+
+			assert(drawData.dirLights.size() <= MAX_DIR_LIGHTS);
+			assert(drawData.pointLights.size() <= MAX_POINT_LIGHTS);
+			assert(drawData.spotLights.size() <= MAX_SPOT_LIGHTS);
+
 			auto& matPool = get_material_pool();
 			auto& meshPool = get_mesh_pool();
 
 			auto material = matPool.is_valid(drawData.renderObj.material) ?
 				drawData.renderObj.material : gDefaultMaterial;
 			auto mesh = drawData.renderObj.mesh;
-			auto* shader = get_shader_pool().
-				try_get(matPool.try_get(material)->shader);
+
+			const Material* mat = matPool.try_get(material);
+			assert(mat != nullptr);
+
+			auto* shader = get_shader_pool().try_get(mat->shader);
+			if (!shader || !shader->is_valid())
+			{
+				Logger::Internal::error("Material has no valid shader; skipping draw");
+				return;
+			}
 
 			matPool.apply(material);
 
@@ -259,44 +318,41 @@ namespace Wink::GFX
 			shader->set("uNormalMatrix", drawData.normalMat);
 
 			/* --- Dir Lights --- */
-			i32 lightCount = drawData.dirLights.size();
-			shader->set("uDirLightCount", lightCount);
-			for (i32 i = 0; i < lightCount; ++i)
+			shader->set("uDirLightCount", static_cast<i32>(drawData.dirLights.size()));
+			for (size_t i = 0; i < drawData.dirLights.size(); ++i)
 			{
 				const auto& light = drawData.dirLights[i];
-				const std::string base = "uDirLights[" + std::to_string(i) + "].";
-				shader->set(base + "direction", light.direction);
-				shader->set(base + "intensity", light.intensity);
-				shader->set(base + "color", light.color);
+				const auto& names = DIR_LIGHT_NAMES[i];
+				shader->set(names.direction, light.direction);
+				shader->set(names.intensity, light.intensity);
+				shader->set(names.color, light.color);
 			}
 
 			/* --- Point Lights --- */
-			lightCount = drawData.pointLights.size();
-			shader->set("uPointLightCount", lightCount);
-			for (i32 i = 0; i < lightCount; ++i)
+			shader->set("uPointLightCount", static_cast<i32>(drawData.pointLights.size()));
+			for (size_t i = 0; i < drawData.pointLights.size(); ++i)
 			{
 				const auto& light = drawData.pointLights[i];
-				const std::string base = "uPointLights[" + std::to_string(i) + "].";
-				shader->set(base + "position", light.position);
-				shader->set(base + "intensity", light.intensity);
-				shader->set(base + "color", light.color);
-				shader->set(base + "radius", light.radius);
+				const auto& names = POINT_LIGHT_NAMES[i];
+				shader->set(names.position, light.position);
+				shader->set(names.intensity, light.intensity);
+				shader->set(names.color, light.color);
+				shader->set(names.radius, light.radius);
 			}
 
 			/* --- Spot Lights --- */
-			lightCount = drawData.spotLights.size();
-			shader->set("uSpotLightCount", lightCount);
-			for (i32 i = 0; i < lightCount; ++i)
+			shader->set("uSpotLightCount", static_cast<i32>(drawData.spotLights.size()));
+			for (size_t i = 0; i < drawData.spotLights.size(); ++i)
 			{
 				const auto& light = drawData.spotLights[i];
-				const std::string base = "uSpotLights[" + std::to_string(i) + "].";
-				shader->set(base + "position", light.position);
-				shader->set(base + "range", light.range);
-				shader->set(base + "direction", light.direction);
-				shader->set(base + "innerCutoff", light.innerCutoff);
-				shader->set(base + "color", light.color);
-				shader->set(base + "outerCutoff", light.outerCutoff);
-				shader->set(base + "intensity", light.intensity);
+				const auto& names = SPOT_LIGHT_NAMES[i];
+				shader->set(names.position, light.position);
+				shader->set(names.range, light.range);
+				shader->set(names.direction, light.direction);
+				shader->set(names.innerCutoff, light.innerCutoff);
+				shader->set(names.color, light.color);
+				shader->set(names.outerCutoff, light.outerCutoff);
+				shader->set(names.intensity, light.intensity);
 			}
 
 			/* --- IBL --- */
@@ -310,9 +366,11 @@ namespace Wink::GFX
 			shader->set("uHasIBL", hasIBL);
 			if (!hasIBL)
 			{
-				irradiance = gCubemapPool.try_get(IBL::gBlackPixel);
-				prefiltered = gCubemapPool.try_get(IBL::gRedPixel);
+				irradiance = gCubemapPool.try_get(IBL::gCubemapBlackPixel);
+				prefiltered = gCubemapPool.try_get(IBL::gCubemapRedPixel);
 			}
+
+			assert(irradiance && prefiltered && brdfLUT);
 
 			irradiance->bind(12);
 			prefiltered->bind(13);
@@ -324,7 +382,7 @@ namespace Wink::GFX
 			/* --- Draw --- */
 			glBindVertexArray(meshPool.get_vao_id(mesh));
 			glDrawElements(GL_TRIANGLES,
-				static_cast<GLsizei>(meshPool.get_index_count(mesh)),
+				static_cast<i32>(meshPool.get_index_count(mesh)),
 				GL_UNSIGNED_INT, nullptr);
 		}
 	} // anonymous namespace
@@ -337,29 +395,31 @@ namespace Wink::GFX
 
 		/* --- Scene --- */
 		auto scene = ECS::get_active_scene();
-		static bool sceneWarn = true;
+		static bool sceneMissingLogged = false;
 		if (!scene)
 		{
-			if (sceneWarn)
+			if (!sceneMissingLogged)
 			{
 				Logger::Internal::warn("No scene found to render from");
-				sceneWarn = false;
+				sceneMissingLogged = true;
 			}
 			return;
 		}
+		sceneMissingLogged = false;
 
 		/* --- Camera --- */
 		auto camEOpt = scene->find_first<ECS::CameraComponent>();
-		static bool camWarn = true;
+		static bool camMissingLogged = false;
 		if (!camEOpt)
 		{
-			if (camWarn)
+			if (!camMissingLogged)
 			{
 				Logger::Internal::warn("No camera component found in scene");
-				camWarn = false;
+				camMissingLogged = true;
 			}
 			return;
 		}
+		camMissingLogged = false;
 
 		auto camE = *camEOpt;
 		Camera cam = camE.get<ECS::CameraComponent>().camera; // intended copy
@@ -393,19 +453,17 @@ namespace Wink::GFX
 		pointLights.reserve(MAX_POINT_LIGHTS);
 		spotLights.reserve(MAX_SPOT_LIGHTS);
 
-		for (auto&& [id, dlC] :
-			scene->view<ECS::DirLightComponent>())
+		for (auto&& [id, dlC] : scene->view<ECS::DirLightComponent>())
 		{
-			if (static_cast<i32>(dirLights.size()) >= MAX_DIR_LIGHTS)
+			if (dirLights.size() >= MAX_DIR_LIGHTS)
 				break;
 
 			dirLights.push_back(dlC.dirLight);
 		}
 
-		for (auto&& [id, plC] :
-			scene->view<ECS::PointLightComponent>())
+		for (auto&& [id, plC] : scene->view<ECS::PointLightComponent>())
 		{
-			if (static_cast<i32>(pointLights.size()) >= MAX_POINT_LIGHTS)
+			if (pointLights.size() >= MAX_POINT_LIGHTS)
 				break;
 
 			PointLight pl = plC.pointLight;
@@ -417,10 +475,9 @@ namespace Wink::GFX
 			pointLights.push_back(pl);
 		}
 
-		for (auto&& [id, slC] :
-			scene->view<ECS::SpotLightComponent>())
+		for (auto&& [id, slC] : scene->view<ECS::SpotLightComponent>())
 		{
-			if (static_cast<i32>(spotLights.size()) >= MAX_SPOT_LIGHTS)
+			if (spotLights.size() >= MAX_SPOT_LIGHTS)
 				break;
 
 			SpotLight sl = slC.spotLight;
@@ -437,8 +494,7 @@ namespace Wink::GFX
 
 		/* --- RenderObject --- */
 		for (auto&& [id, tC, roC] :
-			scene->view<ECS::TransformComponent,
-			ECS::RenderObjectComponent>())
+			scene->view<ECS::TransformComponent, ECS::RenderObjectComponent>())
 		{
 			auto e = scene->wrap(id);
 			if (tC.dirty)
@@ -470,7 +526,7 @@ namespace Wink::GFX
 
 		if (!load_engine_resources())
 		{
-			Logger::Internal::error("Failed to create engine materials");
+			Logger::Internal::error("Failed to create engine resources");
 			return false;
 		}
 
@@ -479,6 +535,14 @@ namespace Wink::GFX
 
 	void shutdown()
 	{
+		glDeleteVertexArrays(1, &gFullscreenVAO);
+		glDeleteVertexArrays(1, &gSkyboxVAO);
+		glDeleteBuffers(1, &gSkyboxVBO);
+
+		gFullscreenVAO = 0;
+		gSkyboxVAO = 0;
+		gSkyboxVBO = 0;
+
 		RES::clear_all_resources();
 	}
 
@@ -490,8 +554,8 @@ namespace Wink::GFX
 	void resize(u32 width, u32 height)
 	{
 		glViewport(0, 0,
-			static_cast<GLsizei>(width),
-			static_cast<GLsizei>(height));
+			static_cast<i32>(width),
+			static_cast<i32>(height));
 	}
 
 	void set_clear_color(const glm::vec4& color)
@@ -541,9 +605,8 @@ namespace Wink::GFX
 				const Texture2D* tex = gTexturePool.try_get(hdr);
 				if (!tex || !tex->is_valid())
 				{
-					Logger::Internal::error(
-						"Invalid HDR Texture");
-					return CubemapHandle();
+					Logger::Internal::error("Invalid HDR texture");
+					return {};
 				}
 
 				CubemapSpec spec;
@@ -559,13 +622,12 @@ namespace Wink::GFX
 				TextureCubemap* cubemap = gCubemapPool.try_get(outHandle);
 				if (!cubemap || !cubemap->is_valid())
 				{
-					Logger::Internal::error(
-						"Failed to allocate output cubemap");
-					return CubemapHandle();
+					Logger::Internal::error("Failed to allocate output cubemap");
+					return {};
 				}
 
 				const ShaderProgram* cs = gShaderPool.try_get(gEquirectToCubemapShader);
-				if (!cs || !cs->is_valid()) return CubemapHandle();
+				if (!cs || !cs->is_valid()) return {};
 
 				cs->use();
 
@@ -597,11 +659,11 @@ namespace Wink::GFX
 			if (!env || !env->is_valid())
 			{
 				Logger::Internal::error("Invalid environment cubemap handle");
-				return CubemapHandle();
+				return {};
 			}
 
 			const ShaderProgram* cs = gShaderPool.try_get(gIrradianceConvolutionShader);
-			if (!cs || !cs->is_valid()) return CubemapHandle();
+			if (!cs || !cs->is_valid()) return {};
 
 			CubemapSpec spec;
 			spec.width = faceSize;
@@ -618,7 +680,7 @@ namespace Wink::GFX
 			if (!irradiance || !irradiance->is_valid())
 			{
 				Logger::Internal::error("Failed to allocate irradiance cubemap");
-				return CubemapHandle();
+				return {};
 			}
 
 			cs->use();
@@ -645,15 +707,17 @@ namespace Wink::GFX
 			using namespace RES;
 			ENGINE_ZONE_NAME("Bake Prefiltered Env Map");
 
+			assert(mipLevels > 1 && "mipLevels must be > 1 to avoid a division by zero in roughness computation");
+
 			const TextureCubemap* env = gCubemapPool.try_get(envCubemap);
 			if (!env || !env->is_valid())
 			{
 				Logger::Internal::error("Invalid environment cubemap handle");
-				return CubemapHandle();
+				return {};
 			}
 
 			const ShaderProgram* cs = gShaderPool.try_get(gPrefilteredEnvMapShader);
-			if (!cs || !cs->is_valid()) return CubemapHandle();
+			if (!cs || !cs->is_valid()) return {};
 
 			CubemapSpec spec;
 			spec.width = faceSize;
@@ -670,13 +734,13 @@ namespace Wink::GFX
 			if (!prefiltered || !prefiltered->is_valid())
 			{
 				Logger::Internal::error("Failed to allocate prefiltered env cubemap");
-				return CubemapHandle();
+				return {};
 			}
 
 			cs->use();
 			env->bind(0);
 			cs->set("uEnvironment", 0);
-			cs->set("uSampleCount", static_cast<u32>(sampleCount));
+			cs->set("uSampleCount", sampleCount);
 
 			for (u32 mip = 0; mip < mipLevels; ++mip)
 			{
@@ -687,7 +751,7 @@ namespace Wink::GFX
 				cs->set("uFaceSize", static_cast<i32>(mipSize));
 
 				glBindImageTexture(1, prefiltered->get_id(),
-					static_cast<GLint>(mip), GL_TRUE, 0,
+					static_cast<i32>(mip), GL_TRUE, 0,
 					GL_WRITE_ONLY, GL_RGBA16F);
 
 				const u32 groups = std::max(1u, (mipSize + 7) / 8);

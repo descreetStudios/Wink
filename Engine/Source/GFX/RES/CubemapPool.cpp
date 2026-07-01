@@ -21,43 +21,32 @@ namespace Wink::GFX::RES
 
 	u32 CubemapPool::get_id(CubemapHandle handle) const noexcept
 	{
-		u32 id = 0;
-		with(handle, [&](TextureCubemap& tex) { id = tex.get_id(); });
-		return id;
+		return get_or(handle, [](TextureCubemap& tex) { return tex.get_id(); });
 	}
 
 	u32 CubemapPool::get_width(CubemapHandle handle) const noexcept
 	{
-		u32 w = 0;
-		with(handle, [&](TextureCubemap& tex) { w = tex.get_width(); });
-		return w;
+		return get_or(handle, [](TextureCubemap& tex) { return tex.get_width(); });
 	}
 
 	u32 CubemapPool::get_height(CubemapHandle handle) const noexcept
 	{
-		u32 h = 0;
-		with(handle, [&](TextureCubemap& tex) { h = tex.get_height(); });
-		return h;
+		return get_or(handle, [](TextureCubemap& tex) { return tex.get_height(); });
 	}
 
 	u32 CubemapPool::get_internal_format(CubemapHandle handle) const noexcept
 	{
-		u32 f = 0;
-		with(handle, [&](TextureCubemap& tex) { f = tex.get_internal_format(); });
-		return f;
+		return get_or(handle, [](TextureCubemap& tex) { return tex.get_internal_format(); });
 	}
 
 	u32 CubemapPool::get_mip_levels(CubemapHandle handle) const noexcept
 	{
-		u32 l = 0;
-		with(handle, [&](TextureCubemap& tex) { l = tex.get_mip_levels(); });
-		return l;
+		return get_or(handle, [](TextureCubemap& tex) { return tex.get_mip_levels(); });
 	}
 
 	bool CubemapPool::is_valid(CubemapHandle handle) const noexcept
 	{
-		bool valid = ResourcePool::is_valid(handle);
-		with(handle, [&](TextureCubemap& tex) { valid &= tex.is_valid(); });
-		return valid;
+		return ResourcePool::is_valid(handle)
+			&& get_or(handle, [](TextureCubemap& tex) { return tex.is_valid(); });
 	}
 }

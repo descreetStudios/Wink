@@ -17,7 +17,7 @@ namespace Wink::GFX::RES
 		if (!fs::exists(path))
 		{
 			Logger::Internal::error(
-				"Tetxure path does not exist '{}'", path.string());
+				"Texture path does not exist '{}'", path.string());
 			return {};
 		}
 
@@ -32,6 +32,7 @@ namespace Wink::GFX::RES
 		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
 		TextureHandle handle;
+		ImageKind kind = ImageKind::LDR;
 
 		if (ext == ".hdr" || ext == ".exr")
 		{
@@ -40,29 +41,24 @@ namespace Wink::GFX::RES
 			{
 				Logger::Internal::error(
 					"Failed to decode HDR image '{}'", path.string());
-				return handle;
+				return {};
 			}
 
 			handle = load(hdr.pixels.data(),
 				static_cast<u32>(hdr.width),
 				static_cast<u32>(hdr.height),
 				3, TextureDataType::Float, params);
-			if (!handle.is_valid())
-				return handle;
 
-			mReloadSources[handle.index] = ReloadInfo{ path, params };
-			set_hot_reload(handle, hotReload);
-			return handle;
+			kind = ImageKind::HDR;
 		}
-
-		if (ext == ".ktx")
+		else if (ext == ".ktx")
 		{
 			Content::DecodedImage ktx = Content::decode_ktx(path);
 			if (!ktx)
 			{
 				Logger::Internal::error(
 					"Failed to decode KTX texture '{}'", path.string());
-				return handle;
+				return {};
 			}
 
 			handle = load(ktx.pixels.data(),
@@ -71,31 +67,29 @@ namespace Wink::GFX::RES
 				static_cast<u32>(ktx.channels),
 				TextureDataType::HalfFloat, params);
 
-			if (!handle.is_valid())
-				return handle;
-
-			mReloadSources[handle.index] = ReloadInfo{ path, params };
-			set_hot_reload(handle, hotReload);
-			return handle;
+			kind = ImageKind::KTX;
 		}
-
-		Content::DecodedImage img = Content::decode_image(path);
-		if (!img)
+		else
 		{
-			Logger::Internal::error(
-				"Failed to decode LDR image '{}'", path.string());
-			return handle;
+			Content::DecodedImage img = Content::decode_image(path);
+			if (!img)
+			{
+				Logger::Internal::error(
+					"Failed to decode LDR image '{}'", path.string());
+				return {};
+			}
+
+			handle = load(img.pixels.data(),
+				static_cast<u32>(img.width),
+				static_cast<u32>(img.height),
+				static_cast<u32>(img.channels),
+				TextureDataType::UnsignedByte, params);
 		}
 
-		handle = load(img.pixels.data(),
-			static_cast<u32>(img.width),
-			static_cast<u32>(img.height),
-			static_cast<u32>(img.channels),
-			TextureDataType::UnsignedInt, params);
 		if (!handle.is_valid())
-			return handle;
+			return {};
 
-		mReloadSources[handle.index] = ReloadInfo{ path, params };
+		mReloadSources[handle] = ReloadInfo{ path, params, kind };
 		set_hot_reload(handle, hotReload);
 		return handle;
 	}
@@ -104,9 +98,12 @@ namespace Wink::GFX::RES
 		const u8* encodedData, size_t size,
 		const Texture2DParams& params, bool flipVertically)
 	{
+		assert(encodedData != nullptr);
+		assert(size > 0);
+
 		Content::DecodedImage img = Content::decode_image_from_memory(
 			encodedData, size, params.hasAlpha, flipVertically);
-		if (!img) return TextureHandle();
+		if (!img) return {};
 
 		return load(img.pixels.data(),
 			static_cast<u32>(img.width),
@@ -119,9 +116,12 @@ namespace Wink::GFX::RES
 		const u8* encodedData, size_t size,
 		const Texture2DParams& params, bool flipVertically)
 	{
+		assert(encodedData != nullptr);
+		assert(size > 0);
+
 		Content::HDRImage hdr = Content::decode_hdr_from_memory(
 			encodedData, size, flipVertically);
-		if (!hdr) return TextureHandle();
+		if (!hdr) return {};
 
 		return load(hdr.pixels.data(),
 			static_cast<u32>(hdr.width),
@@ -135,6 +135,9 @@ namespace Wink::GFX::RES
 		u32 channels, TextureDataType dataType,
 		const Texture2DParams& params)
 	{
+		assert(pixels != nullptr);
+		assert(width > 0 && height > 0);
+
 		TextureHandle handle = allocate();
 		with(handle, [&](Texture2D& tex)
 			{
@@ -148,6 +151,9 @@ namespace Wink::GFX::RES
 		u32 channels, TextureDataType dataType,
 		const Texture2DParams& params)
 	{
+		assert(pixels != nullptr);
+		assert(width > 0 && height > 0);
+
 		TextureHandle handle = allocate();
 		with(handle, [&](Texture2D& tex)
 			{
@@ -160,6 +166,8 @@ namespace Wink::GFX::RES
 		u32 width, u32 height, u32 internalFormat,
 		const Texture2DParams& params)
 	{
+		assert(width > 0 && height > 0);
+
 		TextureHandle handle = allocate();
 		with(handle, [&](Texture2D& tex)
 			{
@@ -171,7 +179,7 @@ namespace Wink::GFX::RES
 	void TexturePool::unload(TextureHandle handle) noexcept
 	{
 		stop_watching(handle);
-		mReloadSources.erase(handle.index);
+		mReloadSources.erase(handle);
 		deallocate(handle);
 	}
 
@@ -196,35 +204,28 @@ namespace Wink::GFX::RES
 
 	u32 TexturePool::get_id(TextureHandle handle) const noexcept
 	{
-		u32 id = 0;
-		with(handle, [&](Texture2D& tex) { id = tex.get_id(); });
-		return id;
+		return get_or(handle, [](Texture2D& tex) { return tex.get_id(); });
 	}
 
 	u32 TexturePool::get_width(TextureHandle handle) const noexcept
 	{
-		u32 w = 0;
-		with(handle, [&](Texture2D& tex) { w = tex.get_width(); });
-		return w;
+		return get_or(handle, [](Texture2D& tex) { return tex.get_width(); });
 	}
 
 	u32 TexturePool::get_height(TextureHandle handle) const noexcept
 	{
-		u32 h = 0;
-		with(handle, [&](Texture2D& tex) { h = tex.get_height(); });
-		return h;
+		return get_or(handle, [](Texture2D& tex) { return tex.get_height(); });
 	}
 
 	bool TexturePool::is_valid(TextureHandle handle) const noexcept
 	{
-		bool valid = ResourcePool::is_valid(handle);
-		with(handle, [&](Texture2D& tex) { valid &= tex.is_valid(); });
-		return valid;
+		return ResourcePool::is_valid(handle)
+			&& get_or(handle, [](Texture2D& tex) { return tex.is_valid(); });
 	}
 
 	void TexturePool::start_watching(TextureHandle handle) const
 	{
-		auto it = mReloadSources.find(handle.index);
+		auto it = mReloadSources.find(handle);
 		if (it == mReloadSources.end()) return;
 
 		mWatcher.watch(it->second.path, [this, handle](const fs::path&)
@@ -235,7 +236,7 @@ namespace Wink::GFX::RES
 
 	void TexturePool::stop_watching(TextureHandle handle) const
 	{
-		auto it = mReloadSources.find(handle.index);
+		auto it = mReloadSources.find(handle);
 		if (it == mReloadSources.end()) return;
 
 		mWatcher.unwatch(it->second.path);
@@ -243,33 +244,76 @@ namespace Wink::GFX::RES
 
 	void TexturePool::reload(TextureHandle handle) const
 	{
-		bool enabled = false;
-		with(handle, [&](Texture2D& tex) { enabled = tex.hotReloadEnabled; });
+		bool enabled = get_or(handle, [](Texture2D& tex) { return tex.hotReloadEnabled; });
 		if (!enabled) return;
 
 		Logger::trace("Hot-reloading texture");
 
-		auto it = mReloadSources.find(handle.index);
+		auto it = mReloadSources.find(handle);
 		if (it == mReloadSources.end()) return;
 
-		auto img = Content::decode_image(it->second.path);
-		if (!img.is_valid())
-		{
-			Logger::Internal::error(
-				"Texture hot-reload failed for handle index '{}'; keeping previous texture.",
-				handle.index);
-			return;
-		}
+		const ReloadInfo& info = it->second;
 
 		Texture2D fresh;
-		fresh.upload(img.pixels.data(),
-			static_cast<u32>(img.width),
-			static_cast<u32>(img.height),
-			static_cast<u32>(img.channels),
-			TextureDataType::UnsignedInt,
-			it->second.params);
-		fresh.hotReloadEnabled = true;
 
+		switch (info.kind)
+		{
+		case ImageKind::HDR:
+		{
+			Content::HDRImage hdr = Content::decode_hdr(info.path);
+			if (!hdr)
+			{
+				Logger::Internal::error(
+					"Texture hot-reload failed for handle [{}/{}]; keeping previous texture.",
+					handle.index, handle.generation);
+				return;
+			}
+
+			fresh.upload(hdr.pixels.data(),
+				static_cast<u32>(hdr.width),
+				static_cast<u32>(hdr.height),
+				3, TextureDataType::Float, info.params);
+			break;
+		}
+		case ImageKind::KTX:
+		{
+			Content::DecodedImage ktx = Content::decode_ktx(info.path);
+			if (!ktx)
+			{
+				Logger::Internal::error(
+					"Texture hot-reload failed for handle [{}/{}]; keeping previous texture.",
+					handle.index, handle.generation);
+				return;
+			}
+
+			fresh.upload(ktx.pixels.data(),
+				static_cast<u32>(ktx.width),
+				static_cast<u32>(ktx.height),
+				static_cast<u32>(ktx.channels),
+				TextureDataType::HalfFloat, info.params);
+			break;
+		}
+		default:
+		{
+			Content::DecodedImage img = Content::decode_image(info.path);
+			if (!img)
+			{
+				Logger::Internal::error(
+					"Texture hot-reload failed for handle [{}/{}]; keeping previous texture.",
+					handle.index, handle.generation);
+				return;
+			}
+
+			fresh.upload(img.pixels.data(),
+				static_cast<u32>(img.width),
+				static_cast<u32>(img.height),
+				static_cast<u32>(img.channels),
+				TextureDataType::UnsignedByte, info.params);
+			break;
+		}
+		}
+
+		fresh.hotReloadEnabled = true;
 		const_cast<TexturePool*>(this)->replace(handle, std::move(fresh));
 	}
 }

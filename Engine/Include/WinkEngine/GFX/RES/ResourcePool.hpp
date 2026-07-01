@@ -93,7 +93,7 @@ namespace Wink::GFX::RES
 
 	protected:
 		template<typename Fn>
-		bool with(HandleType handle, Fn&& fn)
+		bool with(HandleType handle, Fn&& fn) const
 		{
 			if (!is_valid(handle)) return false;
 			fn(*const_cast<T*>(&*mSlots[handle.index].value));
@@ -101,11 +101,13 @@ namespace Wink::GFX::RES
 		}
 
 		template<typename Fn>
-		bool with(HandleType handle, Fn&& fn) const
+		[[nodiscard]] auto get_or(HandleType handle, Fn&& fn) const noexcept
+			-> std::invoke_result_t<Fn, T&>
 		{
-			if (!is_valid(handle)) return false;
-			fn(*const_cast<T*>(&*mSlots[handle.index].value));
-			return true;
+			using R = std::invoke_result_t<Fn, T&>;
+			R result{};
+			with(handle, [&](T& t) { result = fn(t); });
+			return result;
 		}
 
 		bool replace(HandleType handle, T&& newValue) noexcept
@@ -140,7 +142,7 @@ namespace Wink::GFX::RES
 		}
 
 	private:
-		std::deque<Slot> mSlots;
+		mutable std::deque<Slot> mSlots;
 		std::vector<u32> mFreeList;
 		size_t mLiveCount = 0;
 	};
