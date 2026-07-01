@@ -1,14 +1,14 @@
 <p align="center">
     <img src="Images/wink_logo_256.png" alt="descreetStudios Logo" width="200"/>
 </p>
-<p align="center">
-    <span style="font-size: 32px;"><b>Wink Graphics Engine</b></span> <br>
-    <span style="font-size: 20px;">A project by descreetStudios, made with love</span> <br>
-    <img src="Images/logo_colored_nobg.png" alt="descreetStudios Logo" width="100"/> <br>
-    <span style="font-size: 18px;">🔥<i>Scroll down for cool showcases</i>🔥</span> <br>
-</p>
 
-# Getting Started
+# Wink Graphics Engine
+### A project by descreetStudios, made with love
+#### 🔥*Scroll down for cool showcases*🔥
+
+<br>
+
+## Getting Started
 
 ### 1. Clone the repository
 ```bash
