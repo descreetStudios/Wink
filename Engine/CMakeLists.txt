@@ -190,15 +190,15 @@ PRIVATE
     "Source/GFX/RES/CubemapPool.cpp" 
     "Source/GFX/RES/MaterialPool.cpp" 
     "Source/GFX/RES/ModelPool.cpp" 
-    
-    # --- Content --- #
-    "Source/Content/Image.cpp" 
-    "Source/Content/GLTFModel.cpp" 
 
     # --- Graphics --- #
     "Source/GFX/Material.cpp" 
     "Source/GFX/Camera.cpp" 
-    "Source/GFX/Renderer.cpp")
+    "Source/GFX/Renderer.cpp"
+
+    # --- Content --- #
+    "Source/Content/Image.cpp" 
+    "Source/Content/GLTFModel.cpp")
 
 function(wink_copy_engine_resources target)
     set(ENGINE_RESOURCES_DIR "${CMAKE_SOURCE_DIR}/Engine/Resources"
