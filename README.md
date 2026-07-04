@@ -8,6 +8,20 @@
 
 <br>
 
+## What is Wink?
+
+Wink Graphics Engine is a personal project that aims to simplify the vast world of graphics programming by providing an easy-to-use, extensible rendering engine.
+
+The engine features a **Forward Physically Based Renderer** (PBR) with integrated **Image-Based Lighting** (IBL).
+
+Internally, resources on both the CPU and GPU are managed through a **FreeList Pool** architecture, exposing convenient, strongly typed handles to the user.
+
+A **glTF Model Loader** is included, providing straightforward model loading with support for standard glTF materials.
+
+The repository also includes a Sandbox project that showcases and tests the engine's features. Users can build their own applications by extending the `Application` class and defining the `create_application()` entry point. By overriding the application lifecycle methods, users can leverage the built-in **Entity Component System** (ECS) along with the engine's rendering and resource management features to develop graphics applications.
+
+<br>
+
 ## Getting Started
 
 ### 1. Clone the repository
