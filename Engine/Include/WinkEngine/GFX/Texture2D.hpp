@@ -62,6 +62,9 @@ namespace Wink::GFX
 			u32 channels = 3, TextureDataType dataType = TextureDataType::Float,
 			const Texture2DParams& params = {}) noexcept;
 
+		void make_resident() noexcept;
+		void make_non_resident() noexcept;
+
 		void allocate(u32 width, u32 height, u32 internalFormat,
 			const Texture2DParams& params = {}) noexcept;
 
@@ -70,6 +73,8 @@ namespace Wink::GFX
 		[[nodiscard]] u32 get_id() const noexcept { return mID; }
 		[[nodiscard]] u32 get_width() const noexcept { return mWidth; }
 		[[nodiscard]] u32 get_height() const noexcept { return mHeight; }
+		[[nodiscard]] u64 get_bindless_handle() const noexcept { return mBindlessHandle; }
+		[[nodiscard]] bool is_resident() const noexcept { return mResident; }
 		[[nodiscard]] bool is_valid() const noexcept { return mID != 0; }
 
 		explicit operator bool() const noexcept { return is_valid(); }
@@ -81,5 +86,7 @@ namespace Wink::GFX
 		u32 mID = 0;
 		u32 mWidth = 0;
 		u32 mHeight = 0;
+		u64 mBindlessHandle = 0;
+		bool mResident = false;
 	};
 }

@@ -6,26 +6,22 @@ namespace Wink::GFX
 {
 	namespace
 	{
-		struct TextureSlotDesc
-		{
-			RES::TextureHandle MaterialTextures::*slot;
-			const char* uniformName;
-			i32 unit;
-		};
+		constexpr u32 MATERIAL_UBO_BINDING = 2;
+		u32 gMaterialUBO = 0;
+	}
 
-		constexpr i32 ALBEDO_UNIT = 0;
-		constexpr i32 NORMAL_UNIT = 1;
-		constexpr i32 MR_UNIT = 2;
-		constexpr i32 AO_UNIT = 3;
-		constexpr i32 EMISSIVE_UNIT = 4;
+	void Material::init_ubo()
+	{
+		glCreateBuffers(1, &gMaterialUBO);
+		glNamedBufferStorage(gMaterialUBO,
+			sizeof(MaterialTextureHandles) + sizeof(MaterialParams),
+			nullptr, GL_DYNAMIC_STORAGE_BIT);
+	}
 
-		constexpr TextureSlotDesc TEXTURE_SLOTS[]{
-			{ &MaterialTextures::albedo, "uMaterial.albedoMap", ALBEDO_UNIT },
-			{ &MaterialTextures::normal, "uMaterial.normalMap", NORMAL_UNIT },
-			{ &MaterialTextures::metallicRoughness, "uMaterial.mrMap", MR_UNIT },
-			{ &MaterialTextures::ao, "uMaterial.aoMap", AO_UNIT },
-			{ &MaterialTextures::emissive, "uMaterial.emissiveMap", EMISSIVE_UNIT },
-		};
+	void Material::destroy_ubo()
+	{
+		glDeleteBuffers(1, &gMaterialUBO);
+		gMaterialUBO = 0;
 	}
 
 	void Material::set_default_textures() noexcept
@@ -38,7 +34,7 @@ namespace Wink::GFX
 
 		fill(textures.albedo, GFX::RES::get_default_albedo());
 		fill(textures.normal, GFX::RES::get_default_normal());
-		fill(textures.metallicRoughness, GFX::RES::get_default_mr());
+		fill(textures.mr, GFX::RES::get_default_mr());
 		fill(textures.ao, GFX::RES::get_default_ao());
 		fill(textures.emissive, GFX::RES::get_default_emissive());
 	}
@@ -58,34 +54,33 @@ namespace Wink::GFX
 	void Material::apply() const noexcept
 	{
 		assert(is_valid());
+		assert(gMaterialUBO != 0);
 
 		ShaderProgram* s = RES::get_shader_pool().try_get(shader);
 		assert(s);
-
 		s->use();
 
-		for (const auto& desc : TEXTURE_SLOTS)
-		{
-			const RES::TextureHandle handle = textures.*(desc.slot);
+		auto resolve = [](RES::TextureHandle h) -> u64
+			{
+				const Texture2D* t = RES::get_texture_pool().try_get(h);
+				assert(t && t->is_resident());
+				return t->get_bindless_handle();
+			};
 
-			Texture2D* t = RES::get_texture_pool().try_get(handle);
-			assert(t);
+		MaterialTextureHandles handles{
+			.albedo = resolve(textures.albedo),
+			.normal = resolve(textures.normal),
+			.mr = resolve(textures.mr),
+			.ao = resolve(textures.ao),
+			.emissive = resolve(textures.emissive),
+		};
 
-			t->bind(desc.unit);
-			s->set(desc.uniformName, desc.unit);
-		}
+		glNamedBufferSubData(gMaterialUBO, 0,
+			sizeof(handles), &handles);
+		glNamedBufferSubData(gMaterialUBO, sizeof(handles),
+			sizeof(params), &params);
 
-		s->set("uMaterial.baseColor", params.baseColor);
-		s->set("uMaterial.metallic", params.metallic);
-		s->set("uMaterial.roughness", params.roughness);
-		s->set("uMaterial.emissiveFactor", params.emissiveFactor);
-		s->set("uMaterial.aoStrength", params.aoStrength);
-
-		s->set("uMaterial.albedoTexCoord", static_cast<i32>(params.albedoTexCoord));
-		s->set("uMaterial.normalTexCoord", static_cast<i32>(params.normalTexCoord));
-		s->set("uMaterial.mrTexCoord", static_cast<i32>(params.mrTexCoord));
-		s->set("uMaterial.aoTexCoord", static_cast<i32>(params.aoTexCoord));
-		s->set("uMaterial.emissiveTexCoord", static_cast<i32>(params.emissiveTexCoord));
+		glBindBufferBase(GL_UNIFORM_BUFFER, MATERIAL_UBO_BINDING, gMaterialUBO);
 	}
 
 	bool Material::is_valid() const noexcept

@@ -19,25 +19,32 @@ namespace Wink::GFX
 
 	Texture2D::~Texture2D()
 	{
+		make_non_resident();
 		glDeleteTextures(1, &mID);
 	}
 
 	MOVE_CTOR_IMPL(Texture2D) noexcept
-		: mID(o.mID), mWidth(o.mWidth), mHeight(o.mHeight)
+		: mID(o.mID), mWidth(o.mWidth), mHeight(o.mHeight),
+		mBindlessHandle(o.mBindlessHandle), mResident(o.mResident)
 	{
 		o.mID = 0;
 		o.mWidth = 0;
 		o.mHeight = 0;
+		o.mBindlessHandle = 0;
+		o.mResident = false;
 	}
 
 	MOVE_ASSIGN_IMPL(Texture2D) noexcept
 	{
 		if (this != &o)
 		{
+			make_non_resident();
 			glDeleteTextures(1, &mID);
 			mID = o.mID;
 			mWidth = o.mWidth;
 			mHeight = o.mHeight;
+			mBindlessHandle = o.mBindlessHandle;
+			mResident = o.mResident;
 			o.mID = 0;
 			o.mWidth = 0;
 			o.mHeight = 0;
@@ -132,6 +139,24 @@ namespace Wink::GFX
 			glGenerateTextureMipmap(mID);
 
 		glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+	}
+
+	void Texture2D::make_resident() noexcept
+	{
+		if (mResident || !is_valid()) return;
+
+		if (mBindlessHandle == 0)
+			mBindlessHandle = glGetTextureHandleARB(mID);
+
+		glMakeTextureHandleResidentARB(mBindlessHandle);
+		mResident = true;
+	}
+
+	void Texture2D::make_non_resident() noexcept
+	{
+		if (!mResident) return;
+		glMakeTextureHandleNonResidentARB(mBindlessHandle);
+		mResident = false;
 	}
 
 	void Texture2D::allocate(u32 width, u32 height, u32 internalFormat,

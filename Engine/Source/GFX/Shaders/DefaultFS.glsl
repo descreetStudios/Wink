@@ -1,5 +1,7 @@
 #version 460 core
 
+#extension GL_ARB_bindless_texture : require
+
 #include "ToneMapping.glsl"
 #include "Material.glsl"
 #include "PBR.glsl"
@@ -25,12 +27,16 @@ in vec3 vDebug;
 
 out vec4 FragColor;
 
-uniform Material uMaterial;
-
 uniform samplerCube uIrradianceMap;
 uniform samplerCube uPrefilteredMap;
 uniform sampler2D uBRDFLUT;
 uniform bool uHasIBL;
+
+/* --- TexCoord Location Helper --- */
+vec2 get_uv_loc(int loc)
+{
+	return loc == 1 ? vTexCoord1 : vTexCoord;
+}
 
 /* --- Directional Light --- */
 vec3 compute_dir_light(DirLight light,
@@ -178,27 +184,34 @@ vec3 compute_pbr(vec3 albedo, vec3 N, vec3 V,
 
 void main()
 {
-	vec2 baseUV = (uMaterial.albedoTexCoord == 1 ? vTexCoord1 : vTexCoord);
 
 	/* --- Albedo --- */
-	vec4 albedo = uMaterial.baseColor
-        * texture(uMaterial.albedoMap, baseUV);
+	vec2 uv = get_uv_loc(uMaterial.albedoTexCoord);
+	vec4 albedo = uMaterial.baseColor *
+		SAMPLE_BINDLESS(uAlbedoHandle, uv);
 
 	/* --- Normals --- */
-	vec3 tsN = texture(uMaterial.normalMap, baseUV).rgb * 2.0 - 1.0;
+	uv = get_uv_loc(uMaterial.normalTexCoord);
+	vec3 tsN = SAMPLE_BINDLESS(uNormalHandle, uv).rgb * 2.0 - 1.0;
     vec3 N = normalize(vTBN * tsN);
 
 	/* --- Metallic & Roughness --- */
-	vec2 mr = texture(uMaterial.mrMap, baseUV).gb;
+	uv = get_uv_loc(uMaterial.mrTexCoord);
+	vec2 mr = SAMPLE_BINDLESS(uMRHandle, uv).gb;
     float roughness = uMaterial.roughness * mr.x;
     float metallic = uMaterial.metallic * mr.y;
 
 	/* --- Ambient Occlusion --- */
-	float ao = mix(1.0, texture(uMaterial.aoMap, baseUV).r, uMaterial.aoStrength);
+	uv = get_uv_loc(uMaterial.aoTexCoord);
+	float ao = mix(1.0,
+		SAMPLE_BINDLESS(uAOHandle, uv).r, uMaterial.aoStrength);
 
 	/* --- Emissive --- */
-	vec3 emissive = uMaterial.emissiveFactor
-        * texture(uMaterial.emissiveMap, vTexCoord).rgb;
+	uv = get_uv_loc(uMaterial.emissiveTexCoord);
+	vec3 emissive = uMaterial.emissiveFactor.rgb
+		* SAMPLE_BINDLESS(uEmissiveHandle, uv).rgb;
+
+	//FragColor = vec4(uMaterial.emissiveFactor.rgb, 1.0f); return;
 
 	/* --- Debug Overlays --- */
 	vec4 debugColor;

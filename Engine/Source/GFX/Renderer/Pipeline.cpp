@@ -112,10 +112,6 @@ namespace Wink::GFX
 
 	void draw(const DrawData& drawData)
 	{
-		assert(drawData.dirLights.size() <= MAX_DIR_LIGHTS);
-		assert(drawData.pointLights.size() <= MAX_POINT_LIGHTS);
-		assert(drawData.spotLights.size() <= MAX_SPOT_LIGHTS);
-
 		auto material = gMaterialPool.is_valid(drawData.renderObj.material) ?
 			drawData.renderObj.material : gDefaultMaterial;
 		auto mesh = drawData.renderObj.mesh;

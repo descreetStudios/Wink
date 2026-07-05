@@ -208,7 +208,7 @@ namespace Wink::Content
 			mat->params.emissiveFactor = {
 				src.emissiveFactor[0],
 				src.emissiveFactor[1],
-				src.emissiveFactor[2] };
+				src.emissiveFactor[2], 0.0f };
 
 			/* --- Maps --- */
 			const Texture2DParams albedoParams{ .sRGB = true };
@@ -231,7 +231,7 @@ namespace Wink::Content
 			if (auto mr = load_material_texture<fastgltf::TextureInfo>(
 				asset, src.pbrData.metallicRoughnessTexture, baseDir, mrParams, progress))
 			{
-				mat->textures.metallicRoughness = *mr;
+				mat->textures.mr = *mr;
 				mat->params.mrTexCoord = resolve_tex_coord(*src.pbrData.metallicRoughnessTexture);
 			}
 

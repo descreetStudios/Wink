@@ -142,6 +142,7 @@ namespace Wink::GFX::RES
 		with(handle, [&](Texture2D& tex)
 			{
 				tex.upload(pixels, width, height, channels, dataType, params);
+				tex.make_resident();
 			});
 		return handle;
 	}
@@ -158,6 +159,7 @@ namespace Wink::GFX::RES
 		with(handle, [&](Texture2D& tex)
 			{
 				tex.upload(pixels, width, height, channels, dataType, params);
+				tex.make_resident();
 			});
 		return handle;
 	}
@@ -172,6 +174,7 @@ namespace Wink::GFX::RES
 		with(handle, [&](Texture2D& tex)
 			{
 				tex.allocate(width, height, internalFormat, params);
+				tex.make_resident();
 			});
 		return handle;
 	}
@@ -314,6 +317,7 @@ namespace Wink::GFX::RES
 		}
 
 		fresh.hotReloadEnabled = true;
+		fresh.make_resident();
 		const_cast<TexturePool*>(this)->replace(handle, std::move(fresh));
 	}
 }

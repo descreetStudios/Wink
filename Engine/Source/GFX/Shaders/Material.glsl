@@ -6,20 +6,31 @@ struct Material
     vec4 baseColor;
     float metallic;
     float roughness;
-    vec3 emissiveFactor;
     float aoStrength;
-
-    sampler2D albedoMap;
-    sampler2D normalMap;
-    sampler2D mrMap;
-    sampler2D aoMap;
-    sampler2D emissiveMap;
+    float _pad;
+    vec4 emissiveFactor; // .w unused
 
     int albedoTexCoord;
     int normalTexCoord;
     int mrTexCoord;
     int aoTexCoord;
     int emissiveTexCoord;
+    int _pad1[3];
 };
+
+layout(std140, binding = 2) uniform MaterialUBO
+{
+    uvec2 uAlbedoHandle;
+    uvec2 uNormalHandle;
+    uvec2 uMRHandle;
+    uvec2 uAOHandle;
+    uvec2 uEmissiveHandle;
+    uvec2 _pad3;
+
+    Material uMaterial;
+};
+
+#define SAMPLE_BINDLESS(handle, uv) \
+    texture(sampler2D(handle), uv)
 
 #endif // MATERIAL_GLSL
