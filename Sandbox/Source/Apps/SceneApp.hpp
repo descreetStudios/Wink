@@ -70,6 +70,7 @@ public:
 				GFX::IBL::bake_irradiance_map(env),
 				GFX::IBL::bake_prefiltered_env_map(env)
 			};
+			ibl.skybox = true;
 		}
 	}
 

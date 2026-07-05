@@ -1,5 +1,7 @@
 #include <WinkEngine/pch.hpp>
 #include <WinkEngine/GFX/Renderer.hpp>
+#include <WinkEngine/GFX/Renderer/Data.hpp>
+#include <WinkEngine/GFX/Renderer/Pipeline.hpp>
 
 #include <WinkEngine/ECS/Scene.hpp>
 #include <WinkEngine/ECS/Components/TransformComponent.hpp>
@@ -9,16 +11,39 @@
 #include <WinkEngine/ECS/Components/IBLComponent.hpp>
 #include <WinkEngine/ECS/Systems/TransformSystem.hpp>
 
-#include <WinkEngine/Core/Logger.hpp>
-#include <WinkEngine/Core/Profiler.hpp>
 #include <GLFW/glfw3.h>
 
 namespace Wink::GFX
 {
+	using namespace RES;
+
+	Configuration gConfig;
+
+	MeshPool gMeshPool;
+	ShaderPool gShaderPool;
+	TexturePool gTexturePool;
+	CubemapPool gCubemapPool;
+	MaterialPool gMaterialPool;
+	ModelPool gModelPool;
+
+	ShaderHandle gDefaultShader;
+	TextureHandle gDefaultAlbedo;
+	TextureHandle gDefaultNormal;
+	TextureHandle gDefaultMR;
+	TextureHandle gDefaultAO;
+	TextureHandle gDefaultEmissive;
+	MaterialHandle gDefaultMaterial;
+
+	ShaderHandle gFullscreenShader;
+	MaterialHandle gFullscreenMaterial;
+	u32 gFullscreenVAO = 0;
+
+	ShaderHandle gSkyboxShader;
+	u32 gSkyboxVAO = 0;
+	u32 gSkyboxVBO = 0;
+	
 	namespace IBL
 	{
-		using namespace RES;
-
 		ShaderHandle gEquirectToCubemapShader;
 		ShaderHandle gIrradianceConvolutionShader;
 		ShaderHandle gPrefilteredEnvMapShader;
@@ -33,33 +58,6 @@ namespace Wink::GFX
 
 	namespace
 	{
-		using namespace RES;
-
-		Configuration gConfig;
-
-		MeshPool gMeshPool;
-		ShaderPool gShaderPool;
-		TexturePool gTexturePool;
-		CubemapPool gCubemapPool;
-		MaterialPool gMaterialPool;
-		ModelPool gModelPool;
-
-		ShaderHandle gDefaultShader;
-		TextureHandle gDefaultAlbedo;
-		TextureHandle gDefaultNormal;
-		TextureHandle gDefaultMR;
-		TextureHandle gDefaultAO;
-		TextureHandle gDefaultEmissive;
-		MaterialHandle gDefaultMaterial;
-
-		ShaderHandle gFullscreenShader;
-		MaterialHandle gFullscreenMaterial;
-		u32 gFullscreenVAO = 0;
-
-		ShaderHandle gSkyboxShader;
-		u32 gSkyboxVAO = 0;
-		u32 gSkyboxVBO = 0;
-
 		constexpr float SKYBOX_VERTICES[]
 		{
 			// -X face
@@ -81,52 +79,6 @@ namespace Wink::GFX
 			-1.0f,  1.0f, -1.0f,    1.0f,  1.0f, -1.0f,    1.0f, -1.0f, -1.0f,
 			1.0f, -1.0f, -1.0f,    -1.0f, -1.0f, -1.0f,   -1.0f,  1.0f, -1.0f,
 		};
-
-		struct DirLightNames { std::string direction, intensity, color; };
-		struct PointLightNames { std::string position, intensity, color, radius; };
-		struct SpotLightNames
-		{
-			std::string position, range, direction,
-				innerCutoff, color, outerCutoff, intensity;
-		};
-
-		template<typename NamesT, typename BuildFn>
-		auto make_light_names(u32 count, std::string_view arrayName, BuildFn&& build)
-		{
-			std::vector<NamesT> names;
-			names.reserve(count);
-
-			for (u32 i = 0; i < count; ++i)
-			{
-				std::string base(arrayName);
-				base += '[';
-				base += std::to_string(i);
-				base += "].";
-				names.push_back(build(base));
-			}
-
-			return names;
-		}
-
-		const std::vector<DirLightNames> DIR_LIGHT_NAMES = make_light_names<DirLightNames>(
-			MAX_DIR_LIGHTS, "uDirLights", [](const std::string& b)
-			{
-				return DirLightNames{ b + "direction", b + "intensity", b + "color" };
-			});
-
-		const std::vector<PointLightNames> POINT_LIGHT_NAMES = make_light_names<PointLightNames>(
-			MAX_POINT_LIGHTS, "uPointLights", [](const std::string& b)
-			{
-				return PointLightNames{ b + "position", b + "intensity", b + "color", b + "radius" };
-			});
-
-		const std::vector<SpotLightNames> SPOT_LIGHT_NAMES = make_light_names<SpotLightNames>(
-			MAX_SPOT_LIGHTS, "uSpotLights", [](const std::string& b)
-			{
-				return SpotLightNames{
-					b + "position", b + "range", b + "direction",
-					b + "innerCutoff", b + "color", b + "outerCutoff", b + "intensity" };
-			});
 
 		void create_skybox_geometry()
 		{
@@ -221,203 +173,11 @@ namespace Wink::GFX
 				gTexturePool.is_valid(IBL::gBRDFLUT) &&
 				gShaderPool.is_valid(IBL::gPrefilteredEnvMapShader);
 		}
-
-		void apply_config(const Configuration& cfg)
-		{
-			/* --- Depth --- */
-			if (cfg.depthTest) glEnable(GL_DEPTH_TEST);
-			else glDisable(GL_DEPTH_TEST);
-
-			glDepthMask(cfg.depthWrite ? GL_TRUE : GL_FALSE);
-			glDepthFunc(cfg.depthFunc);
-
-			/* --- Stencil --- */
-			if (cfg.stencilTest) glEnable(GL_STENCIL_TEST);
-			else glDisable(GL_STENCIL_TEST);
-
-			if (cfg.stencilTest)
-			{
-				glStencilFunc(cfg.stencilFunc,
-					cfg.stencilRef, cfg.stencilMask);
-				glStencilOp(cfg.stencilOpSfail,
-					cfg.stencilOpDpfail, cfg.stencilOpDppass);
-			}
-
-			/* --- Blending --- */
-			if (cfg.blend) glEnable(GL_BLEND);
-			else glDisable(GL_BLEND);
-
-			if (cfg.blend)
-			{
-				glBlendFunc(cfg.blendSrc, cfg.blendDst);
-				glBlendEquation(cfg.blendEq);
-			}
-
-			/* --- Face culling --- */
-			if (cfg.cullFace) glEnable(GL_CULL_FACE);
-			else glDisable(GL_CULL_FACE);
-
-			if (cfg.cullFace)
-			{
-				glCullFace(cfg.cullMode);
-				glFrontFace(cfg.frontFace);
-			}
-
-			/* --- Polygon mode --- */
-			glPolygonMode(GL_FRONT_AND_BACK, cfg.polygonMode);
-
-			/* --- Multisampling --- */
-			if (cfg.multisample) glEnable(GL_MULTISAMPLE);
-			else glDisable(GL_MULTISAMPLE);
-
-			glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-		}
-
-		void draw_fullscreen(TextureHandle tex)
-		{
-			auto& matPool = get_material_pool();
-			auto& texPool = get_texture_pool();
-
-			matPool.apply(gFullscreenMaterial);
-			texPool.bind(tex, 0);
-
-			glBindVertexArray(gFullscreenVAO);
-			glDrawArrays(GL_TRIANGLES, 0, 3);
-		}
-
-		void draw_skybox(const Camera& cam)
-		{
-			const TextureCubemap* envMap =
-				gCubemapPool.try_get(IBL::gIBLData.envMap);
-			if (!envMap || !envMap->is_valid()) return;
-
-			const ShaderProgram* shader = gShaderPool.try_get(gSkyboxShader);
-			if (!shader || !shader->is_valid()) return;
-
-			const glm::mat4 rotView = glm::mat4(glm::mat3(cam.get_view()));
-			const glm::mat4 viewProj = cam.get_proj() * rotView;
-
-			glDepthFunc(GL_LEQUAL);
-			glDepthMask(GL_FALSE);
-
-			shader->use();
-			shader->set("uViewProj", viewProj);
-			shader->set("uSkybox", 0);
-			envMap->bind(0);
-
-			glBindVertexArray(gSkyboxVAO);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-			glBindVertexArray(0);
-
-			glDepthMask(gConfig.depthWrite ? GL_TRUE : GL_FALSE);
-			glDepthFunc(gConfig.depthFunc);
-		}
-
-		void draw(const DrawData& drawData)
-		{
-			assert(drawData.dirLights.size() <= MAX_DIR_LIGHTS);
-			assert(drawData.pointLights.size() <= MAX_POINT_LIGHTS);
-			assert(drawData.spotLights.size() <= MAX_SPOT_LIGHTS);
-
-			auto& matPool = get_material_pool();
-			auto& meshPool = get_mesh_pool();
-
-			auto material = matPool.is_valid(drawData.renderObj.material) ?
-				drawData.renderObj.material : gDefaultMaterial;
-			auto mesh = drawData.renderObj.mesh;
-
-			const Material* mat = matPool.try_get(material);
-			assert(mat != nullptr);
-
-			auto* shader = get_shader_pool().try_get(mat->shader);
-			if (!shader || !shader->is_valid())
-			{
-				Logger::Internal::error("Material has no valid shader; skipping draw");
-				return;
-			}
-
-			matPool.apply(material);
-
-			/* --- Core Uniforms --- */
-			shader->set("uCamPos", drawData.camData.position);
-			shader->set("uViewProj", drawData.camData.viewProj);
-			shader->set("uModel", drawData.modelMat);
-			shader->set("uNormalMatrix", drawData.normalMat);
-
-			/* --- Dir Lights --- */
-			shader->set("uDirLightCount", static_cast<u32>(drawData.dirLights.size()));
-			for (size_t i = 0; i < drawData.dirLights.size(); ++i)
-			{
-				const auto& light = drawData.dirLights[i];
-				const auto& names = DIR_LIGHT_NAMES[i];
-				shader->set(names.direction, light.direction);
-				shader->set(names.intensity, light.intensity);
-				shader->set(names.color, light.color);
-			}
-
-			/* --- Point Lights --- */
-			shader->set("uPointLightCount", static_cast<u32>(drawData.pointLights.size()));
-			for (size_t i = 0; i < drawData.pointLights.size(); ++i)
-			{
-				const auto& light = drawData.pointLights[i];
-				const auto& names = POINT_LIGHT_NAMES[i];
-				shader->set(names.position, light.position);
-				shader->set(names.intensity, light.intensity);
-				shader->set(names.color, light.color);
-				shader->set(names.radius, light.radius);
-			}
-
-			/* --- Spot Lights --- */
-			shader->set("uSpotLightCount", static_cast<u32>(drawData.spotLights.size()));
-			for (size_t i = 0; i < drawData.spotLights.size(); ++i)
-			{
-				const auto& light = drawData.spotLights[i];
-				const auto& names = SPOT_LIGHT_NAMES[i];
-				shader->set(names.position, light.position);
-				shader->set(names.range, light.range);
-				shader->set(names.direction, light.direction);
-				shader->set(names.innerCutoff, light.innerCutoff);
-				shader->set(names.color, light.color);
-				shader->set(names.outerCutoff, light.outerCutoff);
-				shader->set(names.intensity, light.intensity);
-			}
-
-			/* --- IBL --- */
-			TextureCubemap* irradiance = gCubemapPool.try_get(IBL::gIBLData.irradianceMap);
-			TextureCubemap* prefiltered = gCubemapPool.try_get(IBL::gIBLData.prefilteredEnvMap);
-			const Texture2D* brdfLUT = gTexturePool.try_get(IBL::gBRDFLUT);
-
-			const bool hasIBL = irradiance && irradiance->is_valid()
-				&& prefiltered && prefiltered->is_valid();
-
-			shader->set("uHasIBL", hasIBL);
-			if (!hasIBL)
-			{
-				irradiance = gCubemapPool.try_get(IBL::gDefaultIrradiance);
-				prefiltered = gCubemapPool.try_get(IBL::gDefaultPrefiltered);
-			}
-
-			assert(irradiance && prefiltered && brdfLUT);
-
-			irradiance->bind(12);
-			prefiltered->bind(13);
-			brdfLUT->bind(14);
-			shader->set("uIrradianceMap", 12);
-			shader->set("uPrefilteredMap", 13);
-			shader->set("uBRDFLUT", 14);
-
-			/* --- Draw --- */
-			glBindVertexArray(meshPool.get_vao_id(mesh));
-			glDrawElements(GL_TRIANGLES,
-				static_cast<i32>(meshPool.get_index_count(mesh)),
-				GL_UNSIGNED_INT, nullptr);
-		}
 	} // anonymous namespace
 
 	void render()
 	{
-		apply_config(gConfig);
-
+		glEnable(GL_DEPTH_TEST);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		/* --- Scene --- */
@@ -537,12 +297,7 @@ namespace Wink::GFX
 
 		if (IBL::gRenderSkybox) draw_skybox(cam);
 	}
-
-	void render_fullscreen_texture(RES::TextureHandle tex)
-	{
-		draw_fullscreen(tex);
-	}
-
+	
 	bool init()
 	{
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -570,12 +325,7 @@ namespace Wink::GFX
 		gSkyboxVAO = 0;
 		gSkyboxVBO = 0;
 
-		RES::clear_all_resources();
-	}
-
-	void set_config(const Configuration& cfg)
-	{
-		gConfig = cfg;
+		clear_all_resources();
 	}
 
 	void resize(u32 width, u32 height)
@@ -621,179 +371,6 @@ namespace Wink::GFX
 		{
 			gShaderPool.poll_hot_reload();
 			gTexturePool.poll_hot_reload();
-		}
-	}
-
-	namespace IBL
-	{
-		namespace Internal
-		{
-			RES::CubemapHandle equirect_to_cubemap(
-				RES::TextureHandle hdr, u32 faceSize)
-			{
-				using namespace RES;
-				ENGINE_ZONE_NAME("Equirect To Cubemap");
-
-				const Texture2D* tex = gTexturePool.try_get(hdr);
-				if (!tex || !tex->is_valid())
-				{
-					Logger::Internal::error("Invalid HDR texture");
-					return {};
-				}
-
-				CubemapSpec spec;
-				spec.width = faceSize;
-				spec.height = faceSize;
-				spec.internalFormat = GL_RGBA16F;
-				spec.minFilter = TextureFilter::LinearMipmapLinear;
-				spec.magFilter = TextureFilter::Linear;
-				spec.wrapMode = TextureWrap::ClampToEdge;
-				spec.generateMipmaps = true;
-
-				CubemapHandle outHandle = gCubemapPool.allocate(spec);
-				TextureCubemap* cubemap = gCubemapPool.try_get(outHandle);
-				if (!cubemap || !cubemap->is_valid())
-				{
-					Logger::Internal::error("Failed to allocate output cubemap");
-					return {};
-				}
-
-				const ShaderProgram* cs = gShaderPool.try_get(gEquirectToCubemapShader);
-				if (!cs || !cs->is_valid()) return {};
-
-				cs->use();
-
-				tex->bind(0);
-				cs->set("uEquirect", 0);
-
-				cubemap->bind_image(1, 0, GL_TRUE, GL_WRITE_ONLY, GL_RGBA16F);
-
-				const u32 groups = (faceSize + 7) / 8;
-				cs->dispatch(groups, groups, 6);
-				cs->memory_barrier(GL_TEXTURE_FETCH_BARRIER_BIT |
-					GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-				glBindImageTexture(1, 0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-
-				cubemap->generate_mipmaps();
-
-				return outHandle;
-			}
-		} // namespace Internal
-
-		RES::CubemapHandle bake_irradiance_map(
-			RES::CubemapHandle envCubemap, u32 faceSize)
-		{
-			using namespace RES;
-			ENGINE_ZONE_NAME("Bake Irradiance");
-
-			const TextureCubemap* env = gCubemapPool.try_get(envCubemap);
-			if (!env || !env->is_valid())
-			{
-				Logger::Internal::error("Invalid environment cubemap handle");
-				return {};
-			}
-
-			const ShaderProgram* cs = gShaderPool.try_get(gIrradianceConvolutionShader);
-			if (!cs || !cs->is_valid()) return {};
-
-			CubemapSpec spec;
-			spec.width = faceSize;
-			spec.height = faceSize;
-			spec.internalFormat = GL_RGBA16F;
-			spec.minFilter = TextureFilter::Linear;
-			spec.magFilter = TextureFilter::Linear;
-			spec.wrapMode = TextureWrap::ClampToEdge;
-			spec.generateMipmaps = false;
-			spec.mipLevels = 1;
-
-			CubemapHandle outHandle = gCubemapPool.allocate(spec);
-			TextureCubemap* irradiance = gCubemapPool.try_get(outHandle);
-			if (!irradiance || !irradiance->is_valid())
-			{
-				Logger::Internal::error("Failed to allocate irradiance cubemap");
-				return {};
-			}
-
-			cs->use();
-
-			env->bind(0);
-			cs->set("uEnvironment", 0);
-
-			irradiance->bind_image(1, 0, GL_TRUE, GL_WRITE_ONLY, GL_RGBA16F);
-
-			const u32 groups = (faceSize + 7) / 8;
-
-			cs->dispatch(groups, groups, 6);
-			cs->memory_barrier(GL_TEXTURE_FETCH_BARRIER_BIT |
-				GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-			glBindImageTexture(1, 0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-			return outHandle;
-		}
-
-		RES::CubemapHandle bake_prefiltered_env_map(
-			RES::CubemapHandle envCubemap, u32 faceSize,
-			u32 mipLevels, u32 sampleCount)
-		{
-			using namespace RES;
-			ENGINE_ZONE_NAME("Bake Prefiltered Env Map");
-
-			assert(mipLevels > 1);
-
-			const TextureCubemap* env = gCubemapPool.try_get(envCubemap);
-			if (!env || !env->is_valid())
-			{
-				Logger::Internal::error("Invalid environment cubemap handle");
-				return {};
-			}
-
-			const ShaderProgram* cs = gShaderPool.try_get(gPrefilteredEnvMapShader);
-			if (!cs || !cs->is_valid()) return {};
-
-			CubemapSpec spec;
-			spec.width = faceSize;
-			spec.height = faceSize;
-			spec.internalFormat = GL_RGBA16F;
-			spec.minFilter = TextureFilter::LinearMipmapLinear;
-			spec.magFilter = TextureFilter::Linear;
-			spec.wrapMode = TextureWrap::ClampToEdge;
-			spec.generateMipmaps = false;
-			spec.mipLevels = mipLevels;
-
-			CubemapHandle outHandle = gCubemapPool.allocate(spec);
-			TextureCubemap* prefiltered = gCubemapPool.try_get(outHandle);
-			if (!prefiltered || !prefiltered->is_valid())
-			{
-				Logger::Internal::error("Failed to allocate prefiltered env cubemap");
-				return {};
-			}
-
-			cs->use();
-			env->bind(0);
-			cs->set("uEnvironment", 0);
-			cs->set("uSampleCount", sampleCount);
-
-			for (u32 mip = 0; mip < mipLevels; ++mip)
-			{
-				const u32 mipSize = faceSize >> mip;
-				const float roughness = static_cast<float>(mip) / static_cast<float>(mipLevels - 1);
-
-				cs->set("uRoughness", roughness);
-				cs->set("uFaceSize", static_cast<i32>(mipSize));
-
-				glBindImageTexture(1, prefiltered->get_id(),
-					static_cast<i32>(mip), GL_TRUE, 0,
-					GL_WRITE_ONLY, GL_RGBA16F);
-
-				const u32 groups = std::max(1u, (mipSize + 7) / 8);
-				cs->dispatch(groups, groups, 6);
-				cs->memory_barrier(GL_TEXTURE_FETCH_BARRIER_BIT |
-					GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-			}
-
-			glBindImageTexture(1, 0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-			return outHandle;
 		}
 	}
 }

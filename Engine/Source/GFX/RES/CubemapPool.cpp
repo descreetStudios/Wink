@@ -1,12 +1,12 @@
 #include <WinkEngine/pch.hpp>
 #include <WinkEngine/GFX/RES/CubemapPool.hpp>
-#include <WinkEngine/GFX/Renderer.hpp>
+#include <WinkEngine/GFX/Renderer/IBL.hpp>
 
 namespace Wink::GFX::RES
 {
 	CubemapHandle CubemapPool::hdr_to_cubemap(TextureHandle hdr, u32 faceSize)
 	{
-		return IBL::Internal::equirect_to_cubemap(hdr, faceSize);
+		return IBL::equirect_to_cubemap(hdr, faceSize);
 	}
 
 	void CubemapPool::unload(CubemapHandle handle) noexcept

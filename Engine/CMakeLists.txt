@@ -194,11 +194,12 @@ PRIVATE
     # --- Graphics --- #
     "Source/GFX/Material.cpp" 
     "Source/GFX/Camera.cpp" 
-    "Source/GFX/Renderer.cpp"
+    "Source/GFX/Renderer.cpp" 
+    "Source/GFX/Renderer/IBL.cpp" 
 
     # --- Content --- #
     "Source/Content/Image.cpp" 
-    "Source/Content/GLTFModel.cpp")
+    "Source/Content/GLTFModel.cpp" "Source/GFX/Renderer/Pipeline.cpp")
 
 function(wink_copy_engine_resources target)
     set(ENGINE_RESOURCES_DIR "${CMAKE_SOURCE_DIR}/Engine/Resources"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <WinkEngine/GFX/Renderer.hpp>
+#include <WinkEngine/GFX/Renderer/IBL.hpp>
 
 namespace Wink::ECS
 {

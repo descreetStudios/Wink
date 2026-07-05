@@ -10,6 +10,8 @@
 #include <WinkEngine/GFX/Renderbuffer.hpp>
 #include <WinkEngine/GFX/Framebuffer.hpp>
 #include <WinkEngine/GFX/Renderer.hpp>
+#include <WinkEngine/GFX/Renderer/Data.hpp>
+#include <WinkEngine/GFX/Renderer/IBL.hpp>
 
 /* --- Resources --- */
 #include <WinkEngine/GFX/RES/Handle.hpp>
