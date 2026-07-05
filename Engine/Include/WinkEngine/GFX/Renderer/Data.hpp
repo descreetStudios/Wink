@@ -52,9 +52,5 @@ namespace Wink::GFX
 		const CameraData& camData;
 		const glm::mat4& modelMat;
 		const glm::mat3& normalMat;
-
-		std::span<const DirLight> dirLights;
-		std::span<const PointLight> pointLights;
-		std::span<const SpotLight> spotLights;
 	};
 }

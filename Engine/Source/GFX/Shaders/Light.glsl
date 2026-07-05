@@ -7,35 +7,33 @@
 
 struct DirLight
 {
-	vec3 direction;
-	float intensity;
-	vec3 color;
+    vec4 direction;  // .xyz = direction, .w = intensity
+    vec4 color;      // .xyz = color
 };
 
 struct PointLight
 {
-    vec3 position;
-    float intensity;
-    vec3 color;
-    float radius;
+    vec4 position;   // .xyz = position,  .w = intensity
+    vec4 color;      // .xyz = color,     .w = radius
 };
 
 struct SpotLight
 {
-    vec3 position;
-    float range;
-    vec3 direction;
-    float innerCutoff;
-    vec3 color;
-    float outerCutoff;
-    float intensity;
+    vec4 position;   // .xyz = position,  .w = range
+    vec4 direction;  // .xyz = direction, .w = intensity
+    vec4 color;      // .xyz = color,     .w = outerCutoff
+    vec4 inner;      // .x   = innerCutoff
 };
 
-uniform DirLight uDirLights[MAX_DIR_LIGHTS];
-uniform uint uDirLightCount;
-uniform PointLight uPointLights[MAX_POINT_LIGHTS];
-uniform uint uPointLightCount;
-uniform SpotLight uSpotLights[MAX_SPOT_LIGHTS];
-uniform uint uSpotLightCount;
+layout(std140, binding = 1) uniform LightsUBO
+{
+    uint uDirLightCount;
+    uint uPointLightCount;
+    uint uSpotLightCount;
+    uint _pad;
+    DirLight uDirLights[MAX_DIR_LIGHTS];
+    PointLight uPointLights[MAX_POINT_LIGHTS];
+    SpotLight uSpotLights[MAX_SPOT_LIGHTS];
+};
 
 #endif // LIGHT_GLSL

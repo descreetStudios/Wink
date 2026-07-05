@@ -16,40 +16,6 @@ namespace Wink::GFX
 	void resize(u32 width, u32 height);
 	void set_clear_color(const glm::vec4& color);
 
-	struct Configuration
-	{
-		/* --- Depth --- */
-		u32 depthFunc = GL_LEQUAL;
-		bool depthTest = true;
-		bool depthWrite = true;
-
-		/* --- Multisampling --- */
-		bool multisample = true;
-
-		/* --- Stencil --- */
-		bool stencilTest = false;
-		u32 stencilFunc = GL_ALWAYS;
-		i32 stencilRef = 0;
-		u32 stencilMask = 0xFF;
-		u32 stencilOpSfail = GL_KEEP;
-		u32 stencilOpDpfail = GL_KEEP;
-		u32 stencilOpDppass = GL_KEEP;
-
-		/* --- Face culling --- */
-		u32 cullMode = GL_BACK;
-		u32 frontFace = GL_CCW;
-		bool cullFace = false;
-
-		/* --- Blending --- */
-		bool blend = false;
-		u32 blendSrc = GL_SRC_ALPHA;
-		u32 blendDst = GL_ONE_MINUS_SRC_ALPHA;
-		u32 blendEq = GL_FUNC_ADD;
-
-		/* --- Polygon mode --- */
-		u32 polygonMode = GL_FILL;
-	};
-
 	namespace RES
 	{
 		[[nodiscard]] MeshPool& get_mesh_pool() noexcept;

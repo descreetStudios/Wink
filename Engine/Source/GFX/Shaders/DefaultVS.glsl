@@ -6,6 +6,7 @@ layout (location = 2) in vec2 aTexCoord;
 layout (location = 3) in vec2 aTexCoord1;
 layout (location = 4) in vec4 aTangent;
 
+out vec3 vCamPos;
 out vec3 vFragPos;
 out vec2 vTexCoord;
 out vec2 vTexCoord1;
@@ -14,11 +15,17 @@ out vec3 vDebug;
 
 uniform mat4 uModel;
 uniform mat3 uNormalMatrix;
-uniform mat4 uViewProj;
+
+layout(std140, binding = 0) uniform FrameUBO 
+{
+    mat4 uViewProj;
+    vec3 uCamPos;
+};
 
 void main()
 {
     vec4 worldPos = uModel * vec4(aPos, 1.0);
+    vCamPos = uCamPos;
     vFragPos = worldPos.xyz;
     vTexCoord = aTexCoord;
     vTexCoord1 = aTexCoord1;

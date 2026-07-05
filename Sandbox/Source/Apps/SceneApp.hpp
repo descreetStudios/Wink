@@ -127,6 +127,7 @@ private:
 		subscribe([this](const WindowResizeEvent& e) {
 			GFX::resize(e.width, e.height);
 			mCam.cam.aspectRatio = static_cast<float>(e.width) / e.height;
+			mCam.ignore = true;
 			});
 
 		subscribe([this](const KeyPressEvent& e) {
@@ -145,6 +146,7 @@ private:
 			});
 
 		subscribe([this](const MouseMoveEvent& e) {
+			if (mCam.ignore) { mCam.ignore = false; return; }
 			if (Window::get_state().cursorLocked)
 				mCam.cam.look(-e.deltaX, e.deltaY,
 					0.0f, mCam.settings.LOOK_SENS);
@@ -171,6 +173,7 @@ private:
 		GFX::Camera cam;
 		CameraSettings settings;
 		ECS::Entity camE;
+		bool ignore = false;
 	};
 
 private:

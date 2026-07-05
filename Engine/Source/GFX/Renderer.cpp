@@ -1,6 +1,7 @@
 #include <WinkEngine/pch.hpp>
 #include <WinkEngine/GFX/Renderer.hpp>
 #include <WinkEngine/GFX/Renderer/Data.hpp>
+#include <WinkEngine/GFX/Renderer/GPUData.hpp>
 #include <WinkEngine/GFX/Renderer/Pipeline.hpp>
 
 #include <WinkEngine/ECS/Scene.hpp>
@@ -17,8 +18,6 @@ namespace Wink::GFX
 {
 	using namespace RES;
 
-	Configuration gConfig;
-
 	MeshPool gMeshPool;
 	ShaderPool gShaderPool;
 	TexturePool gTexturePool;
@@ -33,6 +32,9 @@ namespace Wink::GFX
 	TextureHandle gDefaultAO;
 	TextureHandle gDefaultEmissive;
 	MaterialHandle gDefaultMaterial;
+
+	u32 gFrameUBO = 0;
+	u32 gLightsUBO = 0;
 
 	ShaderHandle gFullscreenShader;
 	MaterialHandle gFullscreenMaterial;
@@ -122,6 +124,14 @@ namespace Wink::GFX
 			gDefaultEmissive = create_1x1_texture(255, 255, 255, 255);
 			gDefaultMaterial = gMaterialPool.create(gDefaultShader);
 
+			glCreateBuffers(1, &gFrameUBO);
+			glNamedBufferStorage(gFrameUBO, sizeof(FrameGPUData), nullptr,
+				GL_DYNAMIC_STORAGE_BIT);
+
+			glCreateBuffers(1, &gLightsUBO);
+			glNamedBufferStorage(gLightsUBO, sizeof(LightsGPUData), nullptr,
+				GL_DYNAMIC_STORAGE_BIT);
+
 			gFullscreenShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Vertex, "Resources/Shaders/FullscreenVS.glsl" },
 				{ ShaderType::Fragment, "Resources/Shaders/FullscreenFS.glsl" },
@@ -167,6 +177,7 @@ namespace Wink::GFX
 				gTexturePool.is_valid(gDefaultAO) &&
 				gTexturePool.is_valid(gDefaultEmissive) &&
 				gMaterialPool.is_valid(gFullscreenMaterial) &&
+				gFrameUBO != 0 && gLightsUBO != 0 &&
 				gShaderPool.is_valid(gSkyboxShader) &&
 				gShaderPool.is_valid(IBL::gEquirectToCubemapShader) &&
 				gShaderPool.is_valid(IBL::gIrradianceConvolutionShader) &&
@@ -219,6 +230,14 @@ namespace Wink::GFX
 
 		CameraData camData{ .position = cam.position,
 			.viewProj = cam.get_proj() * cam.get_view() };
+
+		/* --- Frame UBO --- */
+		FrameGPUData frameData{
+			.viewProj = camData.viewProj,
+			.camPos = camData.position
+		};
+		glNamedBufferSubData(gFrameUBO, 0, sizeof(FrameGPUData), &frameData);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 0, gFrameUBO);
 
 		/* --- IBL --- */
 		if (auto iblEOpt = scene->find_first<ECS::IBLComponent>())
@@ -279,6 +298,44 @@ namespace Wink::GFX
 			spotLights.push_back(sl);
 		}
 
+		/* --- Lights UBO --- */
+		LightsGPUData lightsData{};
+		lightsData.dirLightCount = static_cast<u32>(dirLights.size());
+		lightsData.pointLightCount = static_cast<u32>(pointLights.size());
+		lightsData.spotLightCount = static_cast<u32>(spotLights.size());
+
+		for (u32 i = 0; i < lightsData.dirLightCount; ++i)
+		{
+			const auto& l = dirLights[i];
+			lightsData.dirLights[i] = {
+				glm::vec4(l.direction, l.intensity),
+				glm::vec4(l.color, 0.0f),
+			};
+		}
+
+		for (u32 i = 0; i < lightsData.pointLightCount; ++i)
+		{
+			const auto& l = pointLights[i];
+			lightsData.pointLights[i] = {
+				glm::vec4(l.position, l.intensity),
+				glm::vec4(l.color, l.radius),
+			};
+		}
+
+		for (u32 i = 0; i < lightsData.spotLightCount; ++i)
+		{
+			const auto& l = spotLights[i];
+			lightsData.spotLights[i] = {
+				glm::vec4(l.position, l.range),
+				glm::vec4(l.direction, l.intensity),
+				glm::vec4(l.color, l.outerCutoff),
+				glm::vec4(l.innerCutoff, 0.0f, 0.0f, 0.0f),
+			};
+		}
+
+		glNamedBufferSubData(gLightsUBO, 0, sizeof(LightsGPUData), &lightsData);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 1, gLightsUBO);
+
 		/* --- RenderObject --- */
 		for (auto&& [id, tC, roC] :
 			scene->view<ECS::TransformComponent, ECS::RenderObjectComponent>())
@@ -291,8 +348,8 @@ namespace Wink::GFX
 				.renderObj = roC.renderObj,
 				.camData = camData,
 				.modelMat = tC.worldMatrix,
-				.normalMat = glm::transpose(glm::inverse(glm::mat3(tC.worldMatrix))),
-				.dirLights = dirLights, .pointLights = pointLights, .spotLights = spotLights });
+				.normalMat = glm::transpose(glm::inverse(glm::mat3(tC.worldMatrix)))
+				});
 		}
 
 		if (IBL::gRenderSkybox) draw_skybox(cam);
@@ -320,6 +377,9 @@ namespace Wink::GFX
 		glDeleteVertexArrays(1, &gFullscreenVAO);
 		glDeleteVertexArrays(1, &gSkyboxVAO);
 		glDeleteBuffers(1, &gSkyboxVBO);
+
+		glDeleteBuffers(1, &gFrameUBO);
+		glDeleteBuffers(1, &gLightsUBO);
 
 		gFullscreenVAO = 0;
 		gSkyboxVAO = 0;

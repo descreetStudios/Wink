@@ -16,6 +16,7 @@
 
 #include "Debug.glsl"
 
+in vec3 vCamPos;
 in vec3 vFragPos;
 in vec2 vTexCoord;
 in vec2 vTexCoord1;
@@ -25,8 +26,6 @@ in vec3 vDebug;
 out vec4 FragColor;
 
 uniform Material uMaterial;
-
-uniform vec3 uCamPos;
 
 uniform samplerCube uIrradianceMap;
 uniform samplerCube uPrefilteredMap;
@@ -38,7 +37,7 @@ vec3 compute_dir_light(DirLight light,
 	vec3 albedo, vec3 N, vec3 V,
 	float NdV, float metallic, float roughness, vec3 F0)
 {
-	vec3 L = normalize(-light.direction);
+	vec3 L = normalize(-light.direction.xyz);
 	float NdL = max(dot(N, L), 0.0);
 	if (NdL <= 0.0) return vec3(0.0);
 
@@ -53,7 +52,7 @@ vec3 compute_dir_light(DirLight light,
 	vec3 kD = (1.0 - F) * (1.0 - metallic);
 	vec3 diffuse = kD * albedo / PI;
 
-	vec3 radiance = light.color * light.intensity;
+	vec3 radiance = light.color.rgb * light.direction.w; // .w = intensity
 	return (diffuse + specular) * radiance * NdL;
 }
 
@@ -62,10 +61,10 @@ vec3 compute_point_light(PointLight light,
 	vec3 albedo, vec3 N, vec3 V, vec3 fragPos,
 	float NdV, float metallic, float roughness, vec3 F0)
 {
-	vec3 toLight = light.position - fragPos;
+	vec3 toLight = light.position.xyz - fragPos;
 	float dist = length(toLight);
 
-	float window = 1.0 - smoothstep(light.radius * 0.75, light.radius, dist);
+	float window = 1.0 - smoothstep(light.color.w * 0.75, light.color.w, dist); // .w = radius
 	if (window <= 0.0) return vec3(0.0);
 
 	vec3 L = toLight / dist;
@@ -75,7 +74,7 @@ vec3 compute_point_light(PointLight light,
 	vec3 H = normalize(L + V);
 	float HdV = max(dot(H, V), 0.0);
 
-	float attenuation = (light.intensity * window) / (dist * dist + 1.0);
+	float attenuation = (light.position.w * window) / (dist * dist + 1.0); // .w = intensity
 
 	float D = distribution_ggx(N, H, roughness);
 	float G = geometry_smith(N, V, L, roughness);
@@ -85,7 +84,7 @@ vec3 compute_point_light(PointLight light,
 	vec3 kD = (1.0 - F) * (1.0 - metallic);
 	vec3 diffuse = kD * albedo / PI;
 
-	vec3 radiance = light.color * attenuation;
+	vec3 radiance = light.color.rgb * attenuation;
 	return (diffuse + specular) * radiance * NdL;
 }
 
@@ -94,17 +93,17 @@ vec3 compute_spot_light(SpotLight light,
 	vec3 albedo, vec3 N, vec3 V, vec3 fragPos,
 	float NdV, float metallic, float roughness, vec3 F0)
 {
-	vec3 toLight = light.position - fragPos;
+	vec3 toLight = light.position.xyz - fragPos;
 	float dist = length(toLight);
 
-	float window = 1.0 - smoothstep(light.range * 0.75, light.range, dist);
+	float window = 1.0 - smoothstep(light.position.w * 0.75, light.position.w, dist); // .w = range
 	if (window <= 0.0) return vec3(0.0);
 
 	vec3 L = toLight / dist;
-	float theta = dot(L, normalize(-light.direction));
+	float theta = dot(L, normalize(-light.direction.xyz));
 
-	float epsilon = light.innerCutoff - light.outerCutoff;
-	float spotIntensity = clamp((theta - light.outerCutoff) / epsilon, 0.0, 1.0);
+	float epsilon = light.inner.x - light.color.w; // .w = outerCutoff
+	float spotIntensity = clamp((theta - light.color.w) / epsilon, 0.0, 1.0); // .w = outerCutoff
 	if (spotIntensity <= 0.0) return vec3(0.0);
 
 	float NdL = max(dot(N, L), 0.0);
@@ -121,8 +120,8 @@ vec3 compute_spot_light(SpotLight light,
 	vec3 kD = (1.0 - F) * (1.0 - metallic);
 	vec3 diffuse = kD * albedo / PI;
 
-	float attenuation = (light.intensity * window * spotIntensity) / (dist * dist + 1.0);
-	vec3 radiance = light.color * attenuation;
+	float attenuation = (light.direction.w * window * spotIntensity) / (dist * dist + 1.0); // .w = intensity
+	vec3 radiance = light.color.rgb * attenuation;
 
 	return (diffuse + specular) * radiance * NdL;
 }
@@ -211,7 +210,7 @@ void main()
 	}
 
 	/* --- Lighting --- */
-	vec3 V = normalize(uCamPos - vFragPos);
+	vec3 V = normalize(vCamPos - vFragPos);
 
 	vec3 color = compute_pbr(albedo.rgb, N, V,
 		metallic, roughness, ao, emissive);

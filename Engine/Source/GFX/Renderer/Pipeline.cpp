@@ -132,49 +132,9 @@ namespace Wink::GFX
 
 		gMaterialPool.apply(material);
 
-		/* --- Core Uniforms --- */
-		shader->set("uCamPos", drawData.camData.position);
-		shader->set("uViewProj", drawData.camData.viewProj);
+		/* --- Per-Object Uniforms --- */
 		shader->set("uModel", drawData.modelMat);
 		shader->set("uNormalMatrix", drawData.normalMat);
-
-		/* --- Dir Lights --- */
-		shader->set("uDirLightCount", static_cast<u32>(drawData.dirLights.size()));
-		for (size_t i = 0; i < drawData.dirLights.size(); ++i)
-		{
-			const auto& light = drawData.dirLights[i];
-			const auto& names = DIR_LIGHT_NAMES[i];
-			shader->set(names.direction, light.direction);
-			shader->set(names.intensity, light.intensity);
-			shader->set(names.color, light.color);
-		}
-
-		/* --- Point Lights --- */
-		shader->set("uPointLightCount", static_cast<u32>(drawData.pointLights.size()));
-		for (size_t i = 0; i < drawData.pointLights.size(); ++i)
-		{
-			const auto& light = drawData.pointLights[i];
-			const auto& names = POINT_LIGHT_NAMES[i];
-			shader->set(names.position, light.position);
-			shader->set(names.intensity, light.intensity);
-			shader->set(names.color, light.color);
-			shader->set(names.radius, light.radius);
-		}
-
-		/* --- Spot Lights --- */
-		shader->set("uSpotLightCount", static_cast<u32>(drawData.spotLights.size()));
-		for (size_t i = 0; i < drawData.spotLights.size(); ++i)
-		{
-			const auto& light = drawData.spotLights[i];
-			const auto& names = SPOT_LIGHT_NAMES[i];
-			shader->set(names.position, light.position);
-			shader->set(names.range, light.range);
-			shader->set(names.direction, light.direction);
-			shader->set(names.innerCutoff, light.innerCutoff);
-			shader->set(names.color, light.color);
-			shader->set(names.outerCutoff, light.outerCutoff);
-			shader->set(names.intensity, light.intensity);
-		}
 
 		/* --- IBL --- */
 		TextureCubemap* irradiance = gCubemapPool.try_get(IBL::gIBLData.irradianceMap);

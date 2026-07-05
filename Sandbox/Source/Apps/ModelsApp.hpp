@@ -217,11 +217,6 @@ public:
 		}
 	}
 
-	void pre_render(double alpha) override
-	{
-		GFX::set_config(mGFXConfig);
-	}
-
 private:
 	GFX::RES::ModelHandle load_model(
 		GFX::RES::ModelPool& modelPool,
@@ -263,6 +258,7 @@ private:
 		subscribe([this](const WindowResizeEvent& e) {
 			GFX::resize(e.width, e.height);
 			mCam.aspectRatio = static_cast<float>(e.width) / e.height;
+			mIgnoreNextMouseMove = true;
 			});
 
 		subscribe([this](const KeyPressEvent& e) {
@@ -276,10 +272,6 @@ private:
 				switch_scene("Sponza Scene");
 			else if (e.key == Key::KP2)
 				switch_scene("A Beautiful Game Scene");
-
-			if (e.key == Key::V)
-				mGFXConfig.polygonMode = mGFXConfig.polygonMode ==
-				GL_FILL ? GL_LINE : GL_FILL;
 			});
 
 		subscribe([](const MouseButtonPressEvent& e) {
@@ -288,6 +280,7 @@ private:
 			});
 
 		subscribe([this](const MouseMoveEvent& e) {
+			if (mIgnoreNextMouseMove) { mIgnoreNextMouseMove = false; return; }
 			if (Window::get_state().cursorLocked)
 				mCam.look(-e.deltaX, e.deltaY, 0.0f, LOOK_SENS);
 			});
@@ -305,12 +298,11 @@ private:
 	const fs::path PROJ_REL_PATH = fs::path("..") / ".." / ".." / "..";
 	const fs::path RES_PATH = PROJ_REL_PATH / "Sandbox" / "Resources";
 
-	GFX::Configuration mGFXConfig;
-
 	const float LOOK_SENS = 0.1f;
 	const float MOVE_SPEED = 5.0f;
 	GFX::Camera mCam;
 	ECS::Entity mCamEntity;
+	bool mIgnoreNextMouseMove = false;
 
 	std::string mActiveSceneName;
 
