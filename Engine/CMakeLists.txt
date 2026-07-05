@@ -155,51 +155,55 @@ PUBLIC
 target_sources(Engine 
 PRIVATE
     # --- Core --- #
-    "Source/Core/Main.cpp" 
-    "Source/Core/Application.cpp" 
-    "Source/Core/Logger.cpp" 
-    "Source/Core/Time.cpp" 
-    "Source/Core/FileWatcher.cpp" 
-    "Source/Core/Input.cpp" 
-    "Source/Core/Window.cpp" 
+    "Source/Core/Main.cpp"
+    "Source/Core/Application.cpp"
+    "Source/Core/Logger.cpp"
+    "Source/Core/Time.cpp"
+    "Source/Core/FileWatcher.cpp"
+    "Source/Core/Input.cpp"
+    "Source/Core/Window.cpp"
 
     # --- ECS --- #
-    "Source/ECS/Entity.cpp" 
-    "Source/ECS/Scene.cpp" 
+    "Source/ECS/Entity.cpp"
+    "Source/ECS/Scene.cpp"
    
     # --- Components --- #
-    "Source/ECS/Components/TransformComponent.cpp" 
+    "Source/ECS/Components/TransformComponent.cpp"
 
     # --- Systems --- #
     "Source/ECS/Systems/TransformSystem.cpp"
-    "Source/ECS/Systems/ModelSystem.cpp" 
+    "Source/ECS/Systems/ModelSystem.cpp"
     
     # --- Graphics Abstractions --- #
-    "Source/GFX/VAO.cpp" 
-    "Source/GFX/Buffer.cpp" 
-    "Source/GFX/Texture2D.cpp" 
-    "Source/GFX/TextureCubemap.cpp" 
-    "Source/GFX/Renderbuffer.cpp" 
-    "Source/GFX/Framebuffer.cpp" 
-    "Source/GFX/Shader.cpp" 
+    "Source/GFX/VAO.cpp"
+    "Source/GFX/Buffer.cpp"
+    "Source/GFX/Texture2D.cpp"
+    "Source/GFX/TextureCubemap.cpp"
+    "Source/GFX/Renderbuffer.cpp"
+    "Source/GFX/Framebuffer.cpp"
+    "Source/GFX/Shader.cpp"
     
     # --- Graphics Resources --- #
-    "Source/GFX/RES/MeshPool.cpp" 
-    "Source/GFX/RES/ShaderPool.cpp" 
-    "Source/GFX/RES/TexturePool.cpp" 
-    "Source/GFX/RES/CubemapPool.cpp" 
-    "Source/GFX/RES/MaterialPool.cpp" 
-    "Source/GFX/RES/ModelPool.cpp" 
+    "Source/GFX/RES/MeshPool.cpp"
+    "Source/GFX/RES/ShaderPool.cpp"
+    "Source/GFX/RES/TexturePool.cpp"
+    "Source/GFX/RES/CubemapPool.cpp"
+    "Source/GFX/RES/MaterialPool.cpp"
+    "Source/GFX/RES/ModelPool.cpp"
 
     # --- Graphics --- #
-    "Source/GFX/Material.cpp" 
-    "Source/GFX/Camera.cpp" 
-    "Source/GFX/Renderer.cpp" 
-    "Source/GFX/Renderer/IBL.cpp" 
+    "Source/GFX/Material.cpp"
+    "Source/GFX/Camera.cpp"
+    "Source/GFX/Renderer.cpp"
+    "Source/GFX/Renderer/Pipeline.cpp"
+    "Source/GFX/Renderer/IBL.cpp"
+
+    # --- Forward+ --- #
+    "Source/GFX/Renderer/ForwardPlus/DepthPrePass.cpp"
 
     # --- Content --- #
-    "Source/Content/Image.cpp" 
-    "Source/Content/GLTFModel.cpp" "Source/GFX/Renderer/Pipeline.cpp")
+    "Source/Content/Image.cpp"
+    "Source/Content/GLTFModel.cpp")
 
 function(wink_copy_engine_resources target)
     set(ENGINE_RESOURCES_DIR "${CMAKE_SOURCE_DIR}/Engine/Resources"

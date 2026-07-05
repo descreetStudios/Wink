@@ -4,6 +4,8 @@
 #include <WinkEngine/GFX/Renderer/GPUData.hpp>
 #include <WinkEngine/GFX/Renderer/Pipeline.hpp>
 
+#include <WinkEngine/GFX/Renderer/ForwardPlus/DepthPrePass.hpp>
+
 #include <WinkEngine/ECS/Scene.hpp>
 #include <WinkEngine/ECS/Components/TransformComponent.hpp>
 #include <WinkEngine/ECS/Components/RenderObjectComponent.hpp>
@@ -12,12 +14,14 @@
 #include <WinkEngine/ECS/Components/IBLComponent.hpp>
 #include <WinkEngine/ECS/Systems/TransformSystem.hpp>
 
+#include <WinkEngine/Core/Window.hpp>
 #include <GLFW/glfw3.h>
 
 namespace Wink::GFX
 {
 	using namespace RES;
 
+	/* --- Resource Pools --- */
 	MeshPool gMeshPool;
 	ShaderPool gShaderPool;
 	TexturePool gTexturePool;
@@ -25,6 +29,7 @@ namespace Wink::GFX
 	MaterialPool gMaterialPool;
 	ModelPool gModelPool;
 
+	/* --- Default Material --- */
 	ShaderHandle gDefaultShader;
 	TextureHandle gDefaultAlbedo;
 	TextureHandle gDefaultNormal;
@@ -33,17 +38,31 @@ namespace Wink::GFX
 	TextureHandle gDefaultEmissive;
 	MaterialHandle gDefaultMaterial;
 
+	/* --- UBOs --- */
 	u32 gFrameUBO = 0;
 	u32 gLightsUBO = 0;
 
+	/* --- Fullscreen Triangle --- */
 	ShaderHandle gFullscreenShader;
 	MaterialHandle gFullscreenMaterial;
 	u32 gFullscreenVAO = 0;
 
+	/* --- Skybox --- */
 	ShaderHandle gSkyboxShader;
 	u32 gSkyboxVAO = 0;
 	u32 gSkyboxVBO = 0;
-	
+
+	namespace ForwardPlus
+	{
+		ShaderHandle gDepthOnlyShader;
+		ShaderHandle gDepthDebugShader;
+
+		u32 gWidth = 0;
+		u32 gHeight = 0;
+
+		std::optional<DepthPrePass> gDepthPrePass;
+	}
+
 	namespace IBL
 	{
 		ShaderHandle gEquirectToCubemapShader;
@@ -113,6 +132,7 @@ namespace Wink::GFX
 
 		bool load_engine_resources()
 		{
+			/* --- Default Material --- */
 			gDefaultShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Vertex, "Resources/Shaders/DefaultVS.glsl" },
 				{ ShaderType::Fragment, "Resources/Shaders/DefaultFS.glsl" },
@@ -124,6 +144,7 @@ namespace Wink::GFX
 			gDefaultEmissive = create_1x1_texture(255, 255, 255, 255);
 			gDefaultMaterial = gMaterialPool.create(gDefaultShader);
 
+			/* --- UBOs and SSBOs --- */
 			glCreateBuffers(1, &gFrameUBO);
 			glNamedBufferStorage(gFrameUBO, sizeof(FrameGPUData), nullptr,
 				GL_DYNAMIC_STORAGE_BIT);
@@ -134,6 +155,7 @@ namespace Wink::GFX
 
 			Material::init_ssbo();
 
+			/* --- Fullscreen Triangle --- */
 			gFullscreenShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Vertex, "Resources/Shaders/FullscreenVS.glsl" },
 				{ ShaderType::Fragment, "Resources/Shaders/FullscreenFS.glsl" },
@@ -141,12 +163,26 @@ namespace Wink::GFX
 			gFullscreenMaterial = gMaterialPool.create(gFullscreenShader);
 			glCreateVertexArrays(1, &gFullscreenVAO);
 
+			/* --- Skybox --- */
 			gSkyboxShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Vertex, "Resources/Shaders/SkyboxVS.glsl" },
-				{ ShaderType::Fragment, "../../../../Engine/Source/GFX/Shaders/SkyboxFS.glsl" },
+				{ ShaderType::Fragment, "Resources/Shaders/SkyboxFS.glsl" },
 			});
+
 			create_skybox_geometry();
 
+			/* --- Forward+ --- */
+			ForwardPlus::gDepthOnlyShader = gShaderPool.load(std::vector<ShaderFile>{
+				{ ShaderType::Vertex, "Resources/Shaders/ForwardPlus/DepthOnlyVS.glsl" },
+				{ ShaderType::Fragment, "Resources/Shaders/ForwardPlus/DepthOnlyFS.glsl" },
+			});
+
+			ForwardPlus::gDepthDebugShader = gShaderPool.load(std::vector<ShaderFile>{
+				{ ShaderType::Vertex, "Resources/Shaders/ForwardPlus/DepthDebugVS.glsl" },
+				{ ShaderType::Fragment, "Resources/Shaders/ForwardPlus/DepthDebugFS.glsl" },
+			});
+
+			/* --- IBL --- */
 			IBL::gEquirectToCubemapShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Compute, "Resources/Shaders/EquirectToCubemapCS.glsl" }
 			});
@@ -172,26 +208,46 @@ namespace Wink::GFX
 			IBL::gDefaultPrefiltered = gCubemapPool.hdr_to_cubemap(
 				create_1x1_texture(255, 0, 0, 255), 1);
 
-			return gMaterialPool.is_valid(gDefaultMaterial) &&
+			return
+				/* --- Default Material --- */
+				gMaterialPool.is_valid(gDefaultMaterial) &&
 				gTexturePool.is_valid(gDefaultAlbedo) &&
 				gTexturePool.is_valid(gDefaultNormal) &&
 				gTexturePool.is_valid(gDefaultMR) &&
 				gTexturePool.is_valid(gDefaultAO) &&
 				gTexturePool.is_valid(gDefaultEmissive) &&
+				/* --- Fullscreen Triangle --- */
 				gMaterialPool.is_valid(gFullscreenMaterial) &&
+				/* --- UBOs --- */
 				gFrameUBO != 0 && gLightsUBO != 0 &&
+				/* --- Skybox --- */
 				gShaderPool.is_valid(gSkyboxShader) &&
+				/* --- Forward+ --- */
+				gShaderPool.is_valid(ForwardPlus::gDepthOnlyShader) &&
+				gShaderPool.is_valid(ForwardPlus::gDepthDebugShader) &&
+				/* --- IBL --- */
 				gShaderPool.is_valid(IBL::gEquirectToCubemapShader) &&
 				gShaderPool.is_valid(IBL::gIrradianceConvolutionShader) &&
 				gTexturePool.is_valid(IBL::gBRDFLUT) &&
 				gShaderPool.is_valid(IBL::gPrefilteredEnvMapShader);
 		}
+
+		bool init_forward_plus()
+		{
+			using namespace ForwardPlus;
+
+			auto winState = Window::get_state();
+
+			gDepthPrePass.emplace();
+			bool result = gDepthPrePass->init(winState.width, winState.height);
+
+			return result;
+		}
 	} // anonymous namespace
 
 	void render()
 	{
-		glEnable(GL_DEPTH_TEST);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		using namespace ForwardPlus;
 
 		/* --- Scene --- */
 		auto scene = ECS::get_active_scene();
@@ -339,24 +395,50 @@ namespace Wink::GFX
 		glBindBufferBase(GL_UNIFORM_BUFFER, 1, gLightsUBO);
 
 		/* --- RenderObject --- */
+		std::vector<RenderObject> renderObjects;
+		std::vector<glm::mat4> modelMats;
 		for (auto&& [id, tC, roC] :
-			scene->view<ECS::TransformComponent, ECS::RenderObjectComponent>())
+			scene->view<ECS::TransformComponent,
+			ECS::RenderObjectComponent>())
 		{
-			auto e = scene->wrap(id);
-			if (tC.dirty)
-				ECS::update_world_transform(*scene, id);
+			if (tC.dirty) ECS::update_world_transform(*scene, id);
+			renderObjects.push_back(roC.renderObj);
+			modelMats.push_back(tC.worldMatrix);
+		}
 
-			draw({
-				.renderObj = roC.renderObj,
-				.camData = camData,
-				.modelMat = tC.worldMatrix,
-				.normalMat = glm::transpose(glm::inverse(glm::mat3(tC.worldMatrix)))
+		/* --- Depth Pre-Pass --- */
+		auto winState = Window::get_state();
+		glEnable(GL_DEPTH_TEST);
+		gDepthPrePass->execute(camData, renderObjects, modelMats);
+#if 0
+		gDepthPrePass->debug_draw(winState.width, winState.height);
+		return;
+#endif
+		gDepthPrePass->blit_depth_to(winState.width, winState.height, 0);
+
+		/* --- Forward Pass --- */
+		// TODO: These gl calls should live in draw()
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, winState.width, winState.height);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glDepthFunc(GL_LEQUAL);
+		//glDepthMask(GL_FALSE); // TODO: Requires scene FBO
+
+		for (size_t i = 0; i < renderObjects.size(); ++i)
+		{
+			draw({ .renderObj = renderObjects[i],
+				   .camData = camData,
+				   .modelMat = modelMats[i],
+				   .normalMat = glm::transpose(glm::inverse(glm::mat3(modelMats[i])))
 				});
 		}
 
+		glDepthMask(GL_TRUE);
+		glDepthFunc(GL_LEQUAL);
+
 		if (IBL::gRenderSkybox) draw_skybox(cam);
 	}
-	
+
 	bool init()
 	{
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -368,6 +450,12 @@ namespace Wink::GFX
 		if (!load_engine_resources())
 		{
 			Logger::Internal::error("Failed to create engine resources");
+			return false;
+		}
+
+		if (!init_forward_plus())
+		{
+			Logger::Internal::error("Failed to initialize Forward+ resources");
 			return false;
 		}
 
@@ -389,14 +477,20 @@ namespace Wink::GFX
 		gSkyboxVAO = 0;
 		gSkyboxVBO = 0;
 
+		ForwardPlus::gDepthPrePass.reset();
+
 		clear_all_resources();
 	}
 
 	void resize(u32 width, u32 height)
 	{
+		using namespace ForwardPlus;
+
 		glViewport(0, 0,
 			static_cast<i32>(width),
 			static_cast<i32>(height));
+
+		gDepthPrePass->resize(width, height);
 	}
 
 	void set_clear_color(const glm::vec4& color)
