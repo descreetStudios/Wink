@@ -6,22 +6,31 @@ namespace Wink::GFX
 {
 	namespace
 	{
-		constexpr u32 MATERIAL_UBO_BINDING = 2;
-		u32 gMaterialUBO = 0;
+		constexpr u32 MATERIAL_SSBO_BINDING = 2;
+		u32 gMaterialSSBO = 0;
+
+		// Full buffer layout — what gets uploaded each draw
+		struct MaterialBufferData
+		{
+			MaterialTextureHandles handles;
+			MaterialParams params;
+		};
+
+		static_assert(sizeof(MaterialBufferData) % 16 == 0);
 	}
 
-	void Material::init_ubo()
+	void Material::init_ssbo()
 	{
-		glCreateBuffers(1, &gMaterialUBO);
-		glNamedBufferStorage(gMaterialUBO,
-			sizeof(MaterialTextureHandles) + sizeof(MaterialParams),
+		glCreateBuffers(1, &gMaterialSSBO);
+		glNamedBufferStorage(gMaterialSSBO,
+			sizeof(MaterialBufferData),
 			nullptr, GL_DYNAMIC_STORAGE_BIT);
 	}
 
-	void Material::destroy_ubo()
+	void Material::destroy_ssbo()
 	{
-		glDeleteBuffers(1, &gMaterialUBO);
-		gMaterialUBO = 0;
+		glDeleteBuffers(1, &gMaterialSSBO);
+		gMaterialSSBO = 0;
 	}
 
 	void Material::set_default_textures() noexcept
@@ -54,7 +63,7 @@ namespace Wink::GFX
 	void Material::apply() const noexcept
 	{
 		assert(is_valid());
-		assert(gMaterialUBO != 0);
+		assert(gMaterialSSBO != 0);
 
 		ShaderProgram* s = RES::get_shader_pool().try_get(shader);
 		assert(s);
@@ -67,20 +76,22 @@ namespace Wink::GFX
 				return t->get_bindless_handle();
 			};
 
-		MaterialTextureHandles handles{
-			.albedo = resolve(textures.albedo),
-			.normal = resolve(textures.normal),
-			.mr = resolve(textures.mr),
-			.ao = resolve(textures.ao),
-			.emissive = resolve(textures.emissive),
+		const MaterialBufferData data
+		{
+			.handles =
+			{
+				.albedo = resolve(textures.albedo),
+				.normal = resolve(textures.normal),
+				.mr = resolve(textures.mr),
+				.ao = resolve(textures.ao),
+				.emissive = resolve(textures.emissive),
+			},
+			.params = params,
 		};
 
-		glNamedBufferSubData(gMaterialUBO, 0,
-			sizeof(handles), &handles);
-		glNamedBufferSubData(gMaterialUBO, sizeof(handles),
-			sizeof(params), &params);
-
-		glBindBufferBase(GL_UNIFORM_BUFFER, MATERIAL_UBO_BINDING, gMaterialUBO);
+		glNamedBufferSubData(gMaterialSSBO, 0, sizeof(data), &data);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER,
+			MATERIAL_SSBO_BINDING, gMaterialSSBO);
 	}
 
 	bool Material::is_valid() const noexcept

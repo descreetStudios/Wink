@@ -1,7 +1,7 @@
 #ifndef MATERIAL_GLSL
 #define MATERIAL_GLSL
 
-struct Material
+struct MaterialParams
 {
     vec4 baseColor;
     float metallic;
@@ -18,19 +18,18 @@ struct Material
     int _pad1[3];
 };
 
-layout(std140, binding = 2) uniform MaterialUBO
+layout(std430, binding = 2) readonly buffer MaterialSSBO
 {
     uvec2 uAlbedoHandle;
     uvec2 uNormalHandle;
     uvec2 uMRHandle;
     uvec2 uAOHandle;
     uvec2 uEmissiveHandle;
-    uvec2 _pad3;
+    uvec2 _p1;
 
-    Material uMaterial;
+    MaterialParams uMaterial;
 };
 
-#define SAMPLE_BINDLESS(handle, uv) \
-    texture(sampler2D(handle), uv)
+#define SAMPLE_BINDLESS(handle, uv) texture(sampler2D(handle), uv)
 
 #endif // MATERIAL_GLSL

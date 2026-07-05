@@ -30,7 +30,8 @@ layout(std140, binding = 1) uniform LightsUBO
     uint uDirLightCount;
     uint uPointLightCount;
     uint uSpotLightCount;
-    uint _pad;
+    uint _p0;
+
     DirLight uDirLights[MAX_DIR_LIGHTS];
     PointLight uPointLights[MAX_POINT_LIGHTS];
     SpotLight uSpotLights[MAX_SPOT_LIGHTS];

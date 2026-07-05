@@ -123,7 +123,7 @@ public:
 
 		// IBL
 		auto hdr = texturePool.decode(RES_PATH / "HDRIs" / 
-			"kloofendal_48d_partly_cloudy_puresky_4k.hdr");
+			"shanghai_bund_4k.hdr");
 		auto env = cubemapPool.hdr_to_cubemap(hdr);
 		auto irr = IBL::bake_irradiance_map(env);
 		auto pref = IBL::bake_prefiltered_env_map(env);

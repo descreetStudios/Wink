@@ -23,6 +23,9 @@ namespace Wink::GFX
 		u64 _pad = 0;
 	};
 
+	static_assert(sizeof(MaterialTextureHandles) == 48);
+	static_assert(sizeof(MaterialTextureHandles) % 16 == 0);
+
 	struct MaterialParams
 	{
 		glm::vec4 baseColor = glm::vec4(1.0f);
@@ -53,8 +56,8 @@ namespace Wink::GFX
 			MaterialTextures textures = {},
 			MaterialParams params = {});
 
-		static void init_ubo();
-		static void destroy_ubo();
+		static void init_ssbo();
+		static void destroy_ssbo();
 		void apply() const noexcept;
 
 		[[nodiscard]] bool is_valid() const noexcept;

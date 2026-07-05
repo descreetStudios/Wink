@@ -132,7 +132,7 @@ namespace Wink::GFX
 			glNamedBufferStorage(gLightsUBO, sizeof(LightsGPUData), nullptr,
 				GL_DYNAMIC_STORAGE_BIT);
 
-			Material::init_ubo();
+			Material::init_ssbo();
 
 			gFullscreenShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Vertex, "Resources/Shaders/FullscreenVS.glsl" },
@@ -383,7 +383,7 @@ namespace Wink::GFX
 		glDeleteBuffers(1, &gFrameUBO);
 		glDeleteBuffers(1, &gLightsUBO);
 
-		Material::destroy_ubo();
+		Material::destroy_ssbo();
 
 		gFullscreenVAO = 0;
 		gSkyboxVAO = 0;
