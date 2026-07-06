@@ -140,17 +140,6 @@ namespace Wink::GFX::ForwardPlus
 		std::vector<glm::uvec2> readback(mTileCountX * mTileCountY);
 		glGetNamedBufferSubData(mLightGridSSBO, 0,
 			readback.size() * sizeof(glm::uvec2), readback.data());
-
-		u32 nonZeroTiles = 0;
-		u32 maxLights = 0;
-		for (const auto& tile : readback)
-		{
-			u32 total = tile.x + tile.y;
-			if (total > 0) nonZeroTiles++;
-			maxLights = std::max(maxLights, total);
-		}
-		//Logger::Internal::info("LightCulling readback: {}/{} tiles lit, max {} lights/tile",
-		//	nonZeroTiles, readback.size(), maxLights);
 	}
 
 	void LightCullingPass::debug_draw(u32 width, u32 height) const noexcept
@@ -164,9 +153,6 @@ namespace Wink::GFX::ForwardPlus
 		shader->set("uScreenWidth", mWidth);
 		shader->set("uScreenHeight", mHeight);
 		shader->set("uMaxLightsPerTile", MAX_LIGHTS_PER_TILE);
-
-		Logger::Internal::info("Dimensions: {}x{}",
-			mWidth, mHeight);
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mLightGridSSBO);
 

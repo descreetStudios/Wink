@@ -41,8 +41,13 @@ void main()
 	uvec2 pixelInTile = pixelCoord % uvec2(TILE_SIZE);
 	bool border = pixelInTile.x == 0u || pixelInTile.y == 0u;
 
-	if (total == 0u) discard;
-	else if (border) FragColor = vec4(0.2, 0.2, 0.2, 0.6);
+	if (total == 0u)
+	{
+		FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+		return;
+	}
+	else if (border) 
+		FragColor = vec4(0.2, 0.2, 0.2, 0.6);
 	else
 	{
 		uint globalMax = 0u;

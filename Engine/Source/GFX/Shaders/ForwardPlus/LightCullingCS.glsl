@@ -104,6 +104,13 @@ bool spot_intersects_frustum(vec3 posVS, vec3 dirVS,
     return sphere_intersects_frustum(center, radius, planes);
 }
 
+float linearize(float depth)
+{
+    float ndcZ = depth * 2.0 - 1.0;
+    vec4 view = uInvProj * vec4(0.0, 0.0, ndcZ, 1.0);
+    return view.z / view.w;
+}
+
 void main()
 {
 	ivec2 tileID = ivec2(gl_WorkGroupID.xy);
@@ -152,18 +159,15 @@ void main()
 	planes[3] = compute_plane(origin, corners[1], corners[2]); // right
 
 	vec2 tileCenter = (vec2(tileID) + 0.5) / vec2(uTileCountX, gl_NumWorkGroups.y);
-	vec3 tileCenterVS = uv_to_view(tileCenter, 0.5);
-	for (int i = 0; i < 4; ++i)
-	{
-		if (dot(planes[i].xyz, tileCenterVS) + planes[i].w < 0.0)
-			planes[i] = -planes[i];
-	}
 
-	float minZ = uv_to_view(tileCenter, minDepth).z;
-	float maxZ = uv_to_view(tileCenter, maxDepth).z;
+	float minZ = linearize(minDepth);
+	float maxZ = linearize(maxDepth);
 
-	planes[4] = vec4( 0.0, 0.0, 1.0, -minZ);
-	planes[5] = vec4( 0.0, 0.0, -1.0, maxZ);
+	vec4 cameraNearPlane = vec4(0.0, 0.0, -1.0, 0.0);
+	float nearClipVS = uv_to_view(vec2(0.5), 0.0).z;
+
+	planes[4] = vec4(0.0, 0.0, -1.0,  nearClipVS);
+	planes[5] = vec4(0.0, 0.0,  1.0, -minZ);
 
 	/* --- Point Light Culling --- */
 	uint groupSize = gl_WorkGroupSize.x * gl_WorkGroupSize.y;
