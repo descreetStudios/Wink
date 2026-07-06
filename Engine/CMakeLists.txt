@@ -200,6 +200,7 @@ PRIVATE
 
     # --- Forward+ --- #
     "Source/GFX/Renderer/ForwardPlus/DepthPrePass.cpp"
+    "Source/GFX/Renderer/ForwardPlus/LightCullingPass.cpp"
 
     # --- Content --- #
     "Source/Content/Image.cpp"

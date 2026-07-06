@@ -73,7 +73,7 @@ namespace Wink::GFX::ForwardPlus
 		std::span<const glm::mat4> modelMats) noexcept
 	{
 		assert(objects.size() == modelMats.size());
-		ENGINE_ZONE_NAME("DepthPrePass");
+		ENGINE_ZONE_NAME("Depth Pre-Pass");
 
 		ShaderProgram* shader = gShaderPool.try_get(gDepthOnlyShader);
 		if (!shader || !shader->is_valid())

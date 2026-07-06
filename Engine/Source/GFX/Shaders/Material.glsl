@@ -25,7 +25,7 @@ layout(std430, binding = 2) readonly buffer MaterialSSBO
     uvec2 uMRHandle;
     uvec2 uAOHandle;
     uvec2 uEmissiveHandle;
-    uvec2 _p1;
+    uvec2 _p2;
 
     MaterialParams uMaterial;
 };

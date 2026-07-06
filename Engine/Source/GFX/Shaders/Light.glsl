@@ -2,7 +2,7 @@
 #define LIGHT_GLSL
 
 #define MAX_DIR_LIGHTS 2
-#define MAX_POINT_LIGHTS 16
+#define MAX_POINT_LIGHTS 800
 #define MAX_SPOT_LIGHTS 8
 
 struct DirLight
@@ -30,7 +30,7 @@ layout(std140, binding = 1) uniform LightsUBO
     uint uDirLightCount;
     uint uPointLightCount;
     uint uSpotLightCount;
-    uint _p0;
+    uint _p1;
 
     DirLight uDirLights[MAX_DIR_LIGHTS];
     PointLight uPointLights[MAX_POINT_LIGHTS];

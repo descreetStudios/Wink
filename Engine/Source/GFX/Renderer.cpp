@@ -5,6 +5,7 @@
 #include <WinkEngine/GFX/Renderer/Pipeline.hpp>
 
 #include <WinkEngine/GFX/Renderer/ForwardPlus/DepthPrePass.hpp>
+#include <WinkEngine/GFX/Renderer/ForwardPlus/LightCullingPass.hpp>
 
 #include <WinkEngine/ECS/Scene.hpp>
 #include <WinkEngine/ECS/Components/TransformComponent.hpp>
@@ -54,13 +55,14 @@ namespace Wink::GFX
 
 	namespace ForwardPlus
 	{
-		ShaderHandle gDepthOnlyShader;
-		ShaderHandle gDepthDebugShader;
+		ShaderHandle gDepthOnlyShader; ShaderHandle gDepthDebugShader;
+		ShaderHandle gLightCullingShader; ShaderHandle gLightHeatmapShader;
 
-		u32 gWidth = 0;
-		u32 gHeight = 0;
+		u32 gWidth;
+		u32 gHeight;
 
 		std::optional<DepthPrePass> gDepthPrePass;
+		std::optional<LightCullingPass> gLightCullingPass;
 	}
 
 	namespace IBL
@@ -182,6 +184,15 @@ namespace Wink::GFX
 				{ ShaderType::Fragment, "Resources/Shaders/ForwardPlus/DepthDebugFS.glsl" },
 			});
 
+			ForwardPlus::gLightCullingShader = gShaderPool.load(std::vector<ShaderFile>{
+				{ ShaderType::Compute, "Resources/Shaders/ForwardPlus/LightCullingCS.glsl" }
+			});
+
+			ForwardPlus::gLightHeatmapShader = gShaderPool.load(std::vector<ShaderFile>{
+				{ ShaderType::Vertex, "Resources/Shaders/ForwardPlus/LightHeatmapVS.glsl" },
+				{ ShaderType::Fragment, "Resources/Shaders/ForwardPlus/LightHeatmapFS.glsl" },
+			});
+
 			/* --- IBL --- */
 			IBL::gEquirectToCubemapShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Compute, "Resources/Shaders/EquirectToCubemapCS.glsl" }
@@ -225,6 +236,7 @@ namespace Wink::GFX
 				/* --- Forward+ --- */
 				gShaderPool.is_valid(ForwardPlus::gDepthOnlyShader) &&
 				gShaderPool.is_valid(ForwardPlus::gDepthDebugShader) &&
+				gShaderPool.is_valid(ForwardPlus::gLightCullingShader) &&
 				/* --- IBL --- */
 				gShaderPool.is_valid(IBL::gEquirectToCubemapShader) &&
 				gShaderPool.is_valid(IBL::gIrradianceConvolutionShader) &&
@@ -237,9 +249,14 @@ namespace Wink::GFX
 			using namespace ForwardPlus;
 
 			auto winState = Window::get_state();
+			gWidth = winState.width;
+			gHeight = winState.height;
 
 			gDepthPrePass.emplace();
-			bool result = gDepthPrePass->init(winState.width, winState.height);
+			bool result = gDepthPrePass->init(gWidth, gHeight);
+
+			gLightCullingPass.emplace();
+			gLightCullingPass->init(gWidth, gHeight);
 
 			return result;
 		}
@@ -286,14 +303,21 @@ namespace Wink::GFX
 			cam.position += camET.position;
 		}
 
-		CameraData camData{ .position = cam.position,
-			.viewProj = cam.get_proj() * cam.get_view() };
+		auto view = cam.get_view();
+		auto proj = cam.get_proj();
+		CameraData camData{
+			.position = cam.position,
+			.view = view, .proj = proj,
+			.invProj = glm::inverse(proj),
+			.viewProj = proj * view };
 
 		/* --- Frame UBO --- */
 		FrameGPUData frameData{
+			.view = camData.view,
+			.proj = camData.proj,
+			.invProj = camData.invProj,
 			.viewProj = camData.viewProj,
-			.camPos = camData.position
-		};
+			.camPos = camData.position };
 		glNamedBufferSubData(gFrameUBO, 0, sizeof(FrameGPUData), &frameData);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, gFrameUBO);
 
@@ -407,19 +431,23 @@ namespace Wink::GFX
 		}
 
 		/* --- Depth Pre-Pass --- */
-		auto winState = Window::get_state();
 		glEnable(GL_DEPTH_TEST);
 		gDepthPrePass->execute(camData, renderObjects, modelMats);
 #if 0
-		gDepthPrePass->debug_draw(winState.width, winState.height);
+		gDepthPrePass->debug_draw(gWidth, gHeight);
 		return;
 #endif
-		gDepthPrePass->blit_depth_to(winState.width, winState.height, 0);
+		gDepthPrePass->blit_depth_to(gWidth, gHeight, 0);
+
+		/* --- Light Culling Pass --- */
+		gLightCullingPass->execute(
+			camData, pointLights, spotLights,
+			gDepthPrePass->get_depth_id());
 
 		/* --- Forward Pass --- */
 		// TODO: These gl calls should live in draw()
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glViewport(0, 0, winState.width, winState.height);
+		glViewport(0, 0, gWidth, gHeight);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDepthFunc(GL_LEQUAL);
 		//glDepthMask(GL_FALSE); // TODO: Requires scene FBO
@@ -435,6 +463,10 @@ namespace Wink::GFX
 
 		glDepthMask(GL_TRUE);
 		glDepthFunc(GL_LEQUAL);
+
+#if 1
+		gLightCullingPass->debug_draw(gWidth, gHeight);
+#endif
 
 		if (IBL::gRenderSkybox) draw_skybox(cam);
 	}
@@ -478,6 +510,7 @@ namespace Wink::GFX
 		gSkyboxVBO = 0;
 
 		ForwardPlus::gDepthPrePass.reset();
+		ForwardPlus::gLightCullingPass.reset();
 
 		clear_all_resources();
 	}
@@ -491,6 +524,10 @@ namespace Wink::GFX
 			static_cast<i32>(height));
 
 		gDepthPrePass->resize(width, height);
+		gLightCullingPass->resize(width, height);
+
+		gWidth = width;
+		gHeight = height;
 	}
 
 	void set_clear_color(const glm::vec4& color)

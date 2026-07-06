@@ -5,7 +5,7 @@
 namespace Wink::GFX
 {
 	inline constexpr u32 MAX_DIR_LIGHTS = 2;
-	inline constexpr u32 MAX_POINT_LIGHTS = 16;
+	inline constexpr u32 MAX_POINT_LIGHTS = 800;
 	inline constexpr u32 MAX_SPOT_LIGHTS = 8;
 
 	struct DirLight
@@ -43,6 +43,9 @@ namespace Wink::GFX
 	struct CameraData
 	{
 		glm::vec3 position;
+		glm::mat4 view;
+		glm::mat4 proj;
+		glm::mat4 invProj;
 		glm::mat4 viewProj;
 	};
 

@@ -18,8 +18,12 @@ uniform mat3 uNormalMatrix;
 
 layout(std140, binding = 0) uniform FrameUBO 
 {
+    mat4 uView;
+    mat4 uProj;
+    mat4 uInvProj;
     mat4 uViewProj;
     vec3 uCamPos;
+    float _p0;
 };
 
 void main()

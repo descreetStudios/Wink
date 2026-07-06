@@ -55,12 +55,12 @@ public:
 
 		// Point Lights
 		std::uniform_real_distribution<float> distX(-15.0f, 15.0f);
-		std::uniform_real_distribution<float> distY(0.5f, 3.0f);
+		std::uniform_real_distribution<float> distY(0.5f, 10.0f);
 		std::uniform_real_distribution<float> distZ(-5.0f, 5.0f);
 		std::uniform_real_distribution<float> distColor(0.1f, 1.0f);
 		std::uniform_real_distribution<float> distSpeed(0.5f, 1.5f);
 
-		for (int i = 0; i < 15; ++i)
+		for (int i = 0; i < 800; ++i)
 		{
 			glm::vec3 randomColor = { distColor(gen), distColor(gen), distColor(gen) };
 
@@ -71,8 +71,8 @@ public:
 
 			auto& sponzaLightC = sponzaLight.add<PointLightComponent>();
 			sponzaLightC.pointLight.color = randomColor;
-			sponzaLightC.pointLight.radius = 30.0f;
-			sponzaLightC.pointLight.intensity = 5.0f;
+			sponzaLightC.pointLight.radius = 0.5f;
+			sponzaLightC.pointLight.intensity = 20.0f;
 
 			// Save tracking data for Sponza light
 			mMovingLights.push_back({
@@ -101,7 +101,8 @@ public:
 
 		// Spot Lights
 		mSponzaSpotLight = sponzaScene->spawn();
-		mSponzaSpotLight.add<SpotLightComponent>().spotLight.intensity = 2.0f;
+		auto& l = mSponzaSpotLight.add<SpotLightComponent>();
+		l.spotLight.intensity = 2.0f;
 
 		{
 			APP_ZONE_NAME("Asset Loading");
@@ -122,7 +123,7 @@ public:
 		}
 
 		// IBL
-		auto hdr = texturePool.decode(RES_PATH / "HDRIs" / 
+		auto hdr = texturePool.decode(RES_PATH / "HDRIs" /
 			"shanghai_bund_4k.hdr");
 		auto env = cubemapPool.hdr_to_cubemap(hdr);
 		auto irr = IBL::bake_irradiance_map(env);
@@ -186,35 +187,35 @@ public:
 			glm::sin(angle)
 		));
 
-		/* --- Spot Lights --- */
-		if (mSponzaSpotLight.has<ECS::SpotLightComponent>() &&
-			mCamEntity.has<ECS::TransformComponent>())
-		{
-			auto& sslC = mSponzaSpotLight.get<ECS::SpotLightComponent>();
-			auto& camTransform = mCamEntity.get<ECS::TransformComponent>();
-			sslC.spotLight.position = camTransform.position;
-			sslC.spotLight.direction = mCam.get_forward();
-		}
-
-		/* --- Point Lights --- */
-		static float totalTime = 0.0f;
-		totalTime += fdt;
-
-		const float maxMovementRadius = 1.0f;
-
-		for (auto& ml : mMovingLights)
-		{
-			if (ml.entity.is_valid() && ml.entity.has<ECS::TransformComponent>())
-			{
-				auto& t = ml.entity.get<ECS::TransformComponent>();
-
-				float offsetX = glm::sin(totalTime * ml.movementSpeed.x) * maxMovementRadius;
-				float offsetY = glm::cos(totalTime * ml.movementSpeed.y) * (maxMovementRadius * 0.3f);
-				float offsetZ = glm::sin(totalTime * ml.movementSpeed.z + 1.0f) * maxMovementRadius;
-
-				t.position = ml.initialPosition + glm::vec3(offsetX, offsetY, offsetZ);
-			}
-		}
+		///* --- Spot Lights --- */
+		//if (mSponzaSpotLight.has<ECS::SpotLightComponent>() &&
+		//	mCamEntity.has<ECS::TransformComponent>())
+		//{
+		//	auto& sslC = mSponzaSpotLight.get<ECS::SpotLightComponent>();
+		//	auto& camTransform = mCamEntity.get<ECS::TransformComponent>();
+		//	sslC.spotLight.position = camTransform.position;
+		//	sslC.spotLight.direction = mCam.get_forward();
+		//}
+		//
+		///* --- Point Lights --- */
+		//static float totalTime = 0.0f;
+		//totalTime += fdt;
+		//
+		//const float maxMovementRadius = 1.0f;
+		//
+		//for (auto& ml : mMovingLights)
+		//{
+		//	if (ml.entity.is_valid() && ml.entity.has<ECS::TransformComponent>())
+		//	{
+		//		auto& t = ml.entity.get<ECS::TransformComponent>();
+		//
+		//		float offsetX = glm::sin(totalTime * ml.movementSpeed.x) * maxMovementRadius;
+		//		float offsetY = glm::cos(totalTime * ml.movementSpeed.y) * (maxMovementRadius * 0.3f);
+		//		float offsetZ = glm::sin(totalTime * ml.movementSpeed.z + 1.0f) * maxMovementRadius;
+		//
+		//		t.position = ml.initialPosition + glm::vec3(offsetX, offsetY, offsetZ);
+		//	}
+		//}
 	}
 
 private:

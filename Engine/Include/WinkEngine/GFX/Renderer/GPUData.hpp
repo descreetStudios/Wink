@@ -24,6 +24,9 @@ namespace Wink::GFX
 
 	struct FrameGPUData
 	{
+		glm::mat4 view;
+		glm::mat4 proj;
+		glm::mat4 invProj;
 		glm::mat4 viewProj;
 		glm::vec3 camPos;		float _pad;
 	};
