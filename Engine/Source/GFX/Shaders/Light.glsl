@@ -2,8 +2,8 @@
 #define LIGHT_GLSL
 
 #define MAX_DIR_LIGHTS 2
-#define MAX_POINT_LIGHTS 800
-#define MAX_SPOT_LIGHTS 8
+#define MAX_POINT_LIGHTS 100
+#define MAX_SPOT_LIGHTS 100
 
 struct DirLight
 {

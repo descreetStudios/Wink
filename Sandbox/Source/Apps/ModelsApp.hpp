@@ -60,7 +60,7 @@ public:
 		std::uniform_real_distribution<float> distColor(0.1f, 1.0f);
 		std::uniform_real_distribution<float> distSpeed(0.5f, 1.5f);
 
-		for (int i = 0; i < 100; ++i)
+		for (int i = 0; i < 800; ++i)
 		{
 			glm::vec3 randomColor = { distColor(gen), distColor(gen), distColor(gen) };
 
@@ -71,8 +71,8 @@ public:
 
 			auto& sponzaLightC = sponzaLight.add<PointLightComponent>();
 			sponzaLightC.pointLight.color = randomColor;
-			sponzaLightC.pointLight.radius = 1.0f;
-			sponzaLightC.pointLight.intensity = 20.0f;
+			sponzaLightC.pointLight.radius = 2.0f;
+			sponzaLightC.pointLight.intensity = 15.0f;
 
 			// Save tracking data for Sponza light
 			mMovingLights.push_back({

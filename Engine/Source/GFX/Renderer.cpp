@@ -464,7 +464,7 @@ namespace Wink::GFX
 		glDepthMask(GL_TRUE);
 		glDepthFunc(GL_LEQUAL);
 
-#if 1
+#if 0
 		gLightCullingPass->debug_draw(gWidth, gHeight);
 #endif
 
