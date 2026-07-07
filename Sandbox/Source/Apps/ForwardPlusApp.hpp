@@ -37,10 +37,10 @@ public:
 
 		/* --- Random Point & Spot Lights --- */
 #if SPONZA
-		spawn_random_lights(scene, 50, 50,
-			{ -15.0f, -2.0f, -5.0f }, { 15.0f, 6.0f, 5.0f });
+		spawn_random_lights(scene, 1000, 0,
+			{ -15.0f, -2.5f, -5.0f }, { 15.0f, 6.0f, 5.0f });
 #else
-		spawn_random_lights(scene, 50, 50);
+		spawn_random_lights(scene, 1000, 0);
 #endif
 
 		/* --- Model Loading --- */
@@ -182,7 +182,7 @@ private:
 		u32 numPoint = 100, u32 numSpot = 100,
 		glm::vec3 posMin = { -7.0f, 0.5f, -7.0f },
 		glm::vec3 posMax = { 7.0f, 5.0f, 7.0f },
-		float radiusMin = 0.5f, float radiusMax = 1.0,
+		float radiusMin = 0.5f, float radiusMax = 3.0,
 		u32 seed = 1337) const
 	{
 		std::mt19937 rng(seed);
@@ -201,7 +201,7 @@ private:
 			auto& pl = e.add<ECS::PointLightComponent>();
 			pl.pointLight.color = { uc(rng), uc(rng), uc(rng) };
 			pl.pointLight.radius = ur(rng);
-			pl.pointLight.intensity = 15.0f;
+			pl.pointLight.intensity = 5.0f;
 		}
 
 		for (u32 i = 0; i < numSpot; ++i)
@@ -216,7 +216,7 @@ private:
 			t.rotation = glm::quatLookAt(dir, { 0.0f, 1.0f, 0.0f });
 			auto& sl = e.add<ECS::SpotLightComponent>();
 			sl.spotLight.color = { uc(rng), uc(rng), uc(rng) };
-			sl.spotLight.intensity = 15.0f;
+			sl.spotLight.intensity = 10.0f;
 			sl.spotLight.innerCutoff = glm::radians(uangle(rng) * 0.5f);
 			sl.spotLight.outerCutoff = glm::radians(uangle(rng));
 		}

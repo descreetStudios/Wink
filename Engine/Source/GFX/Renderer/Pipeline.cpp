@@ -66,20 +66,6 @@ namespace Wink::GFX
 			{
 				return DirLightNames{ b + "direction", b + "intensity", b + "color" };
 			});
-
-		const std::vector<PointLightNames> POINT_LIGHT_NAMES = make_light_names<PointLightNames>(
-			MAX_POINT_LIGHTS, "uPointLights", [](const std::string& b)
-			{
-				return PointLightNames{ b + "position", b + "intensity", b + "color", b + "radius" };
-			});
-
-		const std::vector<SpotLightNames> SPOT_LIGHT_NAMES = make_light_names<SpotLightNames>(
-			MAX_SPOT_LIGHTS, "uSpotLights", [](const std::string& b)
-			{
-				return SpotLightNames{
-					b + "position", b + "range", b + "direction",
-					b + "innerCutoff", b + "color", b + "outerCutoff", b + "intensity" };
-			});
 	} // anonymous namespace
 
 	void draw_skybox(const Camera& cam)

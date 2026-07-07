@@ -1,8 +1,8 @@
 #version 460 core
 
-#define MAX_LIGHTS_PER_TILE 256
+#define TILE_SIZE 16
 
-layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+layout(local_size_x = TILE_SIZE, local_size_y = TILE_SIZE, local_size_z = 1) in;
 
 uniform mat4 uView;
 uniform mat4 uInvProj;
@@ -47,12 +47,18 @@ layout(std430, binding = 3) buffer LightGrid
 	uvec2 oLightGrid[]; // .x = offset (derived), .y = count
 };
 
+layout(std430, binding = 4) buffer GlobalLightCounter
+{
+    uint oGlobalLightCount; // cleared to 0 each frame before dispatch
+};
+
 shared uint sMinDepthInt;
 shared uint sMaxDepthInt;
 shared uint sPointLightCount;
 shared uint sSpotLightCount;
-shared uint sPointLightIndices[MAX_LIGHTS_PER_TILE];
-shared uint sSpotLightIndices[MAX_LIGHTS_PER_TILE];
+shared uint sPointLightOffset;
+shared uint sSpotLightOffset;
+shared uint sBaseOffset;
 
 vec3 uv_to_view(vec2 uv, float depth)
 {
@@ -82,39 +88,38 @@ bool sphere_intersects_frustum(
 }
 
 bool spot_intersects_frustum(vec3 posVS, vec3 dirVS,
-    float range, float outerCutoff, vec4 planes[6])
+	float range, float outerCutoff, vec4 planes[6])
 {
-    float sinAngle = sqrt(1.0 - outerCutoff * outerCutoff);
-    float cosAngle = outerCutoff;
+	float sinAngle = sqrt(1.0 - outerCutoff * outerCutoff);
+	float cosAngle = outerCutoff;
 
-    vec3 center;
-    float radius;
+	vec3 center;
+	float radius;
 
-    if (cosAngle >= sinAngle)
-    {
-        center = posVS;
-        radius = range;
-    }
-    else
-    {
-        center = posVS + dirVS * range * cosAngle;
-        radius = range * sinAngle;
-    }
+	if (cosAngle >= sinAngle)
+	{
+		center = posVS;
+		radius = range;
+	}
+	else
+	{
+		center = posVS + dirVS * range * cosAngle;
+		radius = range * sinAngle;
+	}
 
-    return sphere_intersects_frustum(center, radius, planes);
+	return sphere_intersects_frustum(center, radius, planes);
 }
 
 float linearize(float depth)
 {
-    float ndcZ = depth * 2.0 - 1.0;
-    vec4 view = uInvProj * vec4(0.0, 0.0, ndcZ, 1.0);
-    return view.z / view.w;
+	float ndcZ = depth * 2.0 - 1.0;
+	vec4 view = uInvProj * vec4(0.0, 0.0, ndcZ, 1.0);
+	return view.z / view.w;
 }
 
 void main()
 {
 	ivec2 tileID = ivec2(gl_WorkGroupID.xy);
-	ivec2 threadID = ivec2(gl_LocalInvocationID.xy);
 	uint flatThread = gl_LocalInvocationIndex;
 
 	if (flatThread == 0)
@@ -126,16 +131,12 @@ void main()
 	}
 	barrier();
 
-	ivec2 pixelCoord = tileID * 16 + threadID;
-	pixelCoord = clamp(pixelCoord,
+	ivec2 pixelCoord = clamp(tileID * TILE_SIZE + ivec2(gl_LocalInvocationID.xy),
 		ivec2(0), ivec2(uScreenWidth - 1, uScreenHeight - 1));
-
 	vec2 uv = (vec2(pixelCoord) + 0.5) / vec2(uScreenWidth, uScreenHeight);
 	float depth = texture(uDepth, uv).r;
-
-	uint depthInt = floatBitsToUint(depth);
-	atomicMin(sMinDepthInt, depthInt);
-	atomicMax(sMaxDepthInt, depthInt);
+	atomicMin(sMinDepthInt, floatBitsToUint(depth));
+	atomicMax(sMaxDepthInt, floatBitsToUint(depth));
 	barrier();
 
 	float minDepth = uintBitsToFloat(sMinDepthInt);
@@ -145,76 +146,95 @@ void main()
 	vec2 tileMax = vec2(tileID + 1) / vec2(uTileCountX, gl_NumWorkGroups.y);
 
 	vec3 corners[4];
-	corners[0] = uv_to_view(vec2(tileMin.x, tileMin.y), 0.5);
-	corners[1] = uv_to_view(vec2(tileMax.x, tileMin.y), 0.5);
-	corners[2] = uv_to_view(vec2(tileMax.x, tileMax.y), 0.5);
-	corners[3] = uv_to_view(vec2(tileMin.x, tileMax.y), 0.5);
+	corners[0] = uv_to_view(vec2(tileMin.x, tileMin.y), 0.0);
+	corners[1] = uv_to_view(vec2(tileMax.x, tileMin.y), 0.0);
+	corners[2] = uv_to_view(vec2(tileMax.x, tileMax.y), 0.0);
+	corners[3] = uv_to_view(vec2(tileMin.x, tileMax.y), 0.0);
 
 	vec3 origin = vec3(0.0);
 
 	vec4 planes[6];
-	planes[0] = compute_plane(origin, corners[0], corners[1]); // bottom
-	planes[1] = compute_plane(origin, corners[2], corners[3]); // top
-	planes[2] = compute_plane(origin, corners[3], corners[0]); // left
-	planes[3] = compute_plane(origin, corners[1], corners[2]); // right
-
-	vec2 tileCenter = (vec2(tileID) + 0.5) / vec2(uTileCountX, gl_NumWorkGroups.y);
+	planes[0] = compute_plane(origin, corners[1], corners[0]); // bottom
+	planes[1] = compute_plane(origin, corners[3], corners[2]); // top
+	planes[2] = compute_plane(origin, corners[0], corners[3]); // left
+	planes[3] = compute_plane(origin, corners[2], corners[1]); // right
 
 	float minZ = linearize(minDepth);
 	float maxZ = linearize(maxDepth);
+	planes[4] = vec4(0.0, 0.0, -1.0,  minZ);
+	planes[5] = vec4(0.0, 0.0,  1.0, -maxZ);
 
-	vec4 cameraNearPlane = vec4(0.0, 0.0, -1.0, 0.0);
-	float nearClipVS = uv_to_view(vec2(0.5), 0.0).z;
-
-	planes[4] = vec4(0.0, 0.0, -1.0,  nearClipVS);
-	planes[5] = vec4(0.0, 0.0,  1.0, -minZ);
-
-	/* --- Point Light Culling --- */
 	uint groupSize = gl_WorkGroupSize.x * gl_WorkGroupSize.y;
 
+	/* --- Pass 1: Count visible lights in this tile --- */
 	for (uint i = flatThread; i < uPointLightCount; i += groupSize)
 	{
 		vec3 posVS = (uView * vec4(uPointLights[i].position.xyz, 1.0)).xyz;
-		float radius = uPointLights[i].color.w; // .w = radius
-
+		float radius = uPointLights[i].color.w;
 		if (sphere_intersects_frustum(posVS, radius, planes))
-		{
-			uint slot = atomicAdd(sPointLightCount, 1);
-			if (slot < MAX_LIGHTS_PER_TILE) sPointLightIndices[slot] = i;
-		}
+			atomicAdd(sPointLightCount, 1u);
 	}
 
-	/* --- Spot Light Culling --- */
 	for (uint i = flatThread; i < uSpotLightCount; i += groupSize)
-	{
-		vec3 posVS = (uView * vec4(uSpotLights[i].position.xyz, 1.0)).xyz;
-		vec3 dirVS = normalize(mat3(uView) * uSpotLights[i].direction.xyz);
-		float range = uSpotLights[i].position.w; // .w = range
-		float outerCutoff = uSpotLights[i].color.w; // .w = outerCutoff
-
-		if (spot_intersects_frustum(posVS, dirVS, range, outerCutoff, planes))
-		{
-			uint slot = atomicAdd(sSpotLightCount, 1);
-			if (slot < MAX_LIGHTS_PER_TILE) sSpotLightIndices[slot] = i;
-		}
-	}
+    {
+        vec3 posVS = (uView * vec4(uSpotLights[i].position.xyz, 1.0)).xyz;
+        vec3 dirVS = normalize(mat3(uView) * uSpotLights[i].direction.xyz);
+        float range = uSpotLights[i].position.w;
+        float outerCutoff = uSpotLights[i].color.w;
+        if (spot_intersects_frustum(posVS, dirVS, range, outerCutoff, planes))
+            atomicAdd(sSpotLightCount, 1u);
+    }
 	barrier();
 
-	/* --- Write results to SSBOs --- */
+	if (flatThread == 0)
+    {
+		uint totalLights = sPointLightCount + sSpotLightCount;
+		sBaseOffset = atomicAdd(oGlobalLightCount, totalLights);
+    }
+    barrier();
+
+	/* --- Reset local counters for index writing --- */
+	if (flatThread == 0)
+    {
+        sMinDepthInt = 0xFFFFFFFF;
+        sMaxDepthInt = 0;
+        sPointLightCount = 0;
+        sSpotLightCount  = 0;
+    }
+    barrier();
+
+	/* --- Pass 2: Write indices into the reserved block --- */
+	for (uint i = flatThread; i < uPointLightCount; i += groupSize)
+    {
+        vec3 posVS = (uView * vec4(uPointLights[i].position.xyz, 1.0)).xyz;
+        float radius = uPointLights[i].color.w;
+        if (sphere_intersects_frustum(posVS, radius, planes))
+        {
+            uint slot = atomicAdd(sPointLightCount, 1u);
+            oLightIndexList[sBaseOffset + slot] = i;
+        }
+    }
+
+    for (uint i = flatThread; i < uSpotLightCount; i += groupSize)
+    {
+        vec3 posVS = (uView * vec4(uSpotLights[i].position.xyz, 1.0)).xyz;
+        vec3 dirVS = normalize(mat3(uView) * uSpotLights[i].direction.xyz);
+        float range = uSpotLights[i].position.w;
+        float outerCutoff = uSpotLights[i].color.w;
+        if (spot_intersects_frustum(posVS, dirVS, range, outerCutoff, planes))
+        {
+            uint slot = atomicAdd(sSpotLightCount, 1);
+            oLightIndexList[sBaseOffset + sPointLightCount + slot] = i;
+        }
+    }
+    barrier();
+
+	/* --- Write light grid for this tile --- */
 	if (flatThread == 0)
 	{
-		uint tileIndex  = tileID.y * uTileCountX + tileID.x;
-		uint baseOffset = tileIndex * MAX_LIGHTS_PER_TILE;
+		uint tileIndex = tileID.y * uTileCountX + tileID.x;
 
-		// Write point lights
-		uint pointCount = min(sPointLightCount, MAX_LIGHTS_PER_TILE);
-		for (uint i = 0; i < pointCount; ++i)
-			oLightIndexList[baseOffset + i] = sPointLightIndices[i];
-
-		uint spotCount = min(sSpotLightCount, MAX_LIGHTS_PER_TILE - pointCount);
-		for (uint i = 0; i < spotCount; ++i)
-			oLightIndexList[baseOffset + pointCount + i] = sSpotLightIndices[i];
-
-		oLightGrid[tileIndex] = uvec2(pointCount, spotCount);
+		oLightGrid[tileIndex] = uvec2(sBaseOffset,
+			(sPointLightCount << 16) | sSpotLightCount);
 	}
 }

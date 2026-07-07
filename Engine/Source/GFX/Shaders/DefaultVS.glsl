@@ -11,6 +11,11 @@ out vec3 vFragPos;
 out vec2 vTexCoord;
 out vec2 vTexCoord1;
 out mat3 vTBN;
+
+flat out uint vTileCountX;
+flat out uint vScreenWidth;
+flat out uint vScreenHeight;
+
 out vec3 vDebug;
 
 uniform mat4 uModel;
@@ -22,8 +27,10 @@ layout(std140, binding = 0) uniform FrameUBO
     mat4 uProj;
     mat4 uInvProj;
     mat4 uViewProj;
-    vec3 uCamPos;
-    float _p0;
+    vec3 uCamPos;           float _fp0;
+    uint uTileCountX;
+    uint uScreenWidth;
+    uint uScreenHeight;     uint _fp1;
 };
 
 void main()
@@ -33,6 +40,10 @@ void main()
     vFragPos = worldPos.xyz;
     vTexCoord = aTexCoord;
     vTexCoord1 = aTexCoord1;
+
+    vTileCountX = uTileCountX;
+    vScreenWidth = uScreenWidth;
+    vScreenHeight = uScreenHeight;
 
     vec3 N = normalize(uNormalMatrix * aNormal);
     vec3 T = normalize(uNormalMatrix * aTangent.xyz);

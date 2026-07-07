@@ -23,6 +23,11 @@ in vec3 vFragPos;
 in vec2 vTexCoord;
 in vec2 vTexCoord1;
 in mat3 vTBN;
+
+flat in uint vTileCountX;
+flat in uint vScreenWidth;
+flat in uint vScreenHeight;
+
 in vec3 vDebug;
 
 out vec4 FragColor;
@@ -31,6 +36,34 @@ uniform samplerCube uIrradianceMap;
 uniform samplerCube uPrefilteredMap;
 uniform sampler2D uBRDFLUT;
 uniform bool uHasIBL;
+
+#define TILE_SIZE 16
+
+layout(std430, binding = 0) readonly buffer PointLightBuffer
+{
+    PointLight uPointLights[];
+};
+
+layout(std430, binding = 1) readonly buffer SpotLightBuffer
+{
+    SpotLight uSpotLights[];
+};
+
+layout(std430, binding = 3) readonly buffer TileLightIndexList
+{
+	uint oLightIndexList[];
+};
+
+layout(std430, binding = 4) readonly buffer TileLightGrid
+{
+	uvec2 oLightGrid[]; // .x = pointCount, .y = spotCount
+};
+
+uint get_tile_index()
+{
+	uvec2 tileID = uvec2(gl_FragCoord.xy) / uvec2(TILE_SIZE);
+	return tileID.y * vTileCountX + tileID.x;
+}
 
 /* --- TexCoord Location Helper --- */
 vec2 get_uv_loc(int loc)
@@ -166,13 +199,24 @@ vec3 compute_pbr(vec3 albedo, vec3 N, vec3 V,
 		directLight += compute_dir_light(uDirLights[i],
 			albedo, N, V, NdV, metallic, roughness, F0);
 
-	for (int i = 0; i < uPointLightCount; ++i)
-		directLight += compute_point_light(uPointLights[i], albedo,
-			N, V, vFragPos, NdV, metallic, roughness, F0);
+	uint tileIndex = get_tile_index();
+	uint pointOffset = oLightGrid[tileIndex].x;
+	uint pointCount = oLightGrid[tileIndex].y >> 16;
+	uint spotCount = oLightGrid[tileIndex].y & 0xFFFF;
 
-	for (int i = 0; i < uSpotLightCount; ++i)
-		directLight += compute_spot_light(uSpotLights[i], albedo,
-			N, V, vFragPos, NdV, metallic, roughness, F0);
+	for (uint i = 0; i < pointCount; ++i)
+    {
+        uint idx = oLightIndexList[pointOffset + i];
+        directLight += compute_point_light(uPointLights[idx],
+            albedo, N, V, vFragPos, NdV, metallic, roughness, F0);
+    }
+
+    for (uint i = 0; i < spotCount; ++i)
+    {
+        uint idx = oLightIndexList[pointOffset + pointCount + i];
+        directLight += compute_spot_light(uSpotLights[idx],
+            albedo, N, V, vFragPos, NdV, metallic, roughness, F0);
+    }
 
 	vec3 ambient;
 	uHasIBL ? ambient = compute_ibl(albedo, N, V,
@@ -193,13 +237,13 @@ void main()
 	/* --- Normals --- */
 	uv = get_uv_loc(uMaterial.normalTexCoord);
 	vec3 tsN = SAMPLE_BINDLESS(uNormalHandle, uv).rgb * 2.0 - 1.0;
-    vec3 N = normalize(vTBN * tsN);
+	vec3 N = normalize(vTBN * tsN);
 
 	/* --- Metallic & Roughness --- */
 	uv = get_uv_loc(uMaterial.mrTexCoord);
 	vec2 mr = SAMPLE_BINDLESS(uMRHandle, uv).gb;
-    float roughness = uMaterial.roughness * mr.x;
-    float metallic = uMaterial.metallic * mr.y;
+	float roughness = uMaterial.roughness * mr.x;
+	float metallic = uMaterial.metallic * mr.y;
 
 	/* --- Ambient Occlusion --- */
 	uv = get_uv_loc(uMaterial.aoTexCoord);

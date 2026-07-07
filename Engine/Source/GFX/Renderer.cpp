@@ -317,7 +317,9 @@ namespace Wink::GFX
 			.proj = camData.proj,
 			.invProj = camData.invProj,
 			.viewProj = camData.viewProj,
-			.camPos = camData.position };
+			.camPos = camData.position,
+			.tileCountX = gLightCullingPass->get_tile_count_x(),
+			.screenWidth = gWidth, .screenHeight = gHeight };
 		glNamedBufferSubData(gFrameUBO, 0, sizeof(FrameGPUData), &frameData);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, gFrameUBO);
 
@@ -338,8 +340,6 @@ namespace Wink::GFX
 		std::vector<PointLight> pointLights;
 		std::vector<SpotLight> spotLights;
 		dirLights.reserve(MAX_DIR_LIGHTS);
-		pointLights.reserve(MAX_POINT_LIGHTS);
-		spotLights.reserve(MAX_SPOT_LIGHTS);
 
 		for (auto&& [id, dlC] : scene->view<ECS::DirLightComponent>())
 		{
@@ -351,9 +351,6 @@ namespace Wink::GFX
 
 		for (auto&& [id, plC] : scene->view<ECS::PointLightComponent>())
 		{
-			if (pointLights.size() >= MAX_POINT_LIGHTS)
-				break;
-
 			PointLight pl = plC.pointLight;
 
 			auto e = scene->wrap(id);
@@ -365,9 +362,6 @@ namespace Wink::GFX
 
 		for (auto&& [id, slC] : scene->view<ECS::SpotLightComponent>())
 		{
-			if (spotLights.size() >= MAX_SPOT_LIGHTS)
-				break;
-
 			SpotLight sl = slC.spotLight;
 
 			auto e = scene->wrap(id);
@@ -383,8 +377,6 @@ namespace Wink::GFX
 		/* --- Lights UBO --- */
 		LightsGPUData lightsData{};
 		lightsData.dirLightCount = static_cast<u32>(dirLights.size());
-		lightsData.pointLightCount = static_cast<u32>(pointLights.size());
-		lightsData.spotLightCount = static_cast<u32>(spotLights.size());
 
 		for (u32 i = 0; i < lightsData.dirLightCount; ++i)
 		{
@@ -392,26 +384,6 @@ namespace Wink::GFX
 			lightsData.dirLights[i] = {
 				glm::vec4(l.direction, l.intensity),
 				glm::vec4(l.color, 0.0f),
-			};
-		}
-
-		for (u32 i = 0; i < lightsData.pointLightCount; ++i)
-		{
-			const auto& l = pointLights[i];
-			lightsData.pointLights[i] = {
-				glm::vec4(l.position, l.intensity),
-				glm::vec4(l.color, l.radius),
-			};
-		}
-
-		for (u32 i = 0; i < lightsData.spotLightCount; ++i)
-		{
-			const auto& l = spotLights[i];
-			lightsData.spotLights[i] = {
-				glm::vec4(l.position, l.range),
-				glm::vec4(l.direction, l.intensity),
-				glm::vec4(l.color, l.outerCutoff),
-				glm::vec4(l.innerCutoff, 0.0f, 0.0f, 0.0f),
 			};
 		}
 
@@ -443,6 +415,11 @@ namespace Wink::GFX
 		gLightCullingPass->execute(
 			camData, pointLights, spotLights,
 			gDepthPrePass->get_depth_id());
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3,
+			gLightCullingPass->get_light_index_list_ssbo());
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4,
+			gLightCullingPass->get_light_grid_ssbo());
 
 		/* --- Forward Pass --- */
 		// TODO: These gl calls should live in draw()

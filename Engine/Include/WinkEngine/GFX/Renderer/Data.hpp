@@ -5,8 +5,6 @@
 namespace Wink::GFX
 {
 	inline constexpr u32 MAX_DIR_LIGHTS = 2;
-	inline constexpr u32 MAX_POINT_LIGHTS = 100;
-	inline constexpr u32 MAX_SPOT_LIGHTS = 100;
 
 	struct DirLight
 	{

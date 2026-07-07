@@ -2,8 +2,6 @@
 #define LIGHT_GLSL
 
 #define MAX_DIR_LIGHTS 2
-#define MAX_POINT_LIGHTS 100
-#define MAX_SPOT_LIGHTS 100
 
 struct DirLight
 {
@@ -28,13 +26,11 @@ struct SpotLight
 layout(std140, binding = 1) uniform LightsUBO
 {
     uint uDirLightCount;
-    uint uPointLightCount;
-    uint uSpotLightCount;
-    uint _p1;
+    uint _lp0;
+    uint _lp1;
+    uint _lp2;
 
     DirLight uDirLights[MAX_DIR_LIGHTS];
-    PointLight uPointLights[MAX_POINT_LIGHTS];
-    SpotLight uSpotLights[MAX_SPOT_LIGHTS];
 };
 
 #endif // LIGHT_GLSL

@@ -5,7 +5,6 @@
 namespace Wink::GFX::ForwardPlus
 {
 	inline constexpr u32 TILE_SIZE = 16;
-	inline constexpr u32 MAX_LIGHTS_PER_TILE = 256;
 
 	class LightCullingPass
 	{
@@ -32,6 +31,7 @@ namespace Wink::GFX::ForwardPlus
 	private:
 		u32 mLightIndexListSSBO = 0;
 		u32 mLightGridSSBO = 0;
+		u32 mGlobalLightCountSSBO = 0;
 
 		u32 mPointLightSSBO = 0;
 		u32 mSpotLightSSBO = 0;

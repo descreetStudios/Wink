@@ -18,6 +18,9 @@ namespace Wink::GFX::ForwardPlus
 	extern ShaderHandle gLightCullingShader;
 	extern ShaderHandle gLightHeatmapShader;
 
+	constexpr u32 MAX_POINT_LIGHTS = 64000;
+	constexpr u32 MAX_SPOT_LIGHTS = 64000;
+
 	void LightCullingPass::init(u32 width, u32 height) noexcept
 	{
 		glCreateBuffers(1, &mPointLightSSBO);
@@ -49,9 +52,13 @@ namespace Wink::GFX::ForwardPlus
 
 		const u32 tileCount = mTileCountX * mTileCountY;
 
+		glCreateBuffers(1, &mGlobalLightCountSSBO);
+		glNamedBufferStorage(mGlobalLightCountSSBO,
+			sizeof(u32), nullptr, GL_DYNAMIC_STORAGE_BIT);
+
 		glCreateBuffers(1, &mLightIndexListSSBO);
 		glNamedBufferStorage(mLightIndexListSSBO,
-			sizeof(u32) * tileCount * MAX_LIGHTS_PER_TILE,
+			sizeof(u32) * tileCount * 512,
 			nullptr, GL_DYNAMIC_STORAGE_BIT);
 
 		glCreateBuffers(1, &mLightGridSSBO);
@@ -64,8 +71,10 @@ namespace Wink::GFX::ForwardPlus
 	{
 		glDeleteBuffers(1, &mLightIndexListSSBO);
 		glDeleteBuffers(1, &mLightGridSSBO);
+		glDeleteBuffers(1, &mGlobalLightCountSSBO);
 		mLightIndexListSSBO = 0;
 		mLightGridSSBO = 0;
+		mGlobalLightCountSSBO = 0;
 	}
 
 	void LightCullingPass::execute(
@@ -112,8 +121,11 @@ namespace Wink::GFX::ForwardPlus
 		}
 
 		/* --- Clear Light Grid Counts --- */
+		const u32 zero = 0;
+		glClearNamedBufferData(mGlobalLightCountSSBO,
+		    GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
 		glClearNamedBufferData(mLightGridSSBO,
-			GL_RG32UI, GL_RG_INTEGER, GL_UNSIGNED_INT, nullptr);
+		    GL_RG32UI, GL_RG_INTEGER, GL_UNSIGNED_INT, nullptr);
 
 		/* --- Bind Resources --- */
 		shader->use();
@@ -133,13 +145,10 @@ namespace Wink::GFX::ForwardPlus
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, mSpotLightSSBO);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, mLightIndexListSSBO);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, mLightGridSSBO);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mGlobalLightCountSSBO);
 
 		glDispatchCompute(mTileCountX, mTileCountY, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-		std::vector<glm::uvec2> readback(mTileCountX * mTileCountY);
-		glGetNamedBufferSubData(mLightGridSSBO, 0,
-			readback.size() * sizeof(glm::uvec2), readback.data());
 	}
 
 	void LightCullingPass::debug_draw(u32 width, u32 height) const noexcept
@@ -152,7 +161,6 @@ namespace Wink::GFX::ForwardPlus
 		shader->set("uTileCountY", mTileCountY);
 		shader->set("uScreenWidth", mWidth);
 		shader->set("uScreenHeight", mHeight);
-		shader->set("uMaxLightsPerTile", MAX_LIGHTS_PER_TILE);
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mLightGridSSBO);
 
