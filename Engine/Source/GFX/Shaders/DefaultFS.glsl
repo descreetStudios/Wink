@@ -39,6 +39,16 @@ uniform bool uHasIBL;
 
 #define TILE_SIZE 16
 
+layout(std140, binding = 1) uniform LightsUBO
+{
+    uint uDirLightCount;
+    uint _lp0;
+    uint _lp1;
+    uint _lp2;
+
+    DirLight uDirLights[MAX_DIR_LIGHTS];
+};
+
 layout(std430, binding = 0) readonly buffer PointLightBuffer
 {
     PointLight uPointLights[];
@@ -49,12 +59,12 @@ layout(std430, binding = 1) readonly buffer SpotLightBuffer
     SpotLight uSpotLights[];
 };
 
-layout(std430, binding = 3) readonly buffer TileLightIndexList
+layout(std430, binding = 5) readonly buffer TileLightIndexList
 {
 	uint oLightIndexList[];
 };
 
-layout(std430, binding = 4) readonly buffer TileLightGrid
+layout(std430, binding = 6) readonly buffer TileLightGrid
 {
 	uvec2 oLightGrid[]; // .x = pointCount, .y = spotCount
 };

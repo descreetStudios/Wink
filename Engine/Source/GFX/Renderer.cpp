@@ -417,9 +417,9 @@ namespace Wink::GFX
 			camData, pointLights, spotLights,
 			gDepthPrePass->get_depth_id());
 
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3,
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5,
 			gLightCullingPass->get_light_index_list_ssbo());
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4,
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6,
 			gLightCullingPass->get_light_grid_ssbo());
 
 		/* --- Forward Pass --- */

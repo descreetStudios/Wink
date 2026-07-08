@@ -23,14 +23,4 @@ struct SpotLight
     vec4 inner;      // .x   = innerCutoff
 };
 
-layout(std140, binding = 1) uniform LightsUBO
-{
-    uint uDirLightCount;
-    uint _lp0;
-    uint _lp1;
-    uint _lp2;
-
-    DirLight uDirLights[MAX_DIR_LIGHTS];
-};
-
 #endif // LIGHT_GLSL
