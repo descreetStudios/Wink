@@ -58,7 +58,7 @@ namespace Wink::GFX::ForwardPlus
 
 		glCreateBuffers(1, &mLightIndexListSSBO);
 		glNamedBufferStorage(mLightIndexListSSBO,
-			sizeof(u32) * tileCount * 512,
+			sizeof(u32) * tileCount * 1024,
 			nullptr, GL_DYNAMIC_STORAGE_BIT);
 
 		glCreateBuffers(1, &mLightGridSSBO);
@@ -121,9 +121,8 @@ namespace Wink::GFX::ForwardPlus
 		}
 
 		/* --- Clear Light Grid Counts --- */
-		const u32 zero = 0;
 		glClearNamedBufferData(mGlobalLightCountSSBO,
-		    GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
+		    GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
 		glClearNamedBufferData(mLightGridSSBO,
 		    GL_RG32UI, GL_RG_INTEGER, GL_UNSIGNED_INT, nullptr);
 

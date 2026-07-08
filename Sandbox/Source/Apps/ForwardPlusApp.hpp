@@ -11,6 +11,13 @@ using namespace Wink;
 class SandboxApp : public Application
 {
 public:
+	Window::Config get_window_config() const override
+	{
+		Window::Config cfg;
+		cfg.vsync = false;
+		return cfg;
+	}
+
 	void on_init() override
 	{
 		register_inputs();
@@ -40,7 +47,7 @@ public:
 		spawn_random_lights(scene, 1000, 0,
 			{ -15.0f, -2.5f, -5.0f }, { 15.0f, 6.0f, 5.0f });
 #else
-		spawn_random_lights(scene, 1000, 0);
+		spawn_random_lights(scene, 200, 0);
 #endif
 
 		/* --- Model Loading --- */
@@ -182,7 +189,7 @@ private:
 		u32 numPoint = 100, u32 numSpot = 100,
 		glm::vec3 posMin = { -7.0f, 0.5f, -7.0f },
 		glm::vec3 posMax = { 7.0f, 5.0f, 7.0f },
-		float radiusMin = 0.5f, float radiusMax = 3.0,
+		float radiusMin = 0.5f, float radiusMax = 1.0,
 		u32 seed = 1337) const
 	{
 		std::mt19937 rng(seed);
@@ -216,7 +223,7 @@ private:
 			t.rotation = glm::quatLookAt(dir, { 0.0f, 1.0f, 0.0f });
 			auto& sl = e.add<ECS::SpotLightComponent>();
 			sl.spotLight.color = { uc(rng), uc(rng), uc(rng) };
-			sl.spotLight.intensity = 10.0f;
+			sl.spotLight.intensity = 5.0f;
 			sl.spotLight.innerCutoff = glm::radians(uangle(rng) * 0.5f);
 			sl.spotLight.outerCutoff = glm::radians(uangle(rng));
 		}

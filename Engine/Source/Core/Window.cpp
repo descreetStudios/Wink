@@ -220,7 +220,7 @@ namespace Wink::Window
 		if (gState.fullscreen) set_fullscreen(true);
 		if (gState.maximized &&
 			!gState.fullscreen) set_maximized(true);
-		if (gState.vsync) set_vsync(true);
+		if (gState.vsync) set_vsync(true); else set_vsync(false);
 		if (gState.cursorLocked) lock_cursor(true);
 
 		return true;
