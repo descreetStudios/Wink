@@ -72,20 +72,18 @@ vec4 compute_plane(vec3 p0, vec3 p1, vec3 p2)
 }
 
 bool sphere_intersects_frustum(
-	vec3 center, float radius, vec4 planes[6])
+	vec3 center, float radius, vec4 planes[4])
 {
 	if (dot(planes[0].xyz, center) + planes[0].w < -radius) return false;
 	if (dot(planes[1].xyz, center) + planes[1].w < -radius) return false;
 	if (dot(planes[2].xyz, center) + planes[2].w < -radius) return false;
 	if (dot(planes[3].xyz, center) + planes[3].w < -radius) return false;
-	if (dot(planes[4].xyz, center) + planes[4].w < -radius) return false;
-	if (dot(planes[5].xyz, center) + planes[5].w < -radius) return false;
 
 	return true;
 }
 
 bool spot_intersects_frustum(vec3 posVS, vec3 dirVS,
-	float range, float outerCutoff, vec4 planes[6])
+	float range, float outerCutoff, vec4 planes[4])
 {
 	float sinAngle = sqrt(1.0 - outerCutoff * outerCutoff);
 	float cosAngle = outerCutoff;
@@ -150,7 +148,7 @@ void main()
 
 	vec3 origin = vec3(0.0);
 
-	vec4 planes[6];
+	vec4 planes[4];
 	planes[0] = compute_plane(origin, corners[1], corners[0]); // bottom
 	planes[1] = compute_plane(origin, corners[3], corners[2]); // top
 	planes[2] = compute_plane(origin, corners[0], corners[3]); // left
@@ -158,8 +156,8 @@ void main()
 
 	float minZ = linearize(minDepth);
 	float maxZ = linearize(maxDepth);
-	planes[4] = vec4(0.0, 0.0, -1.0,  minZ);
-	planes[5] = vec4(0.0, 0.0,  1.0, -maxZ);
+	//planes[4] = vec4(0.0, 0.0, -1.0,  minZ);
+	//planes[5] = vec4(0.0, 0.0,  1.0, -maxZ);
 
 	const uint GROUP_SIZE = TILE_SIZE * TILE_SIZE;
 
