@@ -56,7 +56,7 @@ layout(std430, binding = 3) readonly buffer TileLightIndexList
 
 layout(std430, binding = 4) readonly buffer TileLightGrid
 {
-	uvec2 oLightGrid[]; // .x = pointCount, .y = spotCount
+	uvec2 oLightGrid[]; // .x = base offset into LightIndexList, .y = (pointCount << TILE_SIZE) | spotCount
 };
 
 uint get_tile_index()
@@ -201,7 +201,7 @@ vec3 compute_pbr(vec3 albedo, vec3 N, vec3 V,
 
 	uint tileIndex = get_tile_index();
 	uint pointOffset = oLightGrid[tileIndex].x;
-	uint pointCount = oLightGrid[tileIndex].y >> 16;
+	uint pointCount = oLightGrid[tileIndex].y >> TILE_SIZE;
 	uint spotCount = oLightGrid[tileIndex].y & 0xFFFF;
 
 	for (uint i = 0; i < pointCount; ++i)

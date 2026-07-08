@@ -185,7 +185,8 @@ namespace Wink::GFX
 			});
 
 			ForwardPlus::gLightCullingShader = gShaderPool.load(std::vector<ShaderFile>{
-				{ ShaderType::Compute, "Resources/Shaders/ForwardPlus/LightCullingCS.glsl" }
+				//{ ShaderType::Compute, "Resources/Shaders/ForwardPlus/LightCullingCS.glsl" }
+				{ ShaderType::Compute, "../../../../Engine/Source/GFX/Shaders/ForwardPlus/LightCullingCS.glsl" }
 			});
 
 			ForwardPlus::gLightHeatmapShader = gShaderPool.load(std::vector<ShaderFile>{

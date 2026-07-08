@@ -44,7 +44,7 @@ public:
 
 		/* --- Random Point & Spot Lights --- */
 #if SPONZA
-		spawn_random_lights(scene, 1000, 0,
+		spawn_random_lights(scene, 10000, 000,
 			{ -15.0f, -2.5f, -5.0f }, { 15.0f, 6.0f, 5.0f });
 #else
 		spawn_random_lights(scene, 200, 0);
@@ -72,9 +72,8 @@ public:
 				APP_ZONE_NAME("Model Load 'San Miguel'");
 				auto e = scene->wrap(ECS::instantiate_model(load_model(
 					fs::path("san-miguel") / "san-miguel.gltf", shader)));
-				e.get<ECS::TransformComponent>().position = {-15.0f, -1.5f, -6.5f};
+				e.get<ECS::TransformComponent>().position = { -15.0f, -1.5f, -6.5f };
 #endif
-
 			}
 		}
 
@@ -190,7 +189,7 @@ private:
 		glm::vec3 posMin = { -7.0f, 0.5f, -7.0f },
 		glm::vec3 posMax = { 7.0f, 5.0f, 7.0f },
 		float radiusMin = 0.5f, float radiusMax = 1.0,
-		u32 seed = 1337) const
+		u32 seed = 1338) const
 	{
 		std::mt19937 rng(seed);
 		std::uniform_real_distribution<float> ux(posMin.x, posMax.x);
@@ -211,21 +210,33 @@ private:
 			pl.pointLight.intensity = 5.0f;
 		}
 
+		auto random_spot_direction = [&](std::mt19937& rng)
+			{
+				std::uniform_real_distribution<float> u(0.0f, 1.0f);
+
+				float azimuth = u(rng) * glm::two_pi<float>();
+				float elevation = glm::radians(20.0f + u(rng) * 60.0f);
+
+				float x = std::cos(azimuth) * std::sin(elevation);
+				float y = -std::cos(elevation);
+				float z = std::sin(azimuth) * std::sin(elevation);
+
+				return glm::normalize(glm::vec3(x, y, z));
+			};
+
 		for (u32 i = 0; i < numSpot; ++i)
 		{
 			auto e = scene->spawn();
 			auto& t = e.add<ECS::TransformComponent>();
 			t.position = { ux(rng), uy(rng), uz(rng) };
-			glm::vec3 dir = glm::normalize(glm::vec3(
-				uc(rng) * 2.0f - 1.0f,
-				uc(rng) * 2.0f - 1.0f,
-				uc(rng) * 2.0f - 1.0f));
-			t.rotation = glm::quatLookAt(dir, { 0.0f, 1.0f, 0.0f });
+			glm::vec3 dir = random_spot_direction(rng);
 			auto& sl = e.add<ECS::SpotLightComponent>();
 			sl.spotLight.color = { uc(rng), uc(rng), uc(rng) };
+			sl.spotLight.direction = dir;
+			sl.spotLight.range = 3.0f;
 			sl.spotLight.intensity = 5.0f;
-			sl.spotLight.innerCutoff = glm::radians(uangle(rng) * 0.5f);
-			sl.spotLight.outerCutoff = glm::radians(uangle(rng));
+			sl.spotLight.innerCutoff = glm::cos(glm::radians(uangle(rng) * 0.5f));
+			sl.spotLight.outerCutoff = glm::cos(glm::radians(uangle(rng)));
 		}
 	}
 
