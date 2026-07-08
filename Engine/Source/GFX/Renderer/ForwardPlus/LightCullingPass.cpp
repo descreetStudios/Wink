@@ -18,8 +18,8 @@ namespace Wink::GFX::ForwardPlus
 	extern ShaderHandle gLightCullingShader;
 	extern ShaderHandle gLightHeatmapShader;
 
-	constexpr u32 MAX_POINT_LIGHTS = 20'000;
-	constexpr u32 MAX_SPOT_LIGHTS = 1'000;
+	constexpr u32 MAX_POINT_LIGHTS = 40'000;
+	constexpr u32 MAX_SPOT_LIGHTS = 4'000;
 
 	void LightCullingPass::init(u32 width, u32 height) noexcept
 	{

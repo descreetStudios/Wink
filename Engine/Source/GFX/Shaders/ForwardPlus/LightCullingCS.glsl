@@ -58,51 +58,39 @@ vec3 uv_to_view(vec2 uv, float depth)
 	return view.xyz / view.w;
 }
 
-vec4 compute_plane(vec3 p0, vec3 p1, vec3 p2)
+vec3 compute_plane_normal(vec3 p1, vec3 p2)
 {
-	vec3 n = normalize(cross(p1 - p0, p2 - p0));
-	return vec4(n, -dot(n, p0));
+    return normalize(cross(p1, p2));
 }
 
-bool sphere_intersects_frustum(
-	vec3 center, float radius, vec4 planes[4])
+bool sphere_intersects_frustum(vec3 center, float radius, vec3 normals[4])
 {
-	if (dot(planes[0].xyz, center) + planes[0].w < -radius) return false;
-	if (dot(planes[1].xyz, center) + planes[1].w < -radius) return false;
-	if (dot(planes[2].xyz, center) + planes[2].w < -radius) return false;
-	if (dot(planes[3].xyz, center) + planes[3].w < -radius) return false;
-
-	return true;
+    if (dot(normals[0], center) < -radius) return false;
+    if (dot(normals[1], center) < -radius) return false;
+    if (dot(normals[2], center) < -radius) return false;
+    if (dot(normals[3], center) < -radius) return false;
+    return true;
 }
 
 bool spot_intersects_frustum(vec3 posVS, vec3 dirVS,
-	float range, float outerCutoff, vec4 planes[4])
+	float range, float outerCutoff, vec3 normals[4])
 {
-	float sinAngle = sqrt(1.0 - outerCutoff * outerCutoff);
-	float cosAngle = outerCutoff;
+	float cosA = outerCutoff;
+    float sinA = sqrt(1.0 - cosA * cosA);
 
-	vec3 center;
-	float radius;
+	float t = step(sinA, cosA);
+    vec3 center = mix(posVS + dirVS * (range * cosA), posVS, t);
+    float radius = mix(range * sinA, range, t);
 
-	if (cosAngle >= sinAngle)
-	{
-		center = posVS;
-		radius = range;
-	}
-	else
-	{
-		center = posVS + dirVS * range * cosAngle;
-		radius = range * sinAngle;
-	}
-
-	return sphere_intersects_frustum(center, radius, planes);
+    return sphere_intersects_frustum(center, radius, normals);
 }
 
 float linearize_depth(float depth)
 {
-	float ndcZ = depth * 2.0 - 1.0;
-	vec4 view = uInvProj * vec4(0.0, 0.0, ndcZ, 1.0);
-	return view.z / view.w;
+    float ndcZ = depth * 2.0 - 1.0;
+    float vz = uInvProj[2][2] * ndcZ + uInvProj[3][2];
+    float vw = uInvProj[2][3] * ndcZ + uInvProj[3][3];
+    return vz / vw;
 }
 
 void main()
@@ -130,28 +118,25 @@ void main()
 	atomicMax(sMaxDepthInt, floatBitsToUint(depth));
 	barrier();
 
-	float minDepth = uintBitsToFloat(sMinDepthInt);
-	float maxDepth = uintBitsToFloat(sMaxDepthInt);
+	float minZ = linearize_depth(uintBitsToFloat(sMinDepthInt));
+    float maxZ = linearize_depth(uintBitsToFloat(sMaxDepthInt));
 
 	vec2 tileMin = vec2(tileID) / vec2(uTileCountX, gl_NumWorkGroups.y);
-	vec2 tileMax = vec2(tileID + 1) / vec2(uTileCountX, gl_NumWorkGroups.y);
-	float minZ = linearize_depth(minDepth);
-	float maxZ = linearize_depth(maxDepth);
+    vec2 tileMax = vec2(tileID + 1) / vec2(uTileCountX, gl_NumWorkGroups.y);
 
 	vec3 corners[4];
-	corners[0] = uv_to_view(vec2(tileMin.x, tileMin.y), 0.0);
-	corners[1] = uv_to_view(vec2(tileMax.x, tileMin.y), 0.0);
-	corners[2] = uv_to_view(vec2(tileMax.x, tileMax.y), 0.0);
-	corners[3] = uv_to_view(vec2(tileMin.x, tileMax.y), 0.0);
+    corners[0] = uv_to_view(vec2(tileMin.x, tileMin.y), 0.0);  // bottom-left
+    corners[1] = uv_to_view(vec2(tileMax.x, tileMin.y), 0.0);  // bottom-right
+    corners[2] = uv_to_view(vec2(tileMax.x, tileMax.y), 0.0);  // top-right
+    corners[3] = uv_to_view(vec2(tileMin.x, tileMax.y), 0.0);  // top-left
 
-	const vec3 origin = vec3(0.0);
-	vec4 planes[4];
-	planes[0] = compute_plane(origin, corners[1], corners[0]); // bottom
-	planes[1] = compute_plane(origin, corners[3], corners[2]); // top
-	planes[2] = compute_plane(origin, corners[0], corners[3]); // left
-	planes[3] = compute_plane(origin, corners[2], corners[1]); // right
+	vec3 normals[4];
+    normals[0] = compute_plane_normal(corners[1], corners[0]);  // bottom
+    normals[1] = compute_plane_normal(corners[3], corners[2]);  // top
+    normals[2] = compute_plane_normal(corners[0], corners[3]);  // left
+    normals[3] = compute_plane_normal(corners[2], corners[1]);  // right
 
-	/* --- Count visible lights --- */
+	/* --- Pass 1: Count visible lights --- */
 	const mat3 viewRot = mat3(uView);
 	for (uint i = flatThread; i < uPointLightCount; i += GROUP_SIZE)
 	{
@@ -161,7 +146,7 @@ void main()
 
 		if (posVS.z - radius > minZ) continue;
 		if (posVS.z + radius < maxZ) continue;
-		if (sphere_intersects_frustum(posVS, radius, planes))
+		if (sphere_intersects_frustum(posVS, radius, normals))
 			atomicAdd(sPointLightCount, 1u);
 	}
 
@@ -175,22 +160,21 @@ void main()
 
 		if (posVS.z - range > minZ) continue;
 		if (posVS.z + range < maxZ) continue;
-		if (spot_intersects_frustum(posVS, dirVS, range, outerCutoff, planes))
+		if (spot_intersects_frustum(posVS, dirVS, range, outerCutoff, normals))
 			atomicAdd(sSpotLightCount, 1u);
 	}
 	barrier();
 
-	// Reserve a contiguous block in the global index list.
 	if (flatThread == 0u)
 	{
-		uint totalLights = sPointLightCount + sSpotLightCount;
-		sBaseOffset = atomicAdd(oGlobalLightCount, totalLights);
-		sPointLightCount = 0u;
-        sSpotLightCount = 0u;
+		sBaseOffset = atomicAdd(oGlobalLightCount,
+			sPointLightCount + sSpotLightCount);
+        sPointLightCount = 0u;
+        sSpotLightCount  = 0u;
 	}
 	barrier();
 
-	/* --- Write indices into the reserved block --- */
+	/* --- Pass 2: Write indices into the reserved block --- */
 	for (uint i = flatThread; i < uPointLightCount; i += GROUP_SIZE)
 	{
 		const PointLight light = uPointLights[i];
@@ -199,11 +183,8 @@ void main()
 
 		if (posVS.z - radius > minZ) continue;
 		if (posVS.z + radius < maxZ) continue;
-		if (sphere_intersects_frustum(posVS, radius, planes))
-		{
-			uint slot = atomicAdd(sPointLightCount, 1u);
-			oLightIndexList[sBaseOffset + slot] = i;
-		}
+		if (sphere_intersects_frustum(posVS, radius, normals))
+            oLightIndexList[sBaseOffset + atomicAdd(sPointLightCount, 1u)] = i;
 	}
 	barrier();
 
@@ -217,20 +198,16 @@ void main()
 
 		if (posVS.z - range > minZ) continue;
 		if (posVS.z + range < maxZ) continue;
-		if (spot_intersects_frustum(posVS, dirVS, range, outerCutoff, planes))
-		{
-			uint slot = atomicAdd(sSpotLightCount, 1u);
-			oLightIndexList[sBaseOffset + sPointLightCount + slot] = i;
-		}
+		if (spot_intersects_frustum(posVS, dirVS, range, outerCutoff, normals))
+            oLightIndexList[sBaseOffset + sPointLightCount +
+				atomicAdd(sSpotLightCount, 1u)] = i;
 	}
 	barrier();
 
 	/* --- Write light grid entry for this tile --- */
 	if (flatThread == 0u)
 	{
-		uint tileIndex = tileID.y * uTileCountX + tileID.x;
-
-		oLightGrid[tileIndex] = uvec2(sBaseOffset,
-			(sPointLightCount << 16) | sSpotLightCount);
+		oLightGrid[tileID.y * uTileCountX + tileID.x] = uvec2(sBaseOffset,
+            (sPointLightCount << 16) | sSpotLightCount);
 	}
 }
