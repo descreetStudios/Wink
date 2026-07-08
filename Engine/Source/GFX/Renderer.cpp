@@ -314,13 +314,9 @@ namespace Wink::GFX
 
 		/* --- Frame UBO --- */
 		FrameGPUData frameData{
-			.view = camData.view,
-			.proj = camData.proj,
-			.invProj = camData.invProj,
 			.viewProj = camData.viewProj,
 			.camPos = camData.position,
-			.tileCountX = gLightCullingPass->get_tile_count_x(),
-			.screenWidth = gWidth, .screenHeight = gHeight };
+			.tileCountX = gLightCullingPass->get_tile_count_x() };
 		glNamedBufferSubData(gFrameUBO, 0, sizeof(FrameGPUData), &frameData);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, gFrameUBO);
 
@@ -388,7 +384,8 @@ namespace Wink::GFX
 			};
 		}
 
-		glNamedBufferSubData(gLightsUBO, 0, sizeof(LightsGPUData), &lightsData);
+		glNamedBufferSubData(gLightsUBO, 0,
+			sizeof(LightsGPUData), &lightsData);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 1, gLightsUBO);
 
 		/* --- RenderObject --- */
@@ -417,12 +414,12 @@ namespace Wink::GFX
 			camData, pointLights, spotLights,
 			gDepthPrePass->get_depth_id());
 
+		/* --- Forward Pass --- */
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5,
 			gLightCullingPass->get_light_index_list_ssbo());
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6,
 			gLightCullingPass->get_light_grid_ssbo());
 
-		/* --- Forward Pass --- */
 		// TODO: These gl calls should live in draw()
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glViewport(0, 0, gWidth, gHeight);

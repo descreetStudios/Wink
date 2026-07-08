@@ -2,7 +2,6 @@
 
 #include "../Light.glsl"
 
-#define TILE_SIZE 16
 #define GROUP_SIZE (TILE_SIZE * TILE_SIZE)
 #define UINT_MAX 0xFFFFFFFFu
 
@@ -34,7 +33,7 @@ layout(std430, binding = 2) writeonly buffer LightIndexListBuffer
 	uint oLightIndexList[];
 };
 
-layout(std430, binding = 3) buffer LightGridBuffer
+layout(std430, binding = 3) coherent buffer LightGridBuffer
 {
 	uvec2 oLightGrid[]; // .x = base offset, .y = (pointCount << 16) | spotCount
 };

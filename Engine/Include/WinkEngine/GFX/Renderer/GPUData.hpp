@@ -24,14 +24,9 @@ namespace Wink::GFX
 
 	struct alignas(16) FrameGPUData
 	{
-		glm::mat4 view;
-		glm::mat4 proj;
-		glm::mat4 invProj;
 		glm::mat4 viewProj;
-		glm::vec3 camPos;		float _pad;
+		glm::vec3 camPos;
 		u32 tileCountX;
-		u32 screenWidth;
-		u32 screenHeight;		u32 _pad1;
 	};
 
 	struct alignas(16) LightsGPUData

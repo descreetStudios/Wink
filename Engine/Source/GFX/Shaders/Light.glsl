@@ -2,6 +2,7 @@
 #define LIGHT_GLSL
 
 #define MAX_DIR_LIGHTS 2
+#define TILE_SIZE 16
 
 struct DirLight
 {

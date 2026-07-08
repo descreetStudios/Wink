@@ -18,8 +18,8 @@ namespace Wink::GFX::ForwardPlus
 	extern ShaderHandle gLightCullingShader;
 	extern ShaderHandle gLightHeatmapShader;
 
-	constexpr u32 MAX_POINT_LIGHTS = 64000;
-	constexpr u32 MAX_SPOT_LIGHTS = 64000;
+	constexpr u32 MAX_POINT_LIGHTS = 20'000;
+	constexpr u32 MAX_SPOT_LIGHTS = 1'000;
 
 	void LightCullingPass::init(u32 width, u32 height) noexcept
 	{
@@ -92,38 +92,100 @@ namespace Wink::GFX::ForwardPlus
 			return;
 		}
 
+		static bool pointLightErrorLogged = false;
+		static bool spotLightErrorLogged = false;
+
 		{ /* --- Upload Point Lights --- */
-			std::vector<PointLightGPU> gpuPoints;
-			gpuPoints.reserve(pointLights.size());
-			for (const auto& l : pointLights)
-				gpuPoints.push_back({
-					glm::vec4(l.position, l.intensity),
-					glm::vec4(l.color, l.radius),
-					});
-			glNamedBufferSubData(mPointLightSSBO, 0,
-				sizeof(PointLightGPU) * gpuPoints.size(),
-				gpuPoints.data());
+			const size_t size = pointLights.size();
+
+			if (size > MAX_POINT_LIGHTS)
+			{
+				if (!pointLightErrorLogged)
+				{
+					Logger::Internal::error(
+						"Point light count ({}) exceeds MAX_POINT_LIGHTS ({}). "
+						"Point lights will be DISABLED.",
+						size, MAX_POINT_LIGHTS
+					);
+					pointLightErrorLogged = true;
+				}
+
+				shader->set("uPointLightCount", 0u);
+
+				glClearNamedBufferData(
+					mPointLightSSBO,
+					GL_RGBA32F, GL_RGBA, GL_FLOAT,
+					nullptr
+				);
+			}
+			else
+			{
+				std::vector<PointLightGPU> gpuPointLights;
+				gpuPointLights.reserve(size);
+
+				for (const auto& l : pointLights)
+					gpuPointLights.push_back({
+						glm::vec4(l.position, l.intensity),
+						glm::vec4(l.color, l.radius) });
+
+				glNamedBufferSubData(
+					mPointLightSSBO, 0,
+					sizeof(PointLightGPU) * gpuPointLights.size(),
+					gpuPointLights.data()
+				);
+
+				shader->set("uPointLightCount", static_cast<u32>(size));
+			}
 		}
 
 		{ /* --- Upload Spot Lights --- */
-			std::vector<SpotLightGPU> gpuSpots;
-			gpuSpots.reserve(spotLights.size());
-			for (const auto& l : spotLights)
-				gpuSpots.push_back({
-					glm::vec4(l.position, l.range),
-					glm::vec4(l.direction, l.intensity),
-					glm::vec4(l.color, l.outerCutoff),
-					glm::vec4(l.innerCutoff, 0.0f, 0.0f, 0.0f),
-					});
-			glNamedBufferSubData(mSpotLightSSBO, 0,
-				sizeof(SpotLightGPU) * gpuSpots.size(),
-				gpuSpots.data());
+			const size_t size = spotLights.size();
+
+			if (size > MAX_SPOT_LIGHTS)
+			{
+				if (!spotLightErrorLogged)
+				{
+					Logger::Internal::error(
+						"Spot light count ({}) exceeds MAX_SPOT_LIGHTS ({}). "
+						"Spot lights will be DISABLED.",
+						size, MAX_SPOT_LIGHTS
+					);
+					spotLightErrorLogged = true;
+				}
+
+				shader->set("uSpotLightCount", 0u);
+
+				glClearNamedBufferData(
+					mSpotLightSSBO,
+					GL_RGBA32F, GL_RGBA, GL_FLOAT,
+					nullptr
+				);
+			}
+			else
+			{
+				std::vector<SpotLightGPU> gpuSpotLights;
+				gpuSpotLights.reserve(size);
+
+				for (const auto& l : spotLights)
+					gpuSpotLights.push_back({
+						glm::vec4(l.position, l.range),
+						glm::vec4(l.direction, l.intensity),
+						glm::vec4(l.color, l.outerCutoff),
+						glm::vec4(l.innerCutoff, 0.0f, 0.0f, 0.0f) });
+
+				glNamedBufferSubData(
+					mSpotLightSSBO, 0,
+					sizeof(SpotLightGPU) * gpuSpotLights.size(),
+					gpuSpotLights.data()
+				);
+
+				shader->set("uSpotLightCount", static_cast<u32>(size));
+			}
 		}
 
 		/* --- Clear Light Grid Counts --- */
-		GLuint zero[2] = { 0u, 0u };
 		glClearNamedBufferData(mGlobalLightCountSSBO,
-			GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, zero);
+			GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
 		glClearNamedBufferData(mLightGridSSBO,
 			GL_RG32UI, GL_RG_INTEGER, GL_UNSIGNED_INT, nullptr);
 

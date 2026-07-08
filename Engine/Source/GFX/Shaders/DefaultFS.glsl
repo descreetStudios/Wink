@@ -18,17 +18,14 @@
 
 #include "Debug.glsl"
 
-in vec3 vCamPos;
+in vec3 vDebug;
 in vec3 vFragPos;
+in vec3 vCamPos;
 in vec2 vTexCoord;
 in vec2 vTexCoord1;
 in mat3 vTBN;
 
 flat in uint vTileCountX;
-flat in uint vScreenWidth;
-flat in uint vScreenHeight;
-
-in vec3 vDebug;
 
 out vec4 FragColor;
 
@@ -36,8 +33,6 @@ uniform samplerCube uIrradianceMap;
 uniform samplerCube uPrefilteredMap;
 uniform sampler2D uBRDFLUT;
 uniform bool uHasIBL;
-
-#define TILE_SIZE 16
 
 layout(std140, binding = 1) uniform LightsUBO
 {
@@ -59,14 +54,14 @@ layout(std430, binding = 1) readonly buffer SpotLightBuffer
     SpotLight uSpotLights[];
 };
 
-layout(std430, binding = 5) readonly buffer TileLightIndexList
+layout(std430, binding = 5) readonly buffer LightIndexListBuffer
 {
 	uint oLightIndexList[];
 };
 
-layout(std430, binding = 6) readonly buffer TileLightGrid
+layout(std430, binding = 6) readonly buffer LightGridBuffer
 {
-	uvec2 oLightGrid[]; // .x = pointCount, .y = spotCount
+	uvec2 oLightGrid[]; // .x = base offset, .y = (pointCount << 16) | spotCount
 };
 
 uint get_tile_index()
@@ -238,7 +233,6 @@ vec3 compute_pbr(vec3 albedo, vec3 N, vec3 V,
 
 void main()
 {
-
 	/* --- Albedo --- */
 	vec2 uv = get_uv_loc(uMaterial.albedoTexCoord);
 	vec4 albedo = uMaterial.baseColor *
@@ -265,8 +259,6 @@ void main()
 	vec3 emissive = uMaterial.emissiveFactor.rgb
 		* SAMPLE_BINDLESS(uEmissiveHandle, uv).rgb;
 
-	//FragColor = vec4(uMaterial.emissiveFactor.rgb, 1.0f); return;
-
 	/* --- Debug Overlays --- */
 	vec4 debugColor;
 	if (apply_debug_channels(debugColor, albedo, N,
@@ -283,6 +275,7 @@ void main()
 		metallic, roughness, ao, emissive);
 
 	/* --- Post Processing --- */
+	// TODO: Move this into post processing pass
 	color = tonemap_lottes(color, 2.0);
 	color = apply_gamma(color, 2.2);
 
