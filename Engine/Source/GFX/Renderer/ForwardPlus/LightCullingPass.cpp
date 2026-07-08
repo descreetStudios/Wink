@@ -121,10 +121,11 @@ namespace Wink::GFX::ForwardPlus
 		}
 
 		/* --- Clear Light Grid Counts --- */
+		GLuint zero[2] = { 0u, 0u };
 		glClearNamedBufferData(mGlobalLightCountSSBO,
-		    GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
+			GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, zero);
 		glClearNamedBufferData(mLightGridSSBO,
-		    GL_RG32UI, GL_RG_INTEGER, GL_UNSIGNED_INT, nullptr);
+			GL_RG32UI, GL_RG_INTEGER, GL_UNSIGNED_INT, nullptr);
 
 		/* --- Bind Resources --- */
 		shader->use();

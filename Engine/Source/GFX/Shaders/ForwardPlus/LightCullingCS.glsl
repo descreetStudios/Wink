@@ -44,12 +44,12 @@ layout(std430, binding = 2) writeonly buffer LightIndexList
 
 layout(std430, binding = 3) buffer LightGrid
 {
-	uvec2 oLightGrid[]; // .x = offset (derived), .y = count
+	uvec2 oLightGrid[]; // .x = offset, .y = count
 };
 
 layout(std430, binding = 4) buffer GlobalLightCounter
 {
-	uint oGlobalLightCount; // cleared to 0 each frame before dispatch
+	uint oGlobalLightCount;
 };
 
 shared uint sMinDepthInt;
@@ -218,6 +218,7 @@ void main()
 			oLightIndexList[sBaseOffset + slot] = i;
 		}
 	}
+	barrier();
 
 	for (uint i = flatThread; i < uSpotLightCount; i += GROUP_SIZE)
 	{
@@ -242,6 +243,6 @@ void main()
 		uint tileIndex = tileID.y * uTileCountX + tileID.x;
 
 		oLightGrid[tileIndex] = uvec2(sBaseOffset,
-			(sPointLightCount << TILE_SIZE) | sSpotLightCount);
+			(sPointLightCount << 16) | sSpotLightCount);
 	}
 }

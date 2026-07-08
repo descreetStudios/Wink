@@ -44,7 +44,7 @@ public:
 
 		/* --- Random Point & Spot Lights --- */
 #if SPONZA
-		spawn_random_lights(scene, 20000, 000,
+		spawn_random_lights(scene, 10000, 800,
 			{ -15.0f, -3.0f, -5.0f }, { 15.0f, 6.0f, 5.0f });
 #else
 		spawn_random_lights(scene, 200, 0);
