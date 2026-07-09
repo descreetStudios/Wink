@@ -6,6 +6,7 @@
 
 #include <WinkEngine/GFX/Renderer/Pipeline/DepthPrePass.hpp>
 #include <WinkEngine/GFX/Renderer/Pipeline/LightCullingPass.hpp>
+#include <WinkEngine/GFX/Renderer/Pipeline/ShadowPass.hpp>
 #include <WinkEngine/GFX/Renderer/Pipeline/PostProcessPass.hpp>
 
 #include <WinkEngine/ECS/Scene.hpp>
@@ -58,6 +59,7 @@ namespace Wink::GFX
 
 	namespace Pipeline
 	{
+		ShaderHandle gShadowShader; ShaderHandle gShadowDebugShader;
 		ShaderHandle gDepthOnlyShader; ShaderHandle gDepthDebugShader;
 		ShaderHandle gLightCullingShader; ShaderHandle gLightHeatmapShader;
 		ShaderHandle gPostProcessShader;
@@ -65,6 +67,7 @@ namespace Wink::GFX
 		u32 gWidth;
 		u32 gHeight;
 
+		std::optional<ShadowPass> gShadowPass;
 		std::optional<DepthPrePass> gDepthPrePass;
 		std::optional<LightCullingPass> gLightCullingPass;
 		std::optional<PostProcessPass> gPostProcessPass;
@@ -179,6 +182,16 @@ namespace Wink::GFX
 			create_skybox_geometry();
 
 			/* --- Pipeline --- */
+			Pipeline::gShadowShader = gShaderPool.load(std::vector<ShaderFile>{
+				{ ShaderType::Vertex, "Resources/Shaders/Pipeline/ShadowVS.glsl" },
+				{ ShaderType::Fragment, "Resources/Shaders/Pipeline/ShadowFS.glsl" },
+			});
+
+			Pipeline::gShadowDebugShader = gShaderPool.load(std::vector<ShaderFile>{
+				{ ShaderType::Vertex, "Resources/Shaders/Pipeline/ShadowDebugVS.glsl" },
+				{ ShaderType::Fragment, "Resources/Shaders/Pipeline/ShadowDebugFS.glsl" },
+			});
+
 			Pipeline::gDepthOnlyShader = gShaderPool.load(std::vector<ShaderFile>{
 				{ ShaderType::Vertex, "Resources/Shaders/Pipeline/DepthOnlyVS.glsl" },
 				{ ShaderType::Fragment, "Resources/Shaders/Pipeline/DepthOnlyFS.glsl" },
@@ -244,6 +257,7 @@ namespace Wink::GFX
 				/* --- Skybox --- */
 				gShaderPool.is_valid(gSkyboxShader) &&
 				/* --- Pipeline --- */
+				gShaderPool.is_valid(Pipeline::gShadowShader) &&
 				gShaderPool.is_valid(Pipeline::gDepthOnlyShader) &&
 				gShaderPool.is_valid(Pipeline::gDepthDebugShader) &&
 				gShaderPool.is_valid(Pipeline::gLightCullingShader) &&
@@ -262,6 +276,9 @@ namespace Wink::GFX
 			auto winState = Window::get_state();
 			gWidth = winState.width;
 			gHeight = winState.height;
+
+			gShadowPass.emplace();
+			if (!gShadowPass->init()) return false;
 
 			gDepthPrePass.emplace();
 			if (!gDepthPrePass->init(gWidth, gHeight)) return false;
@@ -414,8 +431,16 @@ namespace Wink::GFX
 			modelMats.push_back(tC.worldMatrix);
 		}
 
-		/* --- Depth Pre-Pass --- */
+		/* --- Shadow Pass --- */
 		glEnable(GL_DEPTH_TEST);
+		if (!dirLights.empty())
+			gShadowPass->execute(dirLights[0], renderObjects, modelMats);
+#if 0
+		gShadowPass->debug_draw(gWidth, gHeight);
+		return;
+#endif
+
+		/* --- Depth Pre-Pass --- */
 		gDepthPrePass->execute(camData, renderObjects, modelMats);
 #if 0
 		gDepthPrePass->debug_draw(gWidth, gHeight);
@@ -432,6 +457,8 @@ namespace Wink::GFX
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6,
 			gLightCullingPass->get_light_grid_ssbo());
 
+		//gShadowPass->bind_shadow_map(gDefaultShader, 15);
+
 		gPostProcessPass->bind_scene_fbo();
 		glViewport(0, 0, gWidth, gHeight);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -442,7 +469,14 @@ namespace Wink::GFX
 				   .camData = camData,
 				   .modelMat = modelMats[i],
 				   .normalMat = glm::transpose(
-					   glm::inverse(glm::mat3(modelMats[i])))
+					   glm::inverse(glm::mat3(modelMats[i]))),
+
+					// TEMP
+					.shadowData = {
+						.lightSpaceMatrix = dirLights.empty() ? glm::mat4(1.0f)
+										  : gShadowPass->get_light_space_matrix(),
+						.shadowMapID = gShadowPass->get_shadow_map_id() 
+					}
 				});
 		}
 #if 0
@@ -494,6 +528,7 @@ namespace Wink::GFX
 		gSkyboxVAO = 0;
 		gSkyboxVBO = 0;
 
+		Pipeline::gShadowPass.reset();
 		Pipeline::gDepthPrePass.reset();
 		Pipeline::gLightCullingPass.reset();
 		Pipeline::gPostProcessPass.reset();

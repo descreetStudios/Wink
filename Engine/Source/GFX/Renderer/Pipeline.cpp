@@ -80,20 +80,21 @@ namespace Wink::GFX
 		const glm::mat4 rotView = glm::mat4(glm::mat3(cam.get_view()));
 		const glm::mat4 viewProj = cam.get_proj() * rotView;
 
-		glDepthFunc(GL_LEQUAL);
-		glDepthMask(GL_FALSE);
-
 		shader->use();
 		shader->set("uViewProj", viewProj);
 		shader->set("uSkybox", 0);
 		envMap->bind(0);
 
+		glDepthFunc(GL_LEQUAL);
+		glDepthMask(GL_FALSE);
+		glDisable(GL_CULL_FACE);
+
 		glBindVertexArray(gSkyboxVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
 
+		glEnable(GL_CULL_FACE);
 		glDepthMask(GL_TRUE);
-		glDepthFunc(GL_LEQUAL);
 	}
 
 	void draw(const DrawData& drawData)
@@ -141,6 +142,15 @@ namespace Wink::GFX
 		shader->set("uIrradianceMap", 12);
 		shader->set("uPrefilteredMap", 13);
 		shader->set("uBRDFLUT", 14);
+
+		// TEMP
+		glTextureParameteri(drawData.shadowData.shadowMapID,
+			GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+		glTextureParameteri(drawData.shadowData.shadowMapID,
+			GL_TEXTURE_COMPARE_FUNC, GL_LESS);
+		glBindTextureUnit(15, drawData.shadowData.shadowMapID);
+		shader->set("uShadowMap", 15);
+		shader->set("uLightSpaceMatrix", drawData.shadowData.lightSpaceMatrix);
 
 		/* --- Draw --- */
 		glBindVertexArray(gMeshPool.get_vao_id(mesh));

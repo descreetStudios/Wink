@@ -47,11 +47,21 @@ namespace Wink::GFX
 		glm::mat4 viewProj;
 	};
 
+	// TEMP
+	struct ShadowData
+	{
+		glm::mat4 lightSpaceMatrix = glm::mat4(1.0f);
+		u32 shadowMapID = 0;
+	};
+
 	struct DrawData
 	{
 		const RenderObject& renderObj;
 		const CameraData& camData;
 		const glm::mat4& modelMat;
 		const glm::mat3& normalMat;
+
+		// TEMP
+		ShadowData shadowData;
 	};
 }

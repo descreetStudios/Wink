@@ -202,6 +202,7 @@ PRIVATE
     "Source/GFX/Renderer/Pipeline/DepthPrePass.cpp"
     "Source/GFX/Renderer/Pipeline/LightCullingPass.cpp"
     "Source/GFX/Renderer/Pipeline/PostProcessPass.cpp"
+    "Source/GFX/Renderer/Pipeline/ShadowPass.cpp"
 
     # --- Content --- #
     "Source/Content/Image.cpp"

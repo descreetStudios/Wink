@@ -37,17 +37,17 @@ public:
 #endif
 
 		/* --- Sun Creation --- */
-		auto sun = scene->spawn();
-		auto& l = sun.add<ECS::DirLightComponent>();
-		l.dirLight.direction = { -1.0f, -1.0f, -0.5f };
+		mSun = scene->spawn();
+		auto& l = mSun.add<ECS::DirLightComponent>();
+		l.dirLight.direction = { 0.0f, -1.0f, 0.0f };
 		l.dirLight.intensity = 1.0f;
 
 		/* --- Random Point & Spot Lights --- */
 #if SPONZA
-		spawn_random_lights(scene, 20000, 00,
+		spawn_random_lights(scene, 1000, 200,
 			{ -15.0f, -3.0f, -5.0f }, { 15.0f, 6.0f, 5.0f });
 #else
-		spawn_random_lights(scene, 200, 200);
+		spawn_random_lights(scene, 100, 100);
 #endif
 
 		/* --- Model Loading --- */
@@ -83,7 +83,7 @@ public:
 			auto& cubemapPool = GFX::RES::get_cubemap_pool();
 
 			auto hdr = texPool.decode(RES_PATH / "HDRIs" /
-				"shanghai_bund_4k.hdr");
+				"kloofendal_48d_partly_cloudy_puresky_4k.hdr");
 			auto env = cubemapPool.hdr_to_cubemap(hdr);
 			auto e = scene->spawn();
 			auto& ibl = e.add<ECS::IBLComponent>();
@@ -121,6 +121,22 @@ public:
 				camT.translate({ 0.0f, move, 0.0f });
 			if (Input::is_key_down(Key::Q))
 				camT.translate({ 0.0f, -move, 0.0f });
+		}
+
+		/* --- Animate Sun Direction --- */
+		{
+			static float time = 0.0f;
+			time += fdt;
+
+			const float speed = 0.3f;
+			const float yTilt = -2.0f;
+
+			float x = std::cos(time * speed);
+			float z = std::sin(time * speed);
+			glm::vec3 orbitDir = glm::normalize(glm::vec3(x, yTilt, z));
+
+			auto& sun = mSun.get<ECS::DirLightComponent>();
+			sun.dirLight.direction = orbitDir;
 		}
 	}
 
@@ -272,4 +288,6 @@ private:
 
 	GFX::Settings mSettings;
 	Camera mCam;
+	
+	ECS::Entity mSun;
 };
