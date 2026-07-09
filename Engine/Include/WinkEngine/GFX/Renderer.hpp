@@ -6,15 +6,24 @@
 #include <WinkEngine/GFX/RES/CubemapPool.hpp>
 #include <WinkEngine/GFX/RES/MaterialPool.hpp>
 #include <WinkEngine/GFX/RES/ModelPool.hpp>
+#include <WinkEngine/GFX/Renderer/Pipeline/PostProcessPass.hpp>
 
 namespace Wink::GFX
 {
-	bool init();
+	struct Settings
+	{
+		Pipeline::PostProcessSettings postProcessSettings;
+	};
+
+	bool init(const Settings& settings = {});
 	void shutdown();
 
 	void render();
 	void resize(u32 width, u32 height);
 	void set_clear_color(const glm::vec4& color);
+
+	void apply_settings(const Settings& settings);
+	[[nodiscard]] Settings get_settings();
 
 	namespace RES
 	{

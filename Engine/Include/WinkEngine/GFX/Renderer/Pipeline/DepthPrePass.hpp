@@ -4,7 +4,7 @@
 #include <WinkEngine/GFX/Texture2D.hpp>
 #include <WinkEngine/GFX/Renderer/Data.hpp>
 
-namespace Wink::GFX::ForwardPlus
+namespace Wink::GFX::Pipeline
 {
 	class DepthPrePass
 	{

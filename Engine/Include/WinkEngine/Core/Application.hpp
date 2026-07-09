@@ -3,6 +3,7 @@
 namespace Wink
 {
 	namespace Window { struct Config; }
+	namespace GFX { struct Settings; }
 
 	class Application
 	{
@@ -17,6 +18,7 @@ namespace Wink
 		virtual void on_shutdown() {}
 
 		[[nodiscard]] virtual Window::Config get_window_config() const;
+		[[nodiscard]] virtual GFX::Settings get_graphics_settings() const;
 
 		void run();
 	};

@@ -1,5 +1,5 @@
 #include <WinkEngine/pch.hpp>
-#include <WinkEngine/GFX/Renderer/ForwardPlus/LightCullingPass.hpp>
+#include <WinkEngine/GFX/Renderer/Pipeline/LightCullingPass.hpp>
 #include <WinkEngine/GFX/Renderer.hpp>
 #include <WinkEngine/GFX/Renderer/GPUData.hpp>
 #include <WinkEngine/Core/Logger.hpp>
@@ -13,7 +13,7 @@ namespace Wink::GFX
 	extern u32 gFullscreenVAO;
 }
 
-namespace Wink::GFX::ForwardPlus
+namespace Wink::GFX::Pipeline
 {
 	extern ShaderHandle gLightCullingShader;
 	extern ShaderHandle gLightHeatmapShader;

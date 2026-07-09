@@ -14,7 +14,7 @@ public:
 	Window::Config get_window_config() const override
 	{
 		Window::Config cfg;
-		cfg.vsync = false;
+		cfg.vsync = true;
 		return cfg;
 	}
 
@@ -44,7 +44,7 @@ public:
 
 		/* --- Random Point & Spot Lights --- */
 #if SPONZA
-		spawn_random_lights(scene, 10000, 800,
+		spawn_random_lights(scene, 20000, 00,
 			{ -15.0f, -3.0f, -5.0f }, { 15.0f, 6.0f, 5.0f });
 #else
 		spawn_random_lights(scene, 200, 200);
@@ -139,6 +139,12 @@ private:
 				e.key == Key::F11)
 			{
 				Window::toggle_fullscreen();
+			}
+			if (e.key == Key::Num1)
+			{
+				mSettings.postProcessSettings.msaa.enabled =
+					!mSettings.postProcessSettings.msaa.enabled;
+				apply_graphics_settings();
 			}
 			});
 
@@ -240,6 +246,11 @@ private:
 		}
 	}
 
+	void apply_graphics_settings() const
+	{
+		GFX::apply_settings(mSettings);
+	}
+
 private:
 	struct CameraSettings
 	{
@@ -259,5 +270,6 @@ private:
 	const fs::path PROJ_PATH = fs::path("..") / ".." / ".." / "..";
 	const fs::path RES_PATH = PROJ_PATH / "Sandbox" / "Resources";
 
+	GFX::Settings mSettings;
 	Camera mCam;
 };

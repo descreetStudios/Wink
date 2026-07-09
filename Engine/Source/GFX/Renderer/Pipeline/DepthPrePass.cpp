@@ -1,5 +1,5 @@
 #include <WinkEngine/pch.hpp>
-#include <WinkEngine/GFX/Renderer/ForwardPlus/DepthPrePass.hpp>
+#include <WinkEngine/GFX/Renderer/Pipeline/DepthPrePass.hpp>
 #include <WinkEngine/GFX/Renderer.hpp>
 #include <WinkEngine/GFX/RES/ShaderPool.hpp>
 #include <WinkEngine/GFX/RES/MeshPool.hpp>
@@ -18,7 +18,7 @@ namespace Wink::GFX
 	extern u32 gFullscreenVAO;
 }
 
-namespace Wink::GFX::ForwardPlus
+namespace Wink::GFX::Pipeline
 {
 	extern ShaderHandle gDepthOnlyShader;
 	extern ShaderHandle gDepthDebugShader;

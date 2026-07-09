@@ -15,7 +15,7 @@ namespace Wink
 		if (!Logger::init()) return;
 		if (!Window::init(get_window_config())) return;
 		Input::init();
-		if (!GFX::init()) return;
+		if (!GFX::init(get_graphics_settings())) return;
 		on_init();
 
 		while (Window::is_open())
@@ -50,8 +50,6 @@ namespace Wink
 		Logger::shutdown();
 	}
 
-	Window::Config Application::get_window_config() const
-	{
-		return Window::Config();
-	}
+	Window::Config Application::get_window_config() const { return {}; }
+	GFX::Settings Application::get_graphics_settings() const { return {}; }
 }

@@ -2,7 +2,7 @@
 
 #include <WinkEngine/GFX/Renderer/Data.hpp>
 
-namespace Wink::GFX::ForwardPlus
+namespace Wink::GFX::Pipeline
 {
 	inline constexpr u32 TILE_SIZE = 16;
 

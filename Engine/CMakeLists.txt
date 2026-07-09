@@ -198,9 +198,10 @@ PRIVATE
     "Source/GFX/Renderer/Pipeline.cpp"
     "Source/GFX/Renderer/IBL.cpp"
 
-    # --- Forward+ --- #
-    "Source/GFX/Renderer/ForwardPlus/DepthPrePass.cpp"
-    "Source/GFX/Renderer/ForwardPlus/LightCullingPass.cpp"
+    # --- Pipeline --- #
+    "Source/GFX/Renderer/Pipeline/DepthPrePass.cpp"
+    "Source/GFX/Renderer/Pipeline/LightCullingPass.cpp"
+    "Source/GFX/Renderer/Pipeline/PostProcessPass.cpp"
 
     # --- Content --- #
     "Source/Content/Image.cpp"
