@@ -12,7 +12,8 @@
 
 Wink Graphics Engine is a personal project that aims to simplify the vast world of graphics programming by providing an easy-to-use, extensible rendering engine.
 
-The engine features a **Forward Physically Based Renderer** (PBR) with integrated **Image-Based Lighting** (IBL), as well as directional light shadow mapping with **Percentage-Closer Soft Shadows** (PCSS) for realistic soft shadow rendering.
+The engine features a **Forward+ Physically Based Renderer** (PBR) with integrated **Image-Based Lighting** (IBL), as well as directional light shadow mapping with **Percentage-Closer Soft Shadows** (PCSS) for realistic soft shadow rendering.
+Supporting 64'000 point lights and 64'000 spot lights rendering live.
 
 Internally, resources on both the CPU and GPU are managed through a **FreeList Pool** architecture, exposing convenient, strongly typed handles to the user.
 
@@ -64,7 +65,13 @@ cmake --build build
 ![Damaged Helmet IBL Shanghai](Images/Showcases/damaged_helmet_ibl_shanghai.png "Damaged Helmet IBL Shanghai")
 
 <p align="center">
-    <span style="font-size: 23px;"><b>Sponza, Shanghai</b></span>
+    <span style="font-size: 23px;"><b>Sponza, 10'000 + 800 Lights, Shanghai</b></span>
+</p>
+
+![Sponza Forward+ Shanghai](Images/Showcases/sponza_forward_plus_shanghai.png "Sponza Forward+ Shanghai")
+
+<p align="center">
+    <span style="font-size: 23px;"><b>Sponza, Shadows, Shanghai</b></span>
 </p>
 
 ![Sponza Shadows Shanghai](Images/Showcases/sponza_shadows_shanghai.png "Sponza Shadows Shanghai")
