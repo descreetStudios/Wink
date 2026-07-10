@@ -1,7 +1,7 @@
 # TODO
 
-- [ ] Shadows
-	- [ ] Directional Lights
+- [~] Shadows
+	- [~] Directional Lights
 		- [x] Simple Shadow Mapping
 			- [x] PCF Filtering
 			- [x] Poisson disk sampling

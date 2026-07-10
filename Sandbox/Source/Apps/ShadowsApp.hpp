@@ -73,7 +73,7 @@ public:
 
 		/* --- IBL Setup --- */
 		{
-			if (true)
+			if (false)
 			{
 				auto& texPool = GFX::RES::get_texture_pool();
 				auto& cubemapPool = GFX::RES::get_cubemap_pool();

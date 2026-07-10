@@ -44,7 +44,7 @@ public:
 
 		/* --- Random Point & Spot Lights --- */
 #if SPONZA
-		spawn_random_lights(scene, 1000, 200,
+		spawn_random_lights(scene, 1000, 100,
 			{ -15.0f, -3.0f, -5.0f }, { 15.0f, 6.0f, 5.0f });
 #else
 		spawn_random_lights(scene, 100, 100);
@@ -83,7 +83,7 @@ public:
 			auto& cubemapPool = GFX::RES::get_cubemap_pool();
 
 			auto hdr = texPool.decode(RES_PATH / "HDRIs" /
-				"kloofendal_48d_partly_cloudy_puresky_4k.hdr");
+				"shanghai_bund_4k.hdr");
 			auto env = cubemapPool.hdr_to_cubemap(hdr);
 			auto e = scene->spawn();
 			auto& ibl = e.add<ECS::IBLComponent>();

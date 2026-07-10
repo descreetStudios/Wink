@@ -67,4 +67,10 @@ cmake --build build
     <span style="font-size: 23px;"><b>Sponza, Shanghai</b></span>
 </p>
 
-![Sponza IBL Shanghai](Images/Showcases/sponza_ibl_shanghai.png "Sponza IBL Shanghai")
+![Sponza Shadows Shanghai](Images/Showcases/sponza_shadows_shanghai.png "Sponza Shadows Shanghai")
+
+<p align="center">
+    <span style="font-size: 23px;"><b>Simple Soft Shadows Test</b></span>
+</p>
+
+![Shadows Test](Images/Showcases/shadows_test.png "Shadows Test")
