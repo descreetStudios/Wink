@@ -25,7 +25,7 @@ public:
 		/* --- Camera Creation --- */
 		mCam.camE = scene->spawn();
 		mCam.camE.add<ECS::CameraComponent>(mCam.cam);
-		auto& t = mCam.camE.add<ECS::TransformComponent>().position = { -4.61f, 1.94f, 4.55f };
+		mCam.camE.add<ECS::TransformComponent>().position = { -4.61f, 1.94f, 4.55f };
 		mCam.cam.yaw = -405.70f; mCam.cam.pitch = -25.40f;
 
 		/* --- Sun Creation --- */

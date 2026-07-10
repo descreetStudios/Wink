@@ -95,94 +95,94 @@ const float PCF_SAMPLES = 64.0;
 
 float ign(vec2 fragCoord)
 {
-    return fract(52.9829189 * fract(dot(fragCoord, vec2(0.06711056, 0.00583715))));
+	return fract(52.9829189 * fract(dot(fragCoord, vec2(0.06711056, 0.00583715))));
 }
 
 vec2 rotate_poisson(vec2 sam, float theta)
 {
-    float s = sin(theta), c = cos(theta);
-    return vec2(c * sam.x - s * sam.y,
+	float s = sin(theta), c = cos(theta);
+	return vec2(c * sam.x - s * sam.y,
 		s * sam.x + c * sam.y);
 }
 
 float find_avg_blocker_depth(vec2 uv, float z_receiver, float bias, float theta)
 {
-    float total = 0.0;
-    int count = 0;
+	float total = 0.0;
+	int count = 0;
 
 	if (BLOCKER_SAMPLES > MAX_POISSON_SAMPLES) return 0.0;
-    for (int i = 0; i < int(BLOCKER_SAMPLES); ++i)
-    {
-        vec2 s = rotate_poisson(POISSON_DISK[i], theta);
-        vec2 sample_uv = uv + s * BLOCKER_RADIUS;
-        float z_blocker = texture(uShadowMapRaw, sample_uv).r;
+	for (int i = 0; i < int(BLOCKER_SAMPLES); ++i)
+	{
+		vec2 s = rotate_poisson(POISSON_DISK[i], theta);
+		vec2 sample_uv = uv + s * BLOCKER_RADIUS;
+		float z_blocker = texture(uShadowMapRaw, sample_uv).r;
 
-        if (z_blocker < z_receiver - bias)
-        {
-            total += z_blocker;
-            ++count;
-        }
-    }
+		if (z_blocker < z_receiver - bias)
+		{
+			total += z_blocker;
+			++count;
+		}
+	}
 
-    if (count == int(BLOCKER_SAMPLES)) return -2.0;
-    return total / float(count);
+	if (count == int(BLOCKER_SAMPLES)) return -2.0;
+	return total / float(count);
 }
 
 float pcss_pcf(vec2 uv, float z_receiver, float bias, float penumbra_uv, float theta)
 {
-    float shadow = 0.0;
+	float shadow = 0.0;
 
 	if (PCF_SAMPLES > MAX_POISSON_SAMPLES) return shadow / MAX_POISSON_SAMPLES;
-    for (int i = 0; i < PCF_SAMPLES; ++i)
-    {
-        vec2 s = rotate_poisson(POISSON_DISK[i], theta);
-        shadow += texture(uShadowMap,
-            vec3(uv + s * penumbra_uv, z_receiver - bias));
-    }
-    return shadow / float(PCF_SAMPLES);
+	for (int i = 0; i < PCF_SAMPLES; ++i)
+	{
+		vec2 s = rotate_poisson(POISSON_DISK[i], theta);
+		shadow += texture(uShadowMap,
+			vec3(uv + s * penumbra_uv, z_receiver - bias));
+	}
+	return shadow / float(PCF_SAMPLES);
 }
 
 float compute_shadow(vec3 fragPosWS, vec3 N, vec3 L)
 {
-    vec4 fragPosLS = uLightSpaceMatrix * vec4(fragPosWS, 1.0);
-    vec3 projCoords = fragPosLS.xyz / fragPosLS.w;
-    projCoords = projCoords * 0.5 + 0.5;
+	vec4 fragPosLS = uLightSpaceMatrix * vec4(fragPosWS, 1.0);
+	vec3 projCoords = fragPosLS.xyz / fragPosLS.w;
+	projCoords = projCoords * 0.5 + 0.5;
 
-    if (projCoords.z > 1.0
-        || any(lessThan(projCoords.xy, vec2(0.0)))
-        || any(greaterThan(projCoords.xy, vec2(1.0))))
-        return 0.0;
+	if (projCoords.z > 1.0
+		|| any(lessThan(projCoords.xy, vec2(0.0)))
+		|| any(greaterThan(projCoords.xy, vec2(1.0))))
+		return 0.0;
 
 	vec2 uv = projCoords.xy;
-    float z_receiver = projCoords.z;
+	float z_receiver = projCoords.z;
 
 	float texelWorldSize = uLightOrthoSize / float(SHADOW_MAP_SIZE);
-    vec3 normalOffset = N * texelWorldSize * 1.5 * (1.0 - max(dot(N, L), 0.0));
-    vec4 offsetPosLS = uLightSpaceMatrix * vec4(fragPosWS + normalOffset, 1.0);
-    vec3 offsetCoords = offsetPosLS.xyz / offsetPosLS.w * 0.5 + 0.5;
+	vec3 normalOffset = N * texelWorldSize * 1.5 * (1.0 - max(dot(N, L), 0.0));
+	vec4 offsetPosLS = uLightSpaceMatrix * vec4(fragPosWS + normalOffset, 1.0);
+	vec3 offsetCoords = offsetPosLS.xyz / offsetPosLS.w * 0.5 + 0.5;
 
 	uv = offsetCoords.xy;
-    z_receiver = offsetCoords.z;
+	z_receiver = offsetCoords.z;
 
 	float bias = 0.0001;
 
 	float theta = ign(gl_FragCoord.xy + fract(uTime) * 100.0) * 6.28318530718;
 	//float theta = ign(gl_FragCoord.xy) * 6.28318530718;
-    float avg_blocker = find_avg_blocker_depth(uv, z_receiver, bias, theta);
+	float avg_blocker = find_avg_blocker_depth(uv, z_receiver, bias, theta);
 
-    if (avg_blocker == -1.0) return 0.0;
+	if (avg_blocker == -1.0) return 0.0;
 	if (avg_blocker == -2.0)
 	{
 		float texel = 1.0 / float(textureSize(uShadowMap, 0).x);
 		return 1.0 - pcss_pcf(uv, z_receiver, bias, texel * 2.0, theta);
 	}
 
-    // Penumbra estimation
-    float penumbra_uv = ((z_receiver - avg_blocker) / avg_blocker) * LIGHT_SIZE_UV;
-    penumbra_uv = max(penumbra_uv, 1.0 / textureSize(uShadowMap, 0).x);
+	// Penumbra estimation
+	float penumbra_uv = ((z_receiver - avg_blocker) / avg_blocker) * LIGHT_SIZE_UV;
+	penumbra_uv = max(penumbra_uv, 1.0 / textureSize(uShadowMap, 0).x);
 
-    // PCSS stage 2: Variable-Width PCF
-    return 1.0 - pcss_pcf(uv, z_receiver, bias, penumbra_uv, theta);
+	// PCSS stage 2: Variable-Width PCF
+	return 1.0 - pcss_pcf(uv, z_receiver, bias, penumbra_uv, theta);
 }
 
 /* --- Light Functions --- */
@@ -371,11 +371,6 @@ void main()
 	// TODO: move into post-process pass
 	color = tonemap_lottes(color, 2.0);
 	color = apply_gamma(color, 2.2);
-
-	//vec3 L = normalize(-uDirLights[0].direction.xyz);
-	//float shadow = compute_shadow(vFragPos, N, L);
-    //FragColor = vec4(vec3(shadow), 1.0);
-    //return;
 
 #if defined(DEBUG_IN)
 	FragColor = vec4(vDebug, 1.0);

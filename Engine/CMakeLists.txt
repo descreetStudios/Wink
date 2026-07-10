@@ -178,6 +178,7 @@ PRIVATE
     "Source/GFX/VAO.cpp"
     "Source/GFX/Buffer.cpp"
     "Source/GFX/Texture2D.cpp"
+    "Source/GFX/Texture2DArray.cpp"
     "Source/GFX/TextureCubemap.cpp"
     "Source/GFX/Renderbuffer.cpp"
     "Source/GFX/Framebuffer.cpp"

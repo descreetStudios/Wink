@@ -1,0 +1,217 @@
+#include <WinkEngine/pch.hpp>
+#include <WinkEngine/GFX/Texture2DArray.hpp>
+
+namespace Wink::GFX
+{
+    namespace
+    {
+        u32 calculate_mip_levels(u32 w, u32 h) noexcept
+        {
+            return static_cast<u32>(std::floor(std::log2(std::max(w, h)))) + 1;
+        }
+    }
+
+    Texture2DArray::Texture2DArray()
+    {
+        glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &mID);
+    }
+
+    Texture2DArray::~Texture2DArray()
+    {
+        make_non_resident();
+        glDeleteTextures(1, &mID);
+    }
+
+    MOVE_CTOR_IMPL(Texture2DArray) noexcept
+        : mID(o.mID), mWidth(o.mWidth), mHeight(o.mHeight),
+        mLayers(o.mLayers), mBindlessHandle(o.mBindlessHandle),
+        mResident(o.mResident)
+    {
+        o.mID = 0;
+        o.mWidth = 0;
+        o.mHeight = 0;
+        o.mLayers = 0;
+        o.mBindlessHandle = 0;
+        o.mResident = false;
+    }
+
+    MOVE_ASSIGN_IMPL(Texture2DArray) noexcept
+    {
+        if (this != &o)
+        {
+            make_non_resident();
+            glDeleteTextures(1, &mID);
+
+            mID = o.mID;
+            mWidth = o.mWidth;
+            mHeight = o.mHeight;
+            mLayers = o.mLayers;
+            mBindlessHandle = o.mBindlessHandle;
+            mResident = o.mResident;
+
+            o.mID = 0;
+            o.mWidth = 0;
+            o.mHeight = 0;
+            o.mLayers = 0;
+            o.mBindlessHandle = 0;
+            o.mResident = false;
+        }
+        return *this;
+    }
+
+    void Texture2DArray::upload(const u8* pixels,
+        u32 width, u32 height, u32 layers,
+        u32 channels, TextureDataType dataType,
+        const Texture2DParams& params) noexcept
+    {
+        assert(is_valid());
+        assert(width > 0 && height > 0 && layers > 0);
+        assert(channels >= 1 && channels <= 4);
+
+        mWidth = width;
+        mHeight = height;
+        mLayers = layers;
+
+        GLenum internalFormat;
+        GLenum pixelFormat;
+
+        switch (channels)
+        {
+        case 1: internalFormat = GL_R8; pixelFormat = GL_RED; break;
+        case 2: internalFormat = GL_RG8; pixelFormat = GL_RG; break;
+        case 3: internalFormat = params.sRGB ? GL_SRGB8 : GL_RGB8; pixelFormat = GL_RGB; break;
+        default: internalFormat = params.sRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8; pixelFormat = GL_RGBA; break;
+        }
+
+        const u32 levels = params.genMips ? calculate_mip_levels(width, height) : 1;
+
+        glPixelStorei(GL_UNPACK_ALIGNMENT, (channels == 1 || channels == 3) ? 1 : 4);
+
+        glTextureStorage3D(mID, levels, internalFormat, width, height, layers);
+
+        if (pixels)
+        {
+            glTextureSubImage3D(
+                mID, 0,
+                0, 0, 0,
+                width, height, layers,
+                pixelFormat,
+                static_cast<GLenum>(dataType),
+                pixels
+            );
+        }
+
+        apply_params(params);
+
+        if (params.genMips && pixels)
+            glGenerateTextureMipmap(mID);
+
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    }
+
+    void Texture2DArray::upload(const float* pixels,
+        u32 width, u32 height, u32 layers,
+        u32 channels, TextureDataType dataType,
+        const Texture2DParams& params) noexcept
+    {
+        assert(is_valid());
+        assert(width > 0 && height > 0 && layers > 0);
+        assert(channels >= 1 && channels <= 4);
+
+        mWidth = width;
+        mHeight = height;
+        mLayers = layers;
+
+        GLenum internalFormat;
+        GLenum pixelFormat;
+
+        switch (channels)
+        {
+        case 1: internalFormat = GL_R16F; pixelFormat = GL_RED; break;
+        case 2: internalFormat = GL_RG16F; pixelFormat = GL_RG; break;
+        case 3: internalFormat = GL_RGB16F; pixelFormat = GL_RGB; break;
+        default: internalFormat = GL_RGBA16F; pixelFormat = GL_RGBA; break;
+        }
+
+        const u32 levels = params.genMips ? calculate_mip_levels(width, height) : 1;
+
+        const size_t rowStrideBytes =
+            static_cast<size_t>(width) * channels * sizeof(float);
+
+        glPixelStorei(GL_UNPACK_ALIGNMENT,
+            (rowStrideBytes % 4 == 0) ? 4 : 1);
+
+        glTextureStorage3D(mID, levels, internalFormat, width, height, layers);
+
+        if (pixels)
+        {
+            glTextureSubImage3D(
+                mID, 0,
+                0, 0, 0,
+                width, height, layers,
+                pixelFormat,
+                static_cast<GLenum>(dataType),
+                pixels
+            );
+        }
+
+        apply_params(params);
+
+        if (params.genMips && pixels)
+            glGenerateTextureMipmap(mID);
+
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    }
+
+    void Texture2DArray::allocate(u32 width, u32 height, u32 layers,
+        u32 internalFormat, const Texture2DParams& params) noexcept
+    {
+        assert(is_valid());
+        assert(width > 0 && height > 0 && layers > 0);
+
+        mWidth = width;
+        mHeight = height;
+        mLayers = layers;
+
+        const u32 levels = params.genMips ? calculate_mip_levels(width, height) : 1;
+
+        glTextureStorage3D(mID, levels, internalFormat, width, height, layers);
+
+        apply_params(params);
+
+        if (params.genMips)
+            glGenerateTextureMipmap(mID);
+    }
+
+    void Texture2DArray::bind(u32 unit) const noexcept
+    {
+        glBindTextureUnit(unit, mID);
+    }
+
+    void Texture2DArray::make_resident() noexcept
+    {
+        if (mResident || !is_valid()) return;
+
+        if (mBindlessHandle == 0)
+            mBindlessHandle = glGetTextureHandleARB(mID);
+
+        glMakeTextureHandleResidentARB(mBindlessHandle);
+        mResident = true;
+    }
+
+    void Texture2DArray::make_non_resident() noexcept
+    {
+        if (!mResident) return;
+
+        glMakeTextureHandleNonResidentARB(mBindlessHandle);
+        mResident = false;
+    }
+
+    void Texture2DArray::apply_params(const Texture2DParams& params) const noexcept
+    {
+        glTextureParameteri(mID, GL_TEXTURE_WRAP_S, static_cast<GLint>(params.wrapS));
+        glTextureParameteri(mID, GL_TEXTURE_WRAP_T, static_cast<GLint>(params.wrapT));
+        glTextureParameteri(mID, GL_TEXTURE_MIN_FILTER, static_cast<GLint>(params.minFilter));
+        glTextureParameteri(mID, GL_TEXTURE_MAG_FILTER, static_cast<GLint>(params.magFilter));
+    }
+}
