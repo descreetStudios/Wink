@@ -6,6 +6,7 @@
 #include "Material.glsl"
 #include "PBR.glsl"
 #include "Light.glsl"
+#include "Pipeline/PoissonDisk.glsl"
 
 // #define DEBUG_ALBEDO
 // #define DEBUG_NORMALS
@@ -35,8 +36,12 @@ uniform samplerCube uPrefilteredMap;
 uniform sampler2D uBRDFLUT;
 uniform bool uHasIBL;
 
+#define SHADOW_MAP_SIZE 4096
+uniform float uTime;
 uniform sampler2DShadow uShadowMap;
+uniform sampler2D uShadowMapRaw;
 uniform mat4 uLightSpaceMatrix;
+uniform float uLightOrthoSize;
 
 layout(std140, binding = 1) uniform LightsUBO
 {
@@ -81,25 +86,62 @@ uint get_tile_index()
 }
 
 /* --- Shadow --- */
-// Poisson disk samples for soft shadows
-const vec2 POISSON_DISK[16] = vec2[](
-    vec2(-0.94201624,  -0.39906216),
-    vec2( 0.94558609,  -0.76890725),
-    vec2(-0.09418410,  -0.92938870),
-    vec2( 0.34495938,   0.29387760),
-    vec2(-0.91588581,   0.45771432),
-    vec2(-0.81544232,  -0.87912464),
-    vec2(-0.38277543,   0.27676845),
-    vec2( 0.97484398,   0.75648379),
-    vec2( 0.44323325,  -0.97511554),
-    vec2( 0.53742981,  -0.47373420),
-    vec2(-0.26496911,  -0.41893023),
-    vec2( 0.79197514,   0.19090188),
-    vec2(-0.24188840,   0.99706507),
-    vec2(-0.81409955,   0.91437590),
-    vec2( 0.19984126,   0.78641367),
-    vec2( 0.14383161,  -0.14100790)
-);
+const float LIGHT_WORLD_SIZE = 1.0;
+float LIGHT_SIZE_UV = LIGHT_WORLD_SIZE / uLightOrthoSize;
+float BLOCKER_RADIUS = LIGHT_SIZE_UV * 4.0;
+
+const float BLOCKER_SAMPLES = 24.0;
+const float PCF_SAMPLES = 64.0;
+
+float ign(vec2 fragCoord)
+{
+    return fract(52.9829189 * fract(dot(fragCoord, vec2(0.06711056, 0.00583715))));
+}
+
+vec2 rotate_poisson(vec2 sam, float theta)
+{
+    float s = sin(theta), c = cos(theta);
+    return vec2(c * sam.x - s * sam.y,
+		s * sam.x + c * sam.y);
+}
+
+float find_avg_blocker_depth(vec2 uv, float z_receiver, float bias, float theta)
+{
+    float total = 0.0;
+    int count = 0;
+
+	if (BLOCKER_SAMPLES > MAX_POISSON_SAMPLES) return 0.0;
+    for (int i = 0; i < int(BLOCKER_SAMPLES); ++i)
+    {
+        vec2 s = rotate_poisson(POISSON_DISK[i], theta);
+        vec2 sample_uv = uv + s * BLOCKER_RADIUS;
+        float z_blocker = texture(uShadowMapRaw, sample_uv).r;
+
+        if (z_blocker < z_receiver - bias)
+        {
+            total += z_blocker;
+            ++count;
+        }
+    }
+
+    //if (count == 0) return -1.0;
+    if (count == int(BLOCKER_SAMPLES)) return -2.0;
+    return total / float(count);
+}
+
+float pcss_pcf(vec2 uv, float z_receiver, float bias, float penumbra_uv, float theta)
+{
+    float shadow = 0.0;
+
+	if (PCF_SAMPLES > MAX_POISSON_SAMPLES) return shadow / MAX_POISSON_SAMPLES;
+    for (int i = 0; i < PCF_SAMPLES; ++i)
+    {
+        vec2 s = rotate_poisson(POISSON_DISK[i], theta);
+        shadow += texture(uShadowMap,
+            vec3(uv + s * penumbra_uv, z_receiver - bias));
+    }
+    return shadow / float(PCF_SAMPLES);
+}
 
 float compute_shadow(vec3 fragPosWS, vec3 N, vec3 L)
 {
@@ -112,21 +154,36 @@ float compute_shadow(vec3 fragPosWS, vec3 N, vec3 L)
         || any(greaterThan(projCoords.xy, vec2(1.0))))
         return 0.0;
 
-    float cosTheta = clamp(dot(N, L), 0.0, 1.0);
-    float bias = clamp(0.005 * tan(acos(cosTheta)), 0.0, 0.0003);
+	vec2 uv = projCoords.xy;
+    float z_receiver = projCoords.z;
 
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / vec2(textureSize(uShadowMap, 0));
-    float spread = 2.0;
+	float texelWorldSize = uLightOrthoSize / float(SHADOW_MAP_SIZE);
+    vec3 normalOffset = N * texelWorldSize * 1.5 * (1.0 - max(dot(N, L), 0.0));
+    vec4 offsetPosLS = uLightSpaceMatrix * vec4(fragPosWS + normalOffset, 1.0);
+    vec3 offsetCoords = offsetPosLS.xyz / offsetPosLS.w * 0.5 + 0.5;
 
-    for (int i = 0; i < 16; ++i)
-    {
-        shadow += texture(uShadowMap,
-            vec3(projCoords.xy + POISSON_DISK[i] * texelSize * spread,
-                 projCoords.z - bias));
-    }
+	uv = offsetCoords.xy;
+    z_receiver = offsetCoords.z;
 
-    return 1.0 - (shadow / 16.0);
+	float bias = 0.0001;
+
+	float theta = ign(gl_FragCoord.xy + fract(uTime) * 100.0) * 6.28318530718;
+	//float theta = ign(gl_FragCoord.xy) * 6.28318530718;
+    float avg_blocker = find_avg_blocker_depth(uv, z_receiver, bias, theta);
+
+    if (avg_blocker == -1.0) return 0.0;
+	if (avg_blocker == -2.0)
+	{
+		float texel = 1.0 / float(textureSize(uShadowMap, 0).x);
+		return 1.0 - pcss_pcf(uv, z_receiver, bias, texel * 2.0, theta);
+	}
+
+    // Penumbra estimation
+    float penumbra_uv = ((z_receiver - avg_blocker) / avg_blocker) * LIGHT_SIZE_UV;
+    penumbra_uv = max(penumbra_uv, 1.0 / textureSize(uShadowMap, 0).x);
+
+    // PCSS stage 2: Variable-Width PCF
+    return 1.0 - pcss_pcf(uv, z_receiver, bias, penumbra_uv, theta);
 }
 
 /* --- Light Functions --- */
@@ -151,6 +208,7 @@ vec3 compute_dir_light(DirLight light,
 
 	float shadow = compute_shadow(vFragPos, N, L);
 
+	//return vec3(shadow);
 	return (kD * albedo / PI + specular) * radiance * NdL * (1.0 - shadow);
 }
 

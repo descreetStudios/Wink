@@ -160,7 +160,7 @@ private:
 			{
 				mSettings.postProcessSettings.msaa.enabled =
 					!mSettings.postProcessSettings.msaa.enabled;
-				apply_graphics_settings();
+				GFX::apply_settings(mSettings);
 			}
 			});
 
@@ -260,11 +260,6 @@ private:
 			sl.spotLight.innerCutoff = glm::cos(glm::radians(uangle(rng) * 0.5f));
 			sl.spotLight.outerCutoff = glm::cos(glm::radians(uangle(rng)));
 		}
-	}
-
-	void apply_graphics_settings() const
-	{
-		GFX::apply_settings(mSettings);
 	}
 
 private:

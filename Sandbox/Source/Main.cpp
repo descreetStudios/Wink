@@ -5,7 +5,8 @@
 #define APP_MODELS 0
 #define APP_IBL 0
 #define APP_SCENE 0
-#define APP_FORWARD_PLUS 1
+#define APP_FORWARD_PLUS 0
+#define APP_SHADOWS 1
 
 #if APP_APP
 #include "Apps/App.hpp"
@@ -23,6 +24,8 @@
 #include "Apps/SceneApp.hpp"
 #elif APP_FORWARD_PLUS
 #include "Apps/ForwardPlusApp.hpp"
+#elif APP_SHADOWS
+#include "Apps/ShadowsApp.hpp"
 #else
 #error No apps enabled!
 #endif

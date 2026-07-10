@@ -457,27 +457,19 @@ namespace Wink::GFX
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6,
 			gLightCullingPass->get_light_grid_ssbo());
 
-		//gShadowPass->bind_shadow_map(gDefaultShader, 15);
-
 		gPostProcessPass->bind_scene_fbo();
 		glViewport(0, 0, gWidth, gHeight);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		for (size_t i = 0; i < renderObjects.size(); ++i)
 		{
-			draw({ .renderObj = renderObjects[i],
-				   .camData = camData,
-				   .modelMat = modelMats[i],
-				   .normalMat = glm::transpose(
-					   glm::inverse(glm::mat3(modelMats[i]))),
-
-					// TEMP
-					.shadowData = {
-						.lightSpaceMatrix = dirLights.empty() ? glm::mat4(1.0f)
-										  : gShadowPass->get_light_space_matrix(),
-						.shadowMapID = gShadowPass->get_shadow_map_id() 
-					}
-				});
+			draw({
+				.renderObj = renderObjects[i],
+				.camData = camData,
+				.modelMat = modelMats[i],
+				.normalMat = glm::transpose(
+					glm::inverse(glm::mat3(modelMats[i]))),
+				.shadowPass = *gShadowPass });
 		}
 #if 0
 		gLightCullingPass->debug_draw(gWidth, gHeight);

@@ -5,6 +5,7 @@
 #include <WinkEngine/GFX/Renderer.hpp>
 #include <WinkEngine/Core/Logger.hpp>
 #include <WinkEngine/Core/Profiler.hpp>
+#include <GLFW/glfw3.h>
 
 namespace Wink::GFX
 {
@@ -19,6 +20,12 @@ namespace Wink::GFX::Pipeline
 {
 	extern ShaderHandle gShadowShader;
 	extern ShaderHandle gShadowDebugShader;
+
+	ShadowPass::~ShadowPass()
+	{
+		glDeleteSamplers(1, &mSamplerCmp);
+		glDeleteSamplers(1, &mSamplerRaw);
+	}
 
 	bool ShadowPass::init() noexcept
 	{
@@ -38,7 +45,26 @@ namespace Wink::GFX::Pipeline
 			GL_TEXTURE_BORDER_COLOR, borderColor);
 
 		glTextureParameteri(mShadowMap.get_id(),
+			GL_TEXTURE_COMPARE_MODE, GL_NONE);
+		glTextureParameteri(mShadowMap.get_id(),
 			GL_TEXTURE_COMPARE_FUNC, GL_LESS);
+
+		glCreateSamplers(1, &mSamplerCmp);
+		glSamplerParameteri(mSamplerCmp, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glSamplerParameteri(mSamplerCmp, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glSamplerParameteri(mSamplerCmp, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glSamplerParameteri(mSamplerCmp, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		glSamplerParameterfv(mSamplerCmp, GL_TEXTURE_BORDER_COLOR, borderColor);
+		glSamplerParameteri(mSamplerCmp, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+		glSamplerParameteri(mSamplerCmp, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
+
+		glCreateSamplers(1, &mSamplerRaw);
+		glSamplerParameteri(mSamplerRaw, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glSamplerParameteri(mSamplerRaw, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glSamplerParameteri(mSamplerRaw, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glSamplerParameteri(mSamplerRaw, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		glSamplerParameterfv(mSamplerRaw, GL_TEXTURE_BORDER_COLOR, borderColor);
+		glSamplerParameteri(mSamplerRaw, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 
 		mFBO.attach(mShadowMap, Attachment::Depth);
 		glNamedFramebufferDrawBuffer(mFBO.get_id(), GL_NONE);
@@ -60,6 +86,8 @@ namespace Wink::GFX::Pipeline
 		const ShadowOrthoSettings& ortho) noexcept
 	{
 		ENGINE_ZONE_NAME("Shadow Pass");
+
+		mOrtho = ortho;
 
 		ShaderProgram* shader = gShaderPool.try_get(gShadowShader);
 		if (!shader || !shader->is_valid())
@@ -118,19 +146,22 @@ namespace Wink::GFX::Pipeline
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void ShadowPass::bind_shadow_map(ShaderHandle shader, u32 unit) const noexcept
+	void ShadowPass::bind_shadow_map(
+		const ShaderProgram* shader, u32 unit) const noexcept
 	{
-		glTextureParameteri(mShadowMap.get_id(),
-			GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-
 		glBindTextureUnit(unit, mShadowMap.get_id());
+		glBindTextureUnit(unit + 1, mShadowMap.get_id());
+		glBindSampler(unit, mSamplerCmp);
+		glBindSampler(unit + 1, mSamplerRaw);
 
-		ShaderProgram* sh = gShaderPool.try_get(shader);
-		if (!sh || !sh->is_valid()) return;
+		if (!shader || !shader->is_valid()) return;
 
-		sh->use();
-		sh->set("uShadowMap", static_cast<i32>(unit));
-		sh->set("uLightSpaceMatrix", mLightSpaceMatrix);
+		shader->use();
+		shader->set("uShadowMap", static_cast<i32>(unit));
+		shader->set("uShadowMapRaw", static_cast<i32>(unit + 1));
+		shader->set("uLightSpaceMatrix", mLightSpaceMatrix);
+		shader->set("uLightOrthoSize", mOrtho.right - mOrtho.left);
+		shader->set("uTime", static_cast<float>(glfwGetTime()));
 	}
 
 	void ShadowPass::debug_draw(u32 width, u32 height) noexcept
@@ -138,23 +169,19 @@ namespace Wink::GFX::Pipeline
 		ShaderProgram* shader = gShaderPool.try_get(gShadowDebugShader);
 		if (!shader || !shader->is_valid()) return;
 
-		glTextureParameteri(mShadowMap.get_id(),
-			GL_TEXTURE_COMPARE_MODE, GL_NONE);
-
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glViewport(0, 0, width, height);
-
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
 
 		shader->use();
 		glBindTextureUnit(0, mShadowMap.get_id());
+		glBindSampler(0, mSamplerRaw);
 		shader->set("uShadowMap", 0);
 
 		glBindVertexArray(gFullscreenVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
-		glTextureParameteri(mShadowMap.get_id(),
-			GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+		glBindSampler(0, 0);
 	}
 }

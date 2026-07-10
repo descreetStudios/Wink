@@ -1,5 +1,6 @@
 #include <WinkEngine/pch.hpp>
 #include <WinkEngine/GFX/Renderer/Pipeline.hpp>
+#include <WinkEngine/GFX/Renderer/Pipeline/ShadowPass.hpp>
 #include <WinkEngine/GFX/Renderer/IBL.hpp>
 #include <WinkEngine/GFX/RES/MeshPool.hpp>
 #include <WinkEngine/GFX/RES/ShaderPool.hpp>
@@ -143,14 +144,7 @@ namespace Wink::GFX
 		shader->set("uPrefilteredMap", 13);
 		shader->set("uBRDFLUT", 14);
 
-		// TEMP
-		glTextureParameteri(drawData.shadowData.shadowMapID,
-			GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-		glTextureParameteri(drawData.shadowData.shadowMapID,
-			GL_TEXTURE_COMPARE_FUNC, GL_LESS);
-		glBindTextureUnit(15, drawData.shadowData.shadowMapID);
-		shader->set("uShadowMap", 15);
-		shader->set("uLightSpaceMatrix", drawData.shadowData.lightSpaceMatrix);
+		drawData.shadowPass.bind_shadow_map(shader, 15);
 
 		/* --- Draw --- */
 		glBindVertexArray(gMeshPool.get_vao_id(mesh));

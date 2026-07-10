@@ -2,6 +2,7 @@
 
 #include <WinkEngine/GFX/Framebuffer.hpp>
 #include <WinkEngine/GFX/Texture2D.hpp>
+#include <WinkEngine/GFX/Shader.hpp>
 #include <WinkEngine/GFX/Renderer/Data.hpp>
 
 namespace Wink::GFX::Pipeline
@@ -21,6 +22,8 @@ namespace Wink::GFX::Pipeline
 	class ShadowPass
 	{
 	public:
+		~ShadowPass();
+
 		bool init() noexcept;
 
 		void execute(
@@ -29,7 +32,7 @@ namespace Wink::GFX::Pipeline
 			std::span<const glm::mat4> modelMats,
 			const ShadowOrthoSettings& ortho = {}) noexcept;
 
-		void bind_shadow_map(RES::ShaderHandle shader, u32 unit) const noexcept;
+		void bind_shadow_map(const ShaderProgram* shader, u32 unit) const noexcept;
 		void debug_draw(u32 width, u32 height) noexcept;
 
 		[[nodiscard]] const glm::mat4& get_light_space_matrix() const noexcept { return mLightSpaceMatrix; }
@@ -38,6 +41,9 @@ namespace Wink::GFX::Pipeline
 	private:
 		Framebuffer mFBO;
 		Texture2D mShadowMap;
+		u32 mSamplerCmp = 0;
+		u32 mSamplerRaw = 0;
 		glm::mat4 mLightSpaceMatrix = glm::mat4(1.0f);
+		ShadowOrthoSettings mOrtho{};
 	};
 }

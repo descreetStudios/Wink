@@ -60,7 +60,7 @@ public:
 		std::uniform_real_distribution<float> distColor(0.1f, 1.0f);
 		std::uniform_real_distribution<float> distSpeed(0.5f, 1.5f);
 
-		for (int i = 0; i < 800; ++i)
+		for (int i = 0; i < 50; ++i)
 		{
 			glm::vec3 randomColor = { distColor(gen), distColor(gen), distColor(gen) };
 
