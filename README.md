@@ -12,7 +12,7 @@
 
 Wink Graphics Engine is a personal project that aims to simplify the vast world of graphics programming by providing an easy-to-use, extensible rendering engine.
 
-The engine features a **Forward Physically Based Renderer** (PBR) with integrated **Image-Based Lighting** (IBL).
+The engine features a **Forward Physically Based Renderer** (PBR) with integrated **Image-Based Lighting** (IBL), as well as directional light shadow mapping with **Percentage-Closer Soft Shadows** (PCSS) for realistic soft shadow rendering.
 
 Internally, resources on both the CPU and GPU are managed through a **FreeList Pool** architecture, exposing convenient, strongly typed handles to the user.
 
