@@ -5,7 +5,7 @@
 #define APP_MODELS 0
 #define APP_IBL 0
 #define APP_SCENE 0
-#define APP_FORWARD_PLUS 0
+#define APP_FORWARD_PLUS 1
 #define APP_SHADOWS 1
 
 #if APP_APP

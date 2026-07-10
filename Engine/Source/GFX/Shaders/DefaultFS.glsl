@@ -23,6 +23,7 @@
 in vec3 vDebug;
 in vec3 vFragPos;
 in vec3 vCamPos;
+in mat4 vView;
 in vec2 vTexCoord;
 in vec2 vTexCoord1;
 in mat3 vTBN;
@@ -36,12 +37,13 @@ uniform samplerCube uPrefilteredMap;
 uniform sampler2D uBRDFLUT;
 uniform bool uHasIBL;
 
+#define NUM_CASCADES 4
 #define SHADOW_MAP_SIZE 4096
-uniform float uTime;
-uniform sampler2DShadow uShadowMap;
-uniform sampler2D uShadowMapRaw;
-uniform mat4 uLightSpaceMatrix;
-uniform float uLightOrthoSize;
+uniform sampler2DArrayShadow uShadowMap;
+uniform sampler2DArray uShadowMapRaw;
+uniform mat4 uLightSpaceMatrices[4];
+uniform float uCascadeSplits[4];
+uniform float uCascadeOrthoSizes[4];
 
 layout(std140, binding = 1) uniform LightsUBO
 {
@@ -85,13 +87,18 @@ uint get_tile_index()
 	return tileID.y * vTileCountX + tileID.x;
 }
 
-/* --- Shadow --- */
-const float LIGHT_WORLD_SIZE = 1.0;
-float LIGHT_SIZE_UV = LIGHT_WORLD_SIZE / uLightOrthoSize;
-float BLOCKER_RADIUS = LIGHT_SIZE_UV * 4.0;
-
+/* --- Shadows --- */
 const float BLOCKER_SAMPLES = 24.0;
 const float PCF_SAMPLES = 64.0;
+
+int select_cascade(float depthVS)
+{
+    for (int i = 0; i < NUM_CASCADES - 1; ++i)
+        if (depthVS < uCascadeSplits[i])
+            return i;
+    return NUM_CASCADES - 1;
+}
+
 
 float ign(vec2 fragCoord)
 {
@@ -105,84 +112,121 @@ vec2 rotate_poisson(vec2 sam, float theta)
 		s * sam.x + c * sam.y);
 }
 
-float find_avg_blocker_depth(vec2 uv, float z_receiver, float bias, float theta)
+float find_avg_blocker_depth(
+	int cascade, vec2 uv, float z_receiver,
+	float bias, float theta)
 {
-	float total = 0.0;
-	int count = 0;
+    float lightSizeUV  = 1.0 / uCascadeOrthoSizes[cascade];
+    float blockerRadius = lightSizeUV * 4.0;
 
-	if (BLOCKER_SAMPLES > MAX_POISSON_SAMPLES) return 0.0;
-	for (int i = 0; i < int(BLOCKER_SAMPLES); ++i)
-	{
-		vec2 s = rotate_poisson(POISSON_DISK[i], theta);
-		vec2 sample_uv = uv + s * BLOCKER_RADIUS;
-		float z_blocker = texture(uShadowMapRaw, sample_uv).r;
+    float total = 0.0;
+    int count = 0;
 
-		if (z_blocker < z_receiver - bias)
-		{
-			total += z_blocker;
-			++count;
-		}
-	}
+    for (int i = 0; i < BLOCKER_SAMPLES; ++i)
+    {
+        vec2 s = rotate_poisson(POISSON_DISK[i], theta);
+        vec2 sampleUV = uv + s * blockerRadius;
+        float zBlocker = texture(uShadowMapRaw, vec3(sampleUV, float(cascade))).r;
 
-	if (count == int(BLOCKER_SAMPLES)) return -2.0;
-	return total / float(count);
+        if (zBlocker < z_receiver - bias)
+        {
+            total += zBlocker;
+            ++count;
+        }
+    }
+
+    //if (count == 0) return -1.0;
+    if (count == BLOCKER_SAMPLES) return -2.0;
+    return total / float(count);
 }
 
-float pcss_pcf(vec2 uv, float z_receiver, float bias, float penumbra_uv, float theta)
+float pcss_pcf(int cascade, vec2 uv, float z_receiver,
+	float bias, float penumbraUV, float theta)
 {
-	float shadow = 0.0;
-
-	if (PCF_SAMPLES > MAX_POISSON_SAMPLES) return shadow / MAX_POISSON_SAMPLES;
-	for (int i = 0; i < PCF_SAMPLES; ++i)
-	{
-		vec2 s = rotate_poisson(POISSON_DISK[i], theta);
-		shadow += texture(uShadowMap,
-			vec3(uv + s * penumbra_uv, z_receiver - bias));
-	}
-	return shadow / float(PCF_SAMPLES);
+    float shadow = 0.0;
+    for (int i = 0; i < PCF_SAMPLES; ++i)
+    {
+        vec2 s = rotate_poisson(POISSON_DISK[i], theta);
+        // sampler2DArrayShadow: sample(sampler, vec4(uv, layer, compareRef))
+        shadow += texture(uShadowMap,
+            vec4(uv + s * penumbraUV, float(cascade), z_receiver - bias));
+    }
+    return shadow / float(PCF_SAMPLES);
 }
 
-float compute_shadow(vec3 fragPosWS, vec3 N, vec3 L)
+float compute_shadow(vec3 fragPosWS, vec3 N, vec3 L, float depthVS)
 {
-	vec4 fragPosLS = uLightSpaceMatrix * vec4(fragPosWS, 1.0);
-	vec3 projCoords = fragPosLS.xyz / fragPosLS.w;
-	projCoords = projCoords * 0.5 + 0.5;
+    int cascade = select_cascade(depthVS);
 
-	if (projCoords.z > 1.0
-		|| any(lessThan(projCoords.xy, vec2(0.0)))
-		|| any(greaterThan(projCoords.xy, vec2(1.0))))
-		return 0.0;
+    vec4 fragPosLS = uLightSpaceMatrices[cascade] * vec4(fragPosWS, 1.0);
+    vec3 projCoords = fragPosLS.xyz / fragPosLS.w * 0.5 + 0.5;
 
-	vec2 uv = projCoords.xy;
-	float z_receiver = projCoords.z;
+    if (projCoords.z > 1.0
+        || any(lessThan(projCoords.xy, vec2(0.0)))
+        || any(greaterThan(projCoords.xy, vec2(1.0))))
+        return 0.0;
 
-	float texelWorldSize = uLightOrthoSize / float(SHADOW_MAP_SIZE);
-	vec3 normalOffset = N * texelWorldSize * 1.5 * (1.0 - max(dot(N, L), 0.0));
-	vec4 offsetPosLS = uLightSpaceMatrix * vec4(fragPosWS + normalOffset, 1.0);
-	vec3 offsetCoords = offsetPosLS.xyz / offsetPosLS.w * 0.5 + 0.5;
+    vec2 uv = projCoords.xy;
+    float z_receiver = projCoords.z;
 
-	uv = offsetCoords.xy;
-	z_receiver = offsetCoords.z;
+    // Normal offset
+    float texelWorldSize = uCascadeOrthoSizes[cascade] / float(SHADOW_MAP_SIZE);
+    vec3 normalOffset = N * texelWorldSize * 1.5 * (1.0 - max(dot(N, L), 0.0));
+    vec4 offsetPosLS = uLightSpaceMatrices[cascade] * vec4(fragPosWS + normalOffset, 1.0);
+    vec3 offsetCoords = offsetPosLS.xyz / offsetPosLS.w * 0.5 + 0.5;
+    uv = offsetCoords.xy;
+    z_receiver = offsetCoords.z;
 
-	float bias = 0.0001;
+    float bias = 0.0001;
+    float theta = ign(gl_FragCoord.xy) * 6.28318530718;
 
-	float theta = ign(gl_FragCoord.xy + fract(uTime) * 100.0) * 6.28318530718;
-	//float theta = ign(gl_FragCoord.xy) * 6.28318530718;
-	float avg_blocker = find_avg_blocker_depth(uv, z_receiver, bias, theta);
+    float avgBlocker = find_avg_blocker_depth(cascade, uv, z_receiver, bias, theta);
 
-	if (avg_blocker == -1.0) return 0.0;
-	if (avg_blocker == -2.0)
-	{
-		float texel = 1.0 / float(textureSize(uShadowMap, 0).x);
-		return 1.0 - pcss_pcf(uv, z_receiver, bias, texel * 2.0, theta);
-	}
+    if (avgBlocker == -1.0) return 0.0;
 
-	// Penumbra estimation
-	float penumbra_uv = ((z_receiver - avg_blocker) / avg_blocker) * LIGHT_SIZE_UV;
-	penumbra_uv = max(penumbra_uv, 1.0 / textureSize(uShadowMap, 0).x);
+    if (avgBlocker == -2.0)
+    {
+        float texel = 1.0 / float(textureSize(uShadowMap, 0).x);
+        return 1.0 - pcss_pcf(cascade, uv, z_receiver, bias, texel * 2.0, theta);
+    }
 
-	// PCSS stage 2: Variable-Width PCF
-	return 1.0 - pcss_pcf(uv, z_receiver, bias, penumbra_uv, theta);
+    float lightSizeUV = 1.0 / uCascadeOrthoSizes[cascade];
+    float penumbraUV = ((z_receiver - avgBlocker) / avgBlocker) * lightSizeUV;
+    penumbraUV = max(penumbraUV, 2.0 / float(textureSize(uShadowMap, 0).x));
+
+    float shadow = 1.0 - pcss_pcf(cascade, uv, z_receiver, bias, penumbraUV, theta);
+
+    if (cascade < NUM_CASCADES - 1)
+    {
+        float splitDepth = uCascadeSplits[cascade];
+        float blendRange = splitDepth * 0.1; // 10% of split depth
+        float blendFactor = smoothstep(splitDepth - blendRange, splitDepth, depthVS);
+
+        if (blendFactor > 0.0)
+        {
+            // Sample next cascade
+            vec4 nextPosLS = uLightSpaceMatrices[cascade + 1] * vec4(fragPosWS + normalOffset, 1.0);
+            vec3 nextCoords = nextPosLS.xyz / nextPosLS.w * 0.5 + 0.5;
+            float nextBlocker = find_avg_blocker_depth(cascade + 1,
+                nextCoords.xy, nextCoords.z, bias, theta);
+
+            float shadowNext;
+            if (nextBlocker == -1.0) shadowNext = 0.0;
+            else if (nextBlocker == -2.0) shadowNext = 1.0;
+            else
+            {
+                float nextLightSizeUV = 1.0 / uCascadeOrthoSizes[cascade + 1];
+                float nextPenumbra = ((nextCoords.z - nextBlocker) / nextBlocker) * nextLightSizeUV;
+                nextPenumbra = max(nextPenumbra, 2.0 / float(textureSize(uShadowMap, 0).x));
+                shadowNext = 1.0 - pcss_pcf(cascade + 1,
+                    nextCoords.xy, nextCoords.z, bias, nextPenumbra, theta);
+            }
+
+            shadow = mix(shadow, shadowNext, blendFactor);
+        }
+    }
+
+    return shadow;
 }
 
 /* --- Light Functions --- */
@@ -205,7 +249,8 @@ vec3 compute_dir_light(DirLight light,
 	vec3 kD = (1.0 - F) * (1.0 - metallic);
 	vec3 radiance = light.color.rgb * light.direction.w; // .w = intensity
 
-	float shadow = compute_shadow(vFragPos, N, L);
+	float depthVS = abs((vView * vec4(vFragPos, 1.0)).z);
+	float shadow  = compute_shadow(vFragPos, N, L, depthVS);
 
 	return (kD * albedo / PI + specular) * radiance * NdL * (1.0 - shadow);
 }

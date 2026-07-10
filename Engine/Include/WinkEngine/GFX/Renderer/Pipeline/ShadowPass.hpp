@@ -1,28 +1,26 @@
 #pragma once
 
 #include <WinkEngine/GFX/Framebuffer.hpp>
-#include <WinkEngine/GFX/Texture2D.hpp>
-#include <WinkEngine/GFX/Shader.hpp>
+#include <WinkEngine/GFX/Texture2DArray.hpp>
 #include <WinkEngine/GFX/Renderer/Data.hpp>
 
 namespace Wink::GFX::Pipeline
 {
-	inline constexpr u32 SHADOW_MAP_SIZE = 4096;
+	static constexpr u32 SHADOW_MAP_SIZE = 4096;
+	static constexpr u32 NUM_CASCADES = 4;
 
-	struct ShadowOrthoSettings
+	struct CSMSettings
 	{
-		float left = -20.0f;
-		float right = 20.0f;
-		float bottom = -20.0f;
-		float top = 20.0f;
 		float zNear = 0.1f;
 		float zFar = 200.0f;
+		float lambda = 0.75f; // 0 = linear splits, 1 = logarithmic
+		float lightOrthoZ = 250.0f;
 	};
 
 	class ShadowPass
 	{
 	public:
-		~ShadowPass();
+		~ShadowPass() noexcept;
 
 		bool init() noexcept;
 
@@ -30,20 +28,37 @@ namespace Wink::GFX::Pipeline
 			const DirLight& light,
 			std::span<const RenderObject> objects,
 			std::span<const glm::mat4> modelMats,
-			const ShadowOrthoSettings& ortho = {}) noexcept;
+			const glm::mat4& cameraView,
+			const glm::mat4& cameraProj,
+			const CSMSettings& settings = {}) noexcept;
 
-		void bind_shadow_map(const ShaderProgram* shader, u32 unit) const noexcept;
-		void debug_draw(u32 width, u32 height) noexcept;
+		void bind_shadow_map(RES::ShaderHandle shader, u32 unit) const noexcept;
+		void debug_draw(u32 width, u32 height, u32 cascade) noexcept;
 
-		[[nodiscard]] const glm::mat4& get_light_space_matrix() const noexcept { return mLightSpaceMatrix; }
-		[[nodiscard]] u32 get_shadow_map_id() const noexcept { return mShadowMap.get_id(); }
+		const std::array<float, NUM_CASCADES>& 
+			get_split_depths() const noexcept { return mSplitDepths; }
+		const std::array<glm::mat4, NUM_CASCADES>& 
+			get_light_space_matrices() const noexcept { return mLightSpaceMatrices; }
+
+	private:
+		void compute_splits(float zNear, float zFar, float lambda) noexcept;
+
+		void compute_cascade_matrix(
+			u32 cascade,
+			const glm::vec3& lightDir,
+			const glm::mat4& cameraView,
+			const glm::mat4& cameraProj,
+			float zNear, float zFar,
+			float lightOrthoZ) noexcept;
 
 	private:
 		Framebuffer mFBO;
-		Texture2D mShadowMap;
+		Texture2DArray mShadowMap;
 		u32 mSamplerCmp = 0;
 		u32 mSamplerRaw = 0;
-		glm::mat4 mLightSpaceMatrix = glm::mat4(1.0f);
-		ShadowOrthoSettings mOrtho{};
+
+		std::array<float, NUM_CASCADES> mSplitDepths{};
+		std::array<glm::mat4, NUM_CASCADES> mLightSpaceMatrices{};
+		std::array<float, NUM_CASCADES> mCascadeOrthoSizes{};
 	};
 }

@@ -144,7 +144,7 @@ namespace Wink::GFX
 		shader->set("uPrefilteredMap", 13);
 		shader->set("uBRDFLUT", 14);
 
-		drawData.shadowPass.bind_shadow_map(shader, 15);
+		drawData.shadowPass.bind_shadow_map(mat->shader, 15);
 
 		/* --- Draw --- */
 		glBindVertexArray(gMeshPool.get_vao_id(mesh));

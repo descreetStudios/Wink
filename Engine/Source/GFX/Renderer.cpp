@@ -335,16 +335,17 @@ namespace Wink::GFX
 			cam.position += camET.position;
 		}
 
-		auto view = cam.get_view();
-		auto proj = cam.get_proj();
+		auto camView = cam.get_view();
+		auto camProj = cam.get_proj();
 		CameraData camData{
 			.position = cam.position,
-			.view = view, .proj = proj,
-			.invProj = glm::inverse(proj),
-			.viewProj = proj * view };
+			.view = camView, .proj = camProj,
+			.invProj = glm::inverse(camProj),
+			.viewProj = camProj * camView };
 
 		/* --- Frame UBO --- */
 		FrameGPUData frameData{
+			.view = camView,
 			.viewProj = camData.viewProj,
 			.camPos = camData.position,
 			.tileCountX = gLightCullingPass->get_tile_count_x() };
@@ -434,9 +435,10 @@ namespace Wink::GFX
 		/* --- Shadow Pass --- */
 		glEnable(GL_DEPTH_TEST);
 		if (!dirLights.empty())
-			gShadowPass->execute(dirLights[0], renderObjects, modelMats);
+			gShadowPass->execute(dirLights[0], renderObjects,
+				modelMats, camView, camProj);
 #if 0
-		gShadowPass->debug_draw(gWidth, gHeight);
+		gShadowPass->debug_draw(gWidth, gHeight, 1);
 		return;
 #endif
 
