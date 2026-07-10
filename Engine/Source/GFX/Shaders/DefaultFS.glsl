@@ -124,7 +124,6 @@ float find_avg_blocker_depth(vec2 uv, float z_receiver, float bias, float theta)
         }
     }
 
-    //if (count == 0) return -1.0;
     if (count == int(BLOCKER_SAMPLES)) return -2.0;
     return total / float(count);
 }
@@ -208,7 +207,6 @@ vec3 compute_dir_light(DirLight light,
 
 	float shadow = compute_shadow(vFragPos, N, L);
 
-	//return vec3(shadow);
 	return (kD * albedo / PI + specular) * radiance * NdL * (1.0 - shadow);
 }
 
