@@ -35,6 +35,8 @@ namespace Wink
 
 			on_update(Time::get_delta());
 
+			//std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
 			pre_render(Time::get_alpha());
 			GFX::render();
 			post_render();

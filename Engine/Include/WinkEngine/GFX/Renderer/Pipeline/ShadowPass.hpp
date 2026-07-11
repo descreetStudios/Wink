@@ -12,9 +12,10 @@ namespace Wink::GFX::Pipeline
 	struct CSMSettings
 	{
 		float zNear = 0.1f;
-		float zFar = 200.0f;
+		float zFar = 100.0f;
 		float lambda = 0.75f; // 0 = linear splits, 1 = logarithmic
 		float lightOrthoZ = 250.0f;
+		float maxShadowDist = 100.0f;
 	};
 
 	class ShadowPass
@@ -43,13 +44,18 @@ namespace Wink::GFX::Pipeline
 	private:
 		void compute_splits(float zNear, float zFar, float lambda) noexcept;
 
+		void compute_stable_texel_sizes(
+			float zNear, float zFar, float lambda,
+			float fovY, float aspect) noexcept;
+
 		void compute_cascade_matrix(
 			u32 cascade,
 			const glm::vec3& lightDir,
 			const glm::mat4& cameraView,
 			const glm::mat4& cameraProj,
 			float zNear, float zFar,
-			float lightOrthoZ) noexcept;
+			float lightOrthoZ,
+			float stableTexelSize) noexcept;
 
 	private:
 		Framebuffer mFBO;
@@ -60,5 +66,6 @@ namespace Wink::GFX::Pipeline
 		std::array<float, NUM_CASCADES> mSplitDepths{};
 		std::array<glm::mat4, NUM_CASCADES> mLightSpaceMatrices{};
 		std::array<float, NUM_CASCADES> mCascadeOrthoSizes{};
+		std::array<float, NUM_CASCADES> mStableTexelSizes{};
 	};
 }

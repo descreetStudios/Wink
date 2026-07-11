@@ -145,7 +145,7 @@ public:
 
 		/* --- Animate Sun Direction --- */
 		{
-			if (true)
+			if (false)
 			{
 				static float time = 0.0f;
 				time += fdt;

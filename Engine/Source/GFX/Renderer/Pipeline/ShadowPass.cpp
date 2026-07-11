@@ -84,22 +84,43 @@ namespace Wink::GFX::Pipeline
 		}
 	}
 
+	void ShadowPass::compute_stable_texel_sizes(
+		float zNear, float zFar, float lambda,
+		float fovY, float aspect) noexcept
+	{
+		compute_splits(zNear, zFar, lambda);
+
+		for (u32 i = 0; i < NUM_CASCADES; ++i)
+		{
+			float splitNear = (i == 0) ? zNear : mSplitDepths[i - 1];
+			float splitFar = mSplitDepths[i];
+
+			float halfH = splitFar * std::tan(fovY * 0.5f);
+			float halfW = halfH * aspect;
+
+			float maxExtent = 2.0f * std::sqrt(halfW * halfW + halfH * halfH);
+
+			mStableTexelSizes[i] = maxExtent / static_cast<float>(SHADOW_MAP_SIZE);
+		}
+	}
+
 	void ShadowPass::compute_cascade_matrix(
 		u32 cascade,
 		const glm::vec3& lightDir,
 		const glm::mat4& cameraView,
 		const glm::mat4& cameraProj,
 		float zNear, float zFar,
-		float lightOrthoZ) noexcept
+		float lightOrthoZ,
+		float stableTexelSize) noexcept
 	{
 		const glm::mat4 invVP = glm::inverse(cameraProj * cameraView);
 
-		const std::array<glm::vec3, 8> ndcCorners{ {
-			{-1, -1, -1}, {1, -1, -1}, {-1, 1,-1}, {1, 1, -1},
-			{-1, -1, 1}, {1, -1, 1}, {-1, 1, 1}, {1, 1, 1}
+		const std::array<glm::vec3, 8> ndcCorners = { {
+			{-1,-1,-1}, { 1,-1,-1}, {-1, 1,-1}, { 1, 1,-1},
+			{-1,-1, 1}, { 1,-1, 1}, {-1, 1, 1}, { 1, 1, 1}
 		} };
 
-		std::array<glm::vec3, 8> frustumCorners{};
+		std::array<glm::vec3, 8> frustumCorners;
 		for (u32 i = 0; i < 8; ++i)
 		{
 			glm::vec4 ws = invVP * glm::vec4(ndcCorners[i], 1.f);
@@ -108,7 +129,6 @@ namespace Wink::GFX::Pipeline
 
 		float prevSplit = (cascade == 0) ? zNear : mSplitDepths[cascade - 1];
 		float currSplit = mSplitDepths[cascade];
-
 		float fullRange = zFar - zNear;
 		float nearT = (prevSplit - zNear) / fullRange;
 		float farT = (currSplit - zNear) / fullRange;
@@ -122,6 +142,7 @@ namespace Wink::GFX::Pipeline
 			frustumCorners[i + 4] = nearCorner + ray * farT;
 		}
 
+		// Sphere clamp
 		glm::vec3 cameraPos = glm::vec3(glm::inverse(cameraView)[3]);
 		const float MAX_SHADOW_DISTANCE = 150.0f;
 		for (auto& c : frustumCorners)
@@ -132,15 +153,12 @@ namespace Wink::GFX::Pipeline
 				c = cameraPos + glm::normalize(toCorner) * MAX_SHADOW_DISTANCE;
 		}
 
-		// Centroid of the sub-frustum
-		glm::vec3 center(0.f);
-		for (auto& c : frustumCorners) center += c;
-		center /= 8.f;
-
-		// Build light view matrix
+		// CRITICAL: fixed light view — origin at world zero, never moves
 		const glm::vec3 up = (glm::abs(glm::dot(lightDir, glm::vec3(0, 1, 0))) > 0.99f)
 			? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 0);
-		const glm::mat4 lightView = glm::lookAt(center - lightDir, center, up);
+		const glm::mat4 lightView = glm::lookAt(-lightDir, glm::vec3(0.f), up);
+		//                                       ^^^^^^^^^  ^^^^^^^^^^^^^
+		//                                       fixed eye  fixed target — never changes
 
 		// AABB in light space
 		glm::vec3 minLS(FLT_MAX);
@@ -152,18 +170,14 @@ namespace Wink::GFX::Pipeline
 			maxLS = glm::max(maxLS, ls);
 		}
 
-		glm::vec3 extents = maxLS - minLS;
-		float maxExtent = std::max(extents.x, extents.y);
-		center = (minLS + maxLS) * 0.5f;
-
+		// Square extents
+		
+		glm::vec3 cameraPosLS = glm::vec3(lightView * glm::vec4(cameraPos, 1.0f));
+		glm::vec2 centerLS = glm::vec2(cameraPosLS.x, cameraPosLS.y);
+		centerLS.x = std::floor(centerLS.x / stableTexelSize) * stableTexelSize;
+		centerLS.y = std::floor(centerLS.y / stableTexelSize) * stableTexelSize;
+		float maxExtent = stableTexelSize * static_cast<float>(SHADOW_MAP_SIZE);
 		float halfExtent = maxExtent * 0.5f;
-
-		glm::vec2 centerLS = glm::vec2((minLS.x + maxLS.x) * 0.5f,
-			(minLS.y + maxLS.y) * 0.5f);
-
-		float worldUnitsPerTexel = maxExtent / static_cast<float>(SHADOW_MAP_SIZE);
-		centerLS.x = std::floor(centerLS.x / worldUnitsPerTexel) * worldUnitsPerTexel;
-		centerLS.y = std::floor(centerLS.y / worldUnitsPerTexel) * worldUnitsPerTexel;
 
 		minLS.x = centerLS.x - halfExtent;
 		maxLS.x = centerLS.x + halfExtent;
@@ -172,14 +186,40 @@ namespace Wink::GFX::Pipeline
 
 		mCascadeOrthoSizes[cascade] = maxExtent;
 
-		float zRange = maxLS.z - minLS.z;
+		const float fixedZNear = -(lightOrthoZ * 0.5f);
+		const float fixedZFar = (lightOrthoZ * 0.5f);
+
 		const glm::mat4 lightProj = glm::ortho(
 			minLS.x, maxLS.x,
 			minLS.y, maxLS.y,
-			minLS.z - zRange,
-			maxLS.z + lightOrthoZ);
+			fixedZNear,
+			fixedZFar);
 
 		mLightSpaceMatrices[cascade] = lightProj * lightView;
+
+		//if (cascade == 0)
+		//{
+		//	Logger::Internal::info("lightView[0]  = ({:.8f},{:.8f},{:.8f},{:.8f})",
+		//		lightView[0][0], lightView[0][1], lightView[0][2], lightView[0][3]);
+		//	Logger::Internal::info("lightView[1]  = ({:.8f},{:.8f},{:.8f},{:.8f})",
+		//		lightView[1][0], lightView[1][1], lightView[1][2], lightView[1][3]);
+		//	Logger::Internal::info("lightView[2]  = ({:.8f},{:.8f},{:.8f},{:.8f})",
+		//		lightView[2][0], lightView[2][1], lightView[2][2], lightView[2][3]);
+		//	Logger::Internal::info("lightView[3]  = ({:.8f},{:.8f},{:.8f},{:.8f})",
+		//		lightView[3][0], lightView[3][1], lightView[3][2], lightView[3][3]);
+		//
+		//	Logger::Internal::info("minLS=({:.8f},{:.8f},{:.8f})", minLS.x, minLS.y, minLS.z);
+		//	Logger::Internal::info("maxLS=({:.8f},{:.8f},{:.8f})", maxLS.x, maxLS.y, maxLS.z);
+		//
+		//	Logger::Internal::info("centerLS PRE  =({:.8f},{:.8f})",
+		//		(minLS.x + maxLS.x) * 0.5f, (minLS.y + maxLS.y) * 0.5f);
+		//	Logger::Internal::info("centerLS POST =({:.8f},{:.8f})", centerLS.x, centerLS.y);
+		//
+		//	Logger::Internal::info("halfExtent={:.8f}", halfExtent);
+		//
+		//	Logger::Internal::info("finalMin=({:.8f},{:.8f})", minLS.x, minLS.y);
+		//	Logger::Internal::info("finalMax=({:.8f},{:.8f})", maxLS.x, maxLS.y);
+		//}
 	}
 
 	void ShadowPass::execute(
@@ -202,13 +242,17 @@ namespace Wink::GFX::Pipeline
 		const glm::vec3 lightDir = glm::normalize(light.direction);
 
 		compute_splits(settings.zNear, settings.zFar, settings.lambda);
+		float fovY = 2.0f * std::atan(1.0f / cameraProj[1][1]);
+		float aspect = cameraProj[1][1] / cameraProj[0][0];
+		compute_stable_texel_sizes(settings.zNear, settings.zFar,
+			settings.lambda, fovY, aspect);
 
 		for (u32 cascade = 0; cascade < NUM_CASCADES; ++cascade)
 		{
 			compute_cascade_matrix(cascade, lightDir,
 				cameraView, cameraProj,
 				settings.zNear, settings.zFar,
-				settings.lightOrthoZ);
+				settings.lightOrthoZ, mStableTexelSizes[cascade]);
 
 			// Attach this cascade's layer to the FBO depth attachment
 			glNamedFramebufferTextureLayer(
