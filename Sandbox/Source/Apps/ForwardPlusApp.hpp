@@ -81,7 +81,7 @@ public:
 		{
 			auto& texPool = GFX::RES::get_texture_pool();
 			auto& cubemapPool = GFX::RES::get_cubemap_pool();
-
+			
 			auto hdr = texPool.decode(RES_PATH / "HDRIs" /
 				"shanghai_bund_4k.hdr");
 			auto env = cubemapPool.hdr_to_cubemap(hdr);

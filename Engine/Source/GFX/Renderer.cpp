@@ -438,7 +438,7 @@ namespace Wink::GFX
 			gShadowPass->execute(dirLights[0], renderObjects,
 				modelMats, camView, camProj);
 #if 0
-		gShadowPass->debug_draw(gWidth, gHeight, 1);
+		gShadowPass->debug_draw(gWidth, gHeight, 0);
 		return;
 #endif
 

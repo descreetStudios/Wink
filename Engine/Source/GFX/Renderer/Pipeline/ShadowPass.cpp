@@ -115,9 +115,21 @@ namespace Wink::GFX::Pipeline
 
 		for (u32 i = 0; i < 4; ++i)
 		{
-			glm::vec3 ray = frustumCorners[i + 4] - frustumCorners[i];
-			frustumCorners[i] = frustumCorners[i] + ray * nearT;
-			frustumCorners[i + 4] = frustumCorners[i] + ray * (farT - nearT);
+			glm::vec3 nearCorner = frustumCorners[i];
+			glm::vec3 farCorner = frustumCorners[i + 4];
+			glm::vec3 ray = farCorner - nearCorner;
+			frustumCorners[i] = nearCorner + ray * nearT;
+			frustumCorners[i + 4] = nearCorner + ray * farT;
+		}
+
+		glm::vec3 cameraPos = glm::vec3(glm::inverse(cameraView)[3]);
+		const float MAX_SHADOW_DISTANCE = 150.0f;
+		for (auto& c : frustumCorners)
+		{
+			glm::vec3 toCorner = c - cameraPos;
+			float dist = glm::length(toCorner);
+			if (dist > MAX_SHADOW_DISTANCE)
+				c = cameraPos + glm::normalize(toCorner) * MAX_SHADOW_DISTANCE;
 		}
 
 		// Centroid of the sub-frustum
@@ -140,23 +152,32 @@ namespace Wink::GFX::Pipeline
 			maxLS = glm::max(maxLS, ls);
 		}
 
-		// Store ortho XY size for PCSS light size scaling
-		mCascadeOrthoSizes[cascade] = maxLS.x - minLS.x;
+		glm::vec3 extents = maxLS - minLS;
+		float maxExtent = std::max(extents.x, extents.y);
+		center = (minLS + maxLS) * 0.5f;
 
-		// Snap to texel grid
-		float worldUnitsPerTexel = mCascadeOrthoSizes[cascade] / static_cast<float>(SHADOW_MAP_SIZE);
-		minLS.x = std::floor(minLS.x / worldUnitsPerTexel) * worldUnitsPerTexel;
-		minLS.y = std::floor(minLS.y / worldUnitsPerTexel) * worldUnitsPerTexel;
-		maxLS.x = std::floor(maxLS.x / worldUnitsPerTexel) * worldUnitsPerTexel;
-		maxLS.y = std::floor(maxLS.y / worldUnitsPerTexel) * worldUnitsPerTexel;
+		float halfExtent = maxExtent * 0.5f;
 
-		minLS.z -= lightOrthoZ * 0.5f;
-		maxLS.z += lightOrthoZ * 0.5f;
+		glm::vec2 centerLS = glm::vec2((minLS.x + maxLS.x) * 0.5f,
+			(minLS.y + maxLS.y) * 0.5f);
 
+		float worldUnitsPerTexel = maxExtent / static_cast<float>(SHADOW_MAP_SIZE);
+		centerLS.x = std::floor(centerLS.x / worldUnitsPerTexel) * worldUnitsPerTexel;
+		centerLS.y = std::floor(centerLS.y / worldUnitsPerTexel) * worldUnitsPerTexel;
+
+		minLS.x = centerLS.x - halfExtent;
+		maxLS.x = centerLS.x + halfExtent;
+		minLS.y = centerLS.y - halfExtent;
+		maxLS.y = centerLS.y + halfExtent;
+
+		mCascadeOrthoSizes[cascade] = maxExtent;
+
+		float zRange = maxLS.z - minLS.z;
 		const glm::mat4 lightProj = glm::ortho(
 			minLS.x, maxLS.x,
 			minLS.y, maxLS.y,
-			-maxLS.z, -minLS.z);
+			minLS.z - zRange,
+			maxLS.z + lightOrthoZ);
 
 		mLightSpaceMatrices[cascade] = lightProj * lightView;
 	}

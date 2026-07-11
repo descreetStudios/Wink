@@ -147,7 +147,6 @@ float pcss_pcf(int cascade, vec2 uv, float z_receiver,
     for (int i = 0; i < PCF_SAMPLES; ++i)
     {
         vec2 s = rotate_poisson(POISSON_DISK[i], theta);
-        // sampler2DArrayShadow: sample(sampler, vec4(uv, layer, compareRef))
         shadow += texture(uShadowMap,
             vec4(uv + s * penumbraUV, float(cascade), z_receiver - bias));
     }
@@ -183,7 +182,6 @@ float compute_shadow(vec3 fragPosWS, vec3 N, vec3 L, float depthVS)
     float avgBlocker = find_avg_blocker_depth(cascade, uv, z_receiver, bias, theta);
 
     if (avgBlocker == -1.0) return 0.0;
-
     if (avgBlocker == -2.0)
     {
         float texel = 1.0 / float(textureSize(uShadowMap, 0).x);
@@ -250,7 +248,7 @@ vec3 compute_dir_light(DirLight light,
 	vec3 radiance = light.color.rgb * light.direction.w; // .w = intensity
 
 	float depthVS = abs((vView * vec4(vFragPos, 1.0)).z);
-	float shadow  = compute_shadow(vFragPos, N, L, depthVS);
+	float shadow = compute_shadow(vFragPos, N, L, depthVS);
 
 	return (kD * albedo / PI + specular) * radiance * NdL * (1.0 - shadow);
 }
