@@ -165,7 +165,7 @@ private:
 	struct CameraSettings
 	{
 		const float LOOK_SENS = 0.1f;
-		const float MOVE_SPEED = 5.0f;
+		const float MOVE_SPEED = 2.0f;
 	};
 
 	struct Camera

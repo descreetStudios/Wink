@@ -47,28 +47,18 @@ public:
 
 			{
 				APP_ZONE_NAME("Model Load 'Floor'");
-				auto e = scene->wrap(ECS::instantiate_model(load_model(
-					"Floor", shader)));
-				auto& t = e.get<ECS::TransformComponent>();
-				t.scale = glm::vec3(0.005f);
-				t.position = { 0.0f, -1.0f, 0.0f };
+				mFloorModel = load_model("Floor", shader);
 			}
 			{
 				APP_ZONE_NAME("Model Load 'Utah Teapot'");
-				auto e = scene->wrap(ECS::instantiate_model(load_model(
-					"UtahTeapot", shader)));
-				auto& t = e.get<ECS::TransformComponent>();
-				t.scale = glm::vec3(0.01f);
-				t.position = { 0.0f, -1.0f, 0.0f };
+				mTeapotModel = load_model("UtahTeapot", shader);
 			}
 			{
 				APP_ZONE_NAME("Model Load 'Building'");
-				auto e = scene->wrap(ECS::instantiate_model(load_model(
-					"Building", shader)));
-				auto& t = e.get<ECS::TransformComponent>();
-				t.scale = glm::vec3(0.01f);
-				t.position = { 2.0f, -1.0f, 2.0f };
+				mBuildingModel = load_model("Building", shader);
 			}
+
+			spawn_objects(scene, 100);
 		}
 
 		/* --- IBL Setup --- */
@@ -145,7 +135,7 @@ public:
 
 		/* --- Animate Sun Direction --- */
 		{
-			if (false)
+			if (true)
 			{
 				static float time = 0.0f;
 				time += fdt;
@@ -285,6 +275,30 @@ private:
 		}
 	}
 
+	void spawn_objects(ECS::Scene* scene, u32 count,
+		float spacing = 10.0f, bool line = false) const
+	{
+		auto spawn_one = [&](GFX::RES::ModelHandle model,
+			const glm::vec3& scale,
+			float x, float z)
+			{
+				auto e = scene->wrap(ECS::instantiate_model(model));
+				auto& t = e.get<ECS::TransformComponent>();
+				t.scale = scale;
+				t.position = { x, -1.0f, z };
+			};
+
+		for (u32 i = 0; i < count; ++i)
+		{
+			float x = line ? (float)i * spacing : (float)(i % 10) * spacing;
+			float z = line ? 0.0f : (float)(i / 10) * spacing;
+
+			spawn_one(mFloorModel, glm::vec3(0.005f), x, z);
+			spawn_one(mTeapotModel, glm::vec3(0.01f), x, z + 2.0f);
+			spawn_one(mBuildingModel, glm::vec3(0.01f), x + 2.0f, z);
+		}
+	}
+
 private:
 	struct CameraSettings
 	{
@@ -308,4 +322,8 @@ private:
 	Camera mCam;
 
 	ECS::Entity mSun;
+
+	GFX::RES::ModelHandle mFloorModel;
+	GFX::RES::ModelHandle mTeapotModel;
+	GFX::RES::ModelHandle mBuildingModel;
 };

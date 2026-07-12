@@ -21,14 +21,18 @@ namespace Wink::GFX::Pipeline
 	extern ShaderHandle gShadowShader;
 	extern ShaderHandle gShadowDebugShader;
 
+	static constexpr u32 SHADOW_MAP_SIZE = 4096;
+
 	ShadowPass::~ShadowPass() noexcept
 	{
 		glDeleteSamplers(1, &mSamplerCmp);
 		glDeleteSamplers(1, &mSamplerRaw);
+		glDeleteBuffers(1, &mShadowUBO);
 	}
 
 	bool ShadowPass::init() noexcept
 	{
+		/* --- Shadow map texture array --- */
 		Texture2DParams params;
 		params.wrapS = TextureWrap::ClampToBorder;
 		params.wrapT = TextureWrap::ClampToBorder;
@@ -40,22 +44,16 @@ namespace Wink::GFX::Pipeline
 		mShadowMap.allocate(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
 			NUM_CASCADES, GL_DEPTH_COMPONENT32F, params);
 
-		const float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-		glTextureParameterfv(mShadowMap.get_id(),
-			GL_TEXTURE_BORDER_COLOR, borderColor);
+		const float border[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+		glTextureParameterfv(mShadowMap.get_id(), GL_TEXTURE_BORDER_COLOR, border);
 
-		// TODO: Try to remove these 2 lines
-		glTextureParameteri(mShadowMap.get_id(),
-			GL_TEXTURE_COMPARE_MODE, GL_NONE);
-		glTextureParameteri(mShadowMap.get_id(),
-			GL_TEXTURE_COMPARE_FUNC, GL_LESS);
-
+		/* --- Samplers --- */
 		glCreateSamplers(1, &mSamplerCmp);
 		glSamplerParameteri(mSamplerCmp, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glSamplerParameteri(mSamplerCmp, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glSamplerParameteri(mSamplerCmp, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 		glSamplerParameteri(mSamplerCmp, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-		glSamplerParameterfv(mSamplerCmp, GL_TEXTURE_BORDER_COLOR, borderColor);
+		glSamplerParameterfv(mSamplerCmp, GL_TEXTURE_BORDER_COLOR, border);
 		glSamplerParameteri(mSamplerCmp, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
 		glSamplerParameteri(mSamplerCmp, GL_TEXTURE_COMPARE_FUNC, GL_LESS);
 
@@ -64,9 +62,15 @@ namespace Wink::GFX::Pipeline
 		glSamplerParameteri(mSamplerRaw, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glSamplerParameteri(mSamplerRaw, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 		glSamplerParameteri(mSamplerRaw, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-		glSamplerParameterfv(mSamplerRaw, GL_TEXTURE_BORDER_COLOR, borderColor);
+		glSamplerParameterfv(mSamplerRaw, GL_TEXTURE_BORDER_COLOR, border);
 		glSamplerParameteri(mSamplerRaw, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 
+		/* --- Shadow UBO --- */
+		glCreateBuffers(1, &mShadowUBO);
+		glNamedBufferStorage(mShadowUBO, sizeof(ShadowGPUData), nullptr,
+			GL_DYNAMIC_STORAGE_BIT);
+
+		/* --- FBO --- */
 		glNamedFramebufferDrawBuffer(mFBO.get_id(), GL_NONE);
 		glNamedFramebufferReadBuffer(mFBO.get_id(), GL_NONE);
 
@@ -77,10 +81,10 @@ namespace Wink::GFX::Pipeline
 	{
 		for (u32 i = 0; i < NUM_CASCADES; ++i)
 		{
-			float p = static_cast<float>(i + 1) / static_cast<float>(NUM_CASCADES);
-			float log = zNear * std::pow(zFar / zNear, p);
+			float p = (i + 1.0f) / NUM_CASCADES;
+			float lg = zNear * std::pow(zFar / zNear, p);
 			float linear = zNear + (zFar - zNear) * p;
-			mSplitDepths[i] = lambda * log + (1.f - lambda) * linear;
+			mSplitDepths[i] = lambda * lg + (1.0f - lambda) * linear;
 		}
 	}
 
@@ -88,96 +92,62 @@ namespace Wink::GFX::Pipeline
 		float zNear, float zFar, float lambda,
 		float fovY, float aspect) noexcept
 	{
-		compute_splits(zNear, zFar, lambda);
-
 		for (u32 i = 0; i < NUM_CASCADES; ++i)
 		{
-			float splitNear = (i == 0) ? zNear : mSplitDepths[i - 1];
 			float splitFar = mSplitDepths[i];
-
 			float halfH = splitFar * std::tan(fovY * 0.5f);
 			float halfW = halfH * aspect;
-
 			float maxExtent = 2.0f * std::sqrt(halfW * halfW + halfH * halfH);
-
 			mStableTexelSizes[i] = maxExtent / static_cast<float>(SHADOW_MAP_SIZE);
 		}
 	}
 
-	void ShadowPass::compute_cascade_matrix(
-		u32 cascade,
-		const glm::vec3& lightDir,
-		const glm::mat4& cameraView,
-		const glm::mat4& cameraProj,
-		float zNear, float zFar,
-		float lightOrthoZ,
+	void ShadowPass::compute_cascade_matrix(u32 cascade,
+		const glm::vec3& lightDir, const glm::mat4& lightView,
+		const glm::mat4& invVP, const glm::vec3& cameraPos,
+		float zNear, float zFar, float lightOrthoZ,
 		float stableTexelSize) noexcept
 	{
-		const glm::mat4 invVP = glm::inverse(cameraProj * cameraView);
-
-		const std::array<glm::vec3, 8> ndcCorners = { {
-			{-1,-1,-1}, { 1,-1,-1}, {-1, 1,-1}, { 1, 1,-1},
-			{-1,-1, 1}, { 1,-1, 1}, {-1, 1, 1}, { 1, 1, 1}
+		const std::array<glm::vec4, 8> ndcCorners{ {
+			{-1,-1,-1,1}, { 1,-1,-1,1}, {-1, 1,-1,1}, { 1, 1,-1,1},
+			{-1,-1, 1,1}, { 1,-1, 1,1}, {-1, 1, 1,1}, { 1, 1, 1,1}
 		} };
 
-		std::array<glm::vec3, 8> frustumCorners;
+		std::array<glm::vec3, 8> frustumCorners{};
 		for (u32 i = 0; i < 8; ++i)
 		{
-			glm::vec4 ws = invVP * glm::vec4(ndcCorners[i], 1.f);
+			glm::vec4 ws = invVP * ndcCorners[i];
 			frustumCorners[i] = glm::vec3(ws) / ws.w;
 		}
 
-		float prevSplit = (cascade == 0) ? zNear : mSplitDepths[cascade - 1];
-		float currSplit = mSplitDepths[cascade];
 		float fullRange = zFar - zNear;
-		float nearT = (prevSplit - zNear) / fullRange;
-		float farT = (currSplit - zNear) / fullRange;
+		float nearT = ((cascade == 0 ? zNear : mSplitDepths[cascade - 1.0f]) - zNear) / fullRange;
+		float farT = (mSplitDepths[cascade] - zNear) / fullRange;
 
 		for (u32 i = 0; i < 4; ++i)
 		{
-			glm::vec3 nearCorner = frustumCorners[i];
-			glm::vec3 farCorner = frustumCorners[i + 4];
-			glm::vec3 ray = farCorner - nearCorner;
-			frustumCorners[i] = nearCorner + ray * nearT;
-			frustumCorners[i + 4] = nearCorner + ray * farT;
+			glm::vec3 ray = frustumCorners[i + 4.0f] - frustumCorners[i];
+			glm::vec3 near = frustumCorners[i];
+			frustumCorners[i] = near + ray * nearT;
+			frustumCorners[i + 4.0f] = near + ray * farT;
 		}
 
-		// Sphere clamp
-		glm::vec3 cameraPos = glm::vec3(glm::inverse(cameraView)[3]);
-		const float MAX_SHADOW_DISTANCE = 150.0f;
-		for (auto& c : frustumCorners)
-		{
-			glm::vec3 toCorner = c - cameraPos;
-			float dist = glm::length(toCorner);
-			if (dist > MAX_SHADOW_DISTANCE)
-				c = cameraPos + glm::normalize(toCorner) * MAX_SHADOW_DISTANCE;
-		}
-
-		// CRITICAL: fixed light view — origin at world zero, never moves
-		const glm::vec3 up = (glm::abs(glm::dot(lightDir, glm::vec3(0, 1, 0))) > 0.99f)
-			? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 0);
-		const glm::mat4 lightView = glm::lookAt(-lightDir, glm::vec3(0.f), up);
-		//                                       ^^^^^^^^^  ^^^^^^^^^^^^^
-		//                                       fixed eye  fixed target — never changes
-
-		// AABB in light space
 		glm::vec3 minLS(FLT_MAX);
 		glm::vec3 maxLS(-FLT_MAX);
 		for (auto& c : frustumCorners)
 		{
-			glm::vec3 ls = glm::vec3(lightView * glm::vec4(c, 1.f));
+			glm::vec3 ls = glm::vec3(lightView * glm::vec4(c, 1.0f));
 			minLS = glm::min(minLS, ls);
 			maxLS = glm::max(maxLS, ls);
 		}
 
-		// Square extents
-		
-		glm::vec3 cameraPosLS = glm::vec3(lightView * glm::vec4(cameraPos, 1.0f));
-		glm::vec2 centerLS = glm::vec2(cameraPosLS.x, cameraPosLS.y);
-		centerLS.x = std::floor(centerLS.x / stableTexelSize) * stableTexelSize;
-		centerLS.y = std::floor(centerLS.y / stableTexelSize) * stableTexelSize;
 		float maxExtent = stableTexelSize * static_cast<float>(SHADOW_MAP_SIZE);
 		float halfExtent = maxExtent * 0.5f;
+
+		glm::vec3 camLS = glm::vec3(lightView * glm::vec4(cameraPos, 1.0f));
+		glm::vec2 centerLS = { camLS.x, camLS.y };
+		centerLS.x = std::floor(centerLS.x / stableTexelSize) * stableTexelSize;
+		centerLS.y = std::floor(centerLS.y / stableTexelSize) * stableTexelSize;
 
 		minLS.x = centerLS.x - halfExtent;
 		maxLS.x = centerLS.x + halfExtent;
@@ -186,40 +156,13 @@ namespace Wink::GFX::Pipeline
 
 		mCascadeOrthoSizes[cascade] = maxExtent;
 
-		const float fixedZNear = -(lightOrthoZ * 0.5f);
-		const float fixedZFar = (lightOrthoZ * 0.5f);
-
 		const glm::mat4 lightProj = glm::ortho(
 			minLS.x, maxLS.x,
 			minLS.y, maxLS.y,
-			fixedZNear,
-			fixedZFar);
+			minLS.z - lightOrthoZ * 0.5f,
+			maxLS.z + lightOrthoZ * 0.5f);
 
 		mLightSpaceMatrices[cascade] = lightProj * lightView;
-
-		//if (cascade == 0)
-		//{
-		//	Logger::Internal::info("lightView[0]  = ({:.8f},{:.8f},{:.8f},{:.8f})",
-		//		lightView[0][0], lightView[0][1], lightView[0][2], lightView[0][3]);
-		//	Logger::Internal::info("lightView[1]  = ({:.8f},{:.8f},{:.8f},{:.8f})",
-		//		lightView[1][0], lightView[1][1], lightView[1][2], lightView[1][3]);
-		//	Logger::Internal::info("lightView[2]  = ({:.8f},{:.8f},{:.8f},{:.8f})",
-		//		lightView[2][0], lightView[2][1], lightView[2][2], lightView[2][3]);
-		//	Logger::Internal::info("lightView[3]  = ({:.8f},{:.8f},{:.8f},{:.8f})",
-		//		lightView[3][0], lightView[3][1], lightView[3][2], lightView[3][3]);
-		//
-		//	Logger::Internal::info("minLS=({:.8f},{:.8f},{:.8f})", minLS.x, minLS.y, minLS.z);
-		//	Logger::Internal::info("maxLS=({:.8f},{:.8f},{:.8f})", maxLS.x, maxLS.y, maxLS.z);
-		//
-		//	Logger::Internal::info("centerLS PRE  =({:.8f},{:.8f})",
-		//		(minLS.x + maxLS.x) * 0.5f, (minLS.y + maxLS.y) * 0.5f);
-		//	Logger::Internal::info("centerLS POST =({:.8f},{:.8f})", centerLS.x, centerLS.y);
-		//
-		//	Logger::Internal::info("halfExtent={:.8f}", halfExtent);
-		//
-		//	Logger::Internal::info("finalMin=({:.8f},{:.8f})", minLS.x, minLS.y);
-		//	Logger::Internal::info("finalMax=({:.8f},{:.8f})", maxLS.x, maxLS.y);
-		//}
 	}
 
 	void ShadowPass::execute(
@@ -240,39 +183,55 @@ namespace Wink::GFX::Pipeline
 		}
 
 		const glm::vec3 lightDir = glm::normalize(light.direction);
+		const glm::vec3 up = (glm::abs(glm::dot(lightDir, glm::vec3(0, 1, 0))) > 0.99f)
+			? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 0);
+		const glm::mat4 lightView = glm::lookAt(-lightDir, glm::vec3(0.0f), up);
+		const glm::mat4 invVP = glm::inverse(cameraProj * cameraView);
+		const glm::vec3 cameraPos = glm::vec3(glm::inverse(cameraView)[3]);
+
+		const float fovY = 2.0f * std::atan(1.0f / cameraProj[1][1]);
+		const float aspect = cameraProj[1][1] / cameraProj[0][0];
 
 		compute_splits(settings.zNear, settings.zFar, settings.lambda);
-		float fovY = 2.0f * std::atan(1.0f / cameraProj[1][1]);
-		float aspect = cameraProj[1][1] / cameraProj[0][0];
-		compute_stable_texel_sizes(settings.zNear, settings.zFar,
-			settings.lambda, fovY, aspect);
+		compute_stable_texel_sizes(settings.zNear, settings.zFar, settings.lambda, fovY, aspect);
 
 		for (u32 cascade = 0; cascade < NUM_CASCADES; ++cascade)
 		{
 			compute_cascade_matrix(cascade, lightDir,
-				cameraView, cameraProj,
+				lightView, invVP, cameraPos,
 				settings.zNear, settings.zFar,
 				settings.lightOrthoZ, mStableTexelSizes[cascade]);
+		}
 
-			// Attach this cascade's layer to the FBO depth attachment
-			glNamedFramebufferTextureLayer(
-				mFBO.get_id(), GL_DEPTH_ATTACHMENT,
+		mUBOData.shadowMapTexelSize = 1.0f / static_cast<float>(SHADOW_MAP_SIZE);
+		for (u32 i = 0; i < NUM_CASCADES; ++i)
+		{
+			mUBOData.lightSpaceMatrices[i] = mLightSpaceMatrices[i];
+			mUBOData.cascadeSplits = glm::vec4(mSplitDepths[0],
+				mSplitDepths[1], mSplitDepths[2], mSplitDepths[3]);
+			mUBOData.cascadeOrthoSizes = glm::vec4(mCascadeOrthoSizes[0],
+				mCascadeOrthoSizes[1], mCascadeOrthoSizes[2], mCascadeOrthoSizes[3]);
+		}
+		glNamedBufferSubData(mShadowUBO, 0, sizeof(ShadowGPUData), &mUBOData);
+
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glDisable(GL_CULL_FACE);
+		glEnable(GL_POLYGON_OFFSET_FILL);
+		glPolygonOffset(2.0f, 4.0f);
+
+		shader->use();
+
+		for (u32 cascade = 0; cascade < NUM_CASCADES; ++cascade)
+		{
+			glNamedFramebufferTextureLayer(mFBO.get_id(), GL_DEPTH_ATTACHMENT,
 				mShadowMap.get_id(), 0, cascade);
-
 			glBindFramebuffer(GL_FRAMEBUFFER, mFBO.get_id());
 			glViewport(0, 0, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
 			glClear(GL_DEPTH_BUFFER_BIT);
 
-			glEnable(GL_DEPTH_TEST);
-			glDepthFunc(GL_LESS);
-			glDepthMask(GL_TRUE);
-			glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-
-			glDisable(GL_CULL_FACE);
-			glEnable(GL_POLYGON_OFFSET_FILL);
-			glPolygonOffset(2.0f, 4.0f);
-
-			shader->use();
 			shader->set("uLightSpaceMatrix", mLightSpaceMatrices[cascade]);
 
 			for (size_t i = 0; i < objects.size(); ++i)
@@ -284,37 +243,20 @@ namespace Wink::GFX::Pipeline
 					static_cast<i32>(gMeshPool.get_index_count(objects[i].mesh)),
 					GL_UNSIGNED_INT, nullptr);
 			}
-
-			glDisable(GL_POLYGON_OFFSET_FILL);
-			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		}
 
+		glDisable(GL_POLYGON_OFFSET_FILL);
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void ShadowPass::bind_shadow_map(ShaderHandle shader, u32 unit) const noexcept
+	void ShadowPass::bind_shadow_map(u32 unit) const noexcept
 	{
 		glBindTextureUnit(unit, mShadowMap.get_id());
 		glBindTextureUnit(unit + 1, mShadowMap.get_id());
 		glBindSampler(unit, mSamplerCmp);
 		glBindSampler(unit + 1, mSamplerRaw);
-
-		ShaderProgram* sh = gShaderPool.try_get(shader);
-		if (!sh || !sh->is_valid()) return;
-
-		sh->use();
-		sh->set("uShadowMap", static_cast<i32>(unit));
-		sh->set("uShadowMapRaw", static_cast<i32>(unit + 1));
-
-		for (u32 i = 0; i < NUM_CASCADES; ++i)
-		{
-			sh->set("uLightSpaceMatrices[" + std::to_string(i) + "]",
-				mLightSpaceMatrices[i]);
-			sh->set("uCascadeSplits[" + std::to_string(i) + "]",
-				mSplitDepths[i]);
-			sh->set("uCascadeOrthoSizes[" + std::to_string(i) + "]",
-				mCascadeOrthoSizes[i]);
-		}
+		glBindBufferBase(GL_UNIFORM_BUFFER, 4, mShadowUBO);
 	}
 
 	void ShadowPass::debug_draw(u32 width, u32 height, u32 cascade) noexcept
@@ -335,7 +277,6 @@ namespace Wink::GFX::Pipeline
 
 		glBindVertexArray(gFullscreenVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
-
 		glBindSampler(0, 0);
 	}
 }

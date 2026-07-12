@@ -436,7 +436,13 @@ namespace Wink::GFX
 		glEnable(GL_DEPTH_TEST);
 		if (!dirLights.empty())
 			gShadowPass->execute(dirLights[0], renderObjects,
-				modelMats, camView, camProj);
+				modelMats, camView, camProj,
+				CSMSettings{
+					.zNear = cam.nearPlane,
+					.zFar = cam.farPlane,
+					.lambda = 0.75f,
+					.lightOrthoZ = 250.0f
+				});
 #if 0
 		gShadowPass->debug_draw(gWidth, gHeight, 0);
 		return;
@@ -463,6 +469,8 @@ namespace Wink::GFX
 		glViewport(0, 0, gWidth, gHeight);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		gShadowPass->bind_shadow_map(15);
+
 		for (size_t i = 0; i < renderObjects.size(); ++i)
 		{
 			draw({
@@ -470,8 +478,7 @@ namespace Wink::GFX
 				.camData = camData,
 				.modelMat = modelMats[i],
 				.normalMat = glm::transpose(
-					glm::inverse(glm::mat3(modelMats[i]))),
-				.shadowPass = *gShadowPass });
+					glm::inverse(glm::mat3(modelMats[i]))) });
 		}
 #if 0
 		gLightCullingPass->debug_draw(gWidth, gHeight);
@@ -545,7 +552,7 @@ namespace Wink::GFX
 		gWidth = width;
 		gHeight = height;
 	}
-	
+
 	void set_clear_color(const glm::vec4& color)
 	{
 		glClearColor(color.r, color.g, color.b, color.a);

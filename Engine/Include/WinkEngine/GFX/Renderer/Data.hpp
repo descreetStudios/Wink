@@ -58,7 +58,5 @@ namespace Wink::GFX
 		const CameraData& camData;
 		const glm::mat4& modelMat;
 		const glm::mat3& normalMat;
-
-		Pipeline::ShadowPass& shadowPass;
 	};
 }

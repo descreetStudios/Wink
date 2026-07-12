@@ -39,4 +39,19 @@ namespace Wink::GFX
 
 		DirLightGPU dirLights[MAX_DIR_LIGHTS];
 	};
+
+	namespace Pipeline
+	{
+		static constexpr u32 NUM_CASCADES = 4;
+
+		// NOTE: Padding is designed for 4 cascades
+		struct alignas(16) ShadowGPUData
+		{
+			glm::mat4 lightSpaceMatrices[NUM_CASCADES];
+			glm::vec4 cascadeSplits;
+			glm::vec4 cascadeOrthoSizes;
+			float shadowMapTexelSize;
+			float _pad[3];
+		};
+	}
 }

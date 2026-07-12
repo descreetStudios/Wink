@@ -77,7 +77,8 @@ cmake --build build
 ![Sponza Shadows Shanghai](Images/Showcases/sponza_shadows_shanghai.png "Sponza Shadows Shanghai")
 
 <p align="center">
-    <span style="font-size: 23px;"><b>Simple Soft Shadows Test</b></span>
+    <span style="font-size: 23px;"><b>Cascaded Shadow Maps Test</b></span>
 </p>
+PCSS, Poisson sampling, 32 blocker samples, 32 PCF samples
 
-![Shadows Test](Images/Showcases/shadows_test.png "Shadows Test")
+![CSM Test](Images/Showcases/CSM_test.png "CSM Test")

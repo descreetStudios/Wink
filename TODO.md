@@ -7,6 +7,6 @@
 			- [x] Poisson disk sampling
 			- [x] Percentage-Closer Soft Shadows
 			- [x] Normal-offset bias
-		- [ ] Cascaded Shadow Maps (CSM)
+		- [x] Cascaded Shadow Maps (CSM)
 		- [ ] Parallel‑Split Shadow Maps (PSSM)
 		- [ ] Moment Shadow Maps (MSM)

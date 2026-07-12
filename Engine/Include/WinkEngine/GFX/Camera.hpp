@@ -11,8 +11,8 @@ namespace Wink::GFX
 		float roll = 0.0f;
 
 		float fov = 60.0f;
-		float nearPlane = 0.01f;
-		float farPlane = 1000.0f;
+		float nearPlane = 0.1f;
+		float farPlane = 600.0f;
 		float aspectRatio = 16.f / 9.f;
 
 	public:
